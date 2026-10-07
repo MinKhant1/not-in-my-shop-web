@@ -69,11 +69,12 @@ export class Game {
   }
 
   setupLights() {
-    const hemisphere = new THREE.HemisphereLight(0xfff6ea, 0x8e99a3, 1.05);
+    const toon = this.config.graphics.toonShading;
+    const hemisphere = new THREE.HemisphereLight(0xfff6ea, 0x8e99a3, toon ? 0.45 : 1.05);
     this.scene.add(hemisphere);
 
-    const sun = new THREE.DirectionalLight(0xfffaf3, 0.8);
-    sun.position.set(5, 10, 6);
+    const sun = new THREE.DirectionalLight(0xfffaf3, toon ? 2.0 : 0.8);
+    sun.position.set(toon ? 8 : 5, toon ? 6 : 10, toon ? 5 : 6);
     if (this.config.graphics.shadows) {
       sun.castShadow = true;
       sun.shadow.mapSize.set(1024, 1024);

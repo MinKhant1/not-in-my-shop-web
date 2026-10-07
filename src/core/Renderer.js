@@ -10,7 +10,9 @@ export class Renderer {
       powerPreference: 'high-performance'
     });
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
-    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMapping = GameConfig.graphics.toonShading
+      ? THREE.NoToneMapping
+      : THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1;
     this.renderer.shadowMap.enabled = GameConfig.graphics.shadows;
     this.setPixelRatio();

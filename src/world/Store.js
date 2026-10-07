@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { storeLayout } from './StoreLayout.js';
+import { ToonMaterialFactory } from '../rendering/ToonMaterial.js';
 
 function isMiniMarketModel(url) {
   return url.startsWith('/models/environment/') || url.startsWith('/models/store/');
@@ -32,12 +33,16 @@ export class Store {
     this.loader = loader;
     this.collision = collision;
     this.shadows = config.graphics.shadows;
+    this.toonShading = config.graphics.toonShading === true;
     this.debug = config.debug;
     this.group = new THREE.Group();
     this.group.name = 'store';
     this.records = [];
     this.reportedModels = new Set();
     this.miniMarketTexture = null;
+    this.toonMaterials = this.toonShading
+      ? new ToonMaterialFactory(config.graphics.toonSteps ?? 4)
+      : null;
   }
 
   async load() {
@@ -121,11 +126,15 @@ export class Store {
           return source;
         }
 
+        applied = true;
+        if (this.toonMaterials) {
+          return this.toonMaterials.create(source, texture);
+        }
+
         const material = source ? source.clone() : new THREE.MeshStandardMaterial();
         material.map = texture;
         material.color.set(0xffffff);
         material.needsUpdate = true;
-        applied = true;
         return material;
       });
 

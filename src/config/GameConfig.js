@@ -2,7 +2,10 @@ export const GameConfig = {
   debug: true,
   background: 0xc5ced6,
   graphics: {
-    shadows: false
+    shadows: false,
+    toonShading: true,
+    toonPlayer: true,
+    toonSteps: 4
   },
   player: {
     speed: 2.6,

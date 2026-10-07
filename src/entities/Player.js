@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { ToonMaterialFactory } from '../rendering/ToonMaterial.js';
 
 const PLAYER_MODEL = '/models/characters/Casual_Male.gltf';
 const ROOT_POSITION_TRACKS = new Set([
@@ -42,6 +43,10 @@ export class Player {
     this.collision = collision;
     this.config = config.player;
     this.debug = config.debug;
+    this.toonPlayer = config.graphics?.toonPlayer === true;
+    this.toonSteps = config.graphics?.toonSteps ?? 4;
+    this.toonFactory = null;
+    this.materialSlots = [];
 
     this.speed = this.config.speed;
     this.collisionRadius = this.config.collisionRadius;
@@ -79,6 +84,7 @@ export class Player {
 
     const clips = asset.animations ?? [];
     console.log('Casual_Male animations:', clips.map((clip) => clip.name));
+    this.prepareMaterials(model);
     this.setupAnimations(model, clips);
 
     if (this.debug) {
@@ -94,6 +100,56 @@ export class Player {
         maxY: Number(this._box.max.y.toFixed(3))
       });
     }
+  }
+
+  prepareMaterials(model) {
+    this.toonFactory = new ToonMaterialFactory(this.toonSteps);
+    this.materialSlots = [];
+
+    model.traverse((child) => {
+      if (!child.isMesh) {
+        return;
+      }
+
+      const multiple = Array.isArray(child.material);
+      const sources = multiple ? child.material.slice() : [child.material];
+      const toon = sources.map((source) => this.toonFactory.fromImported(source));
+      this.materialSlots.push({
+        mesh: child,
+        original: sources,
+        toon,
+        multiple
+      });
+
+      if (!this.debug) {
+        return;
+      }
+
+      sources.forEach((source, index) => {
+        const meshName = child.name || '(unnamed)';
+        const suffix = sources.length > 1 ? ` [${index}]` : '';
+        console.log(`Player mesh: ${meshName}${suffix}`);
+        console.log(`SkinnedMesh: ${Boolean(child.isSkinnedMesh)}`);
+        console.log(`Original material: ${source && source.name ? source.name : '(unnamed)'}`);
+        console.log(`Texture: ${Boolean(source && source.map)}`);
+        console.log(`Converted to toon: ${this.toonPlayer}`);
+      });
+    });
+
+    this.applyPlayerMaterials();
+  }
+
+  applyPlayerMaterials() {
+    for (let i = 0; i < this.materialSlots.length; i += 1) {
+      const slot = this.materialSlots[i];
+      const chosen = this.toonPlayer ? slot.toon : slot.original;
+      slot.mesh.material = slot.multiple ? chosen : chosen[0];
+    }
+  }
+
+  setToonPlayer(enabled) {
+    this.toonPlayer = enabled === true;
+    this.applyPlayerMaterials();
   }
 
   setupAnimations(model, clips) {
