@@ -4,9 +4,9 @@ function node(id, x, z, kind, look = null) {
   return { id, x, z, kind, look };
 }
 
-// Lanes sit in the open floor, clear of shelf, freezer, display, and register colliders.
-// Shelf points are on those lanes, not inside the fixtures. Queue slots run west of the
-// register. The only link out of slot 0 is a one-way exit north, so thieves never use it.
+// Lanes sit in the open floor. The queue is a horizontal line in front of the
+// register. Shoppers join from the far end. A one-way step south lets a thief
+// leave without walking back to the register.
 const NODES = [
   node('entranceOutside', -4.4, -3, 'spawn'),
   node('door', -3.55, -3, 'door'),
@@ -19,7 +19,6 @@ const NODES = [
   node('shelfLeftFront', -2.45, -0.95, 'pick', [-1.2, -0.95]),
   node('westLower', -2.45, 0.3, 'lane'),
   node('westFront', -2.45, 1.9, 'lane'),
-  node('westQueue', -2.45, 2.35, 'lane'),
 
   node('backCenter', 0, -2.55, 'lane'),
   node('shelfCenterBack', 0, -1.75, 'pick', [-1.2, -1.75]),
@@ -37,14 +36,7 @@ const NODES = [
   node('shelfFruit', -0.45, 1.9, 'pick', [-0.4, 1.05]),
   node('frontMid', 0, 1.9, 'lane'),
   node('shelfBread', 0.55, 1.9, 'pick', [0.45, 1.05]),
-  node('queueApproach', 1.15, 1.9, 'approach'),
-
-  node('queueEntrance', -1.85, 2.35, 'approach'),
-  node('queue4', -1.25, 2.35, 'queue', [2.15, 2.35]),
-  node('queue3', -0.65, 2.35, 'queue', [2.15, 2.35]),
-  node('queue2', -0.05, 2.35, 'queue', [2.15, 2.35]),
-  node('queue1', 0.55, 2.35, 'queue', [2.15, 2.35]),
-  node('queue0', 1.15, 2.35, 'queue', [2.15, 2.35])
+  node('checkoutApproach', 1.15, 1.9, 'approach')
 ];
 
 const LINKS = [
@@ -59,15 +51,13 @@ const LINKS = [
   ['westMid', 'shelfLeftFront'],
   ['shelfLeftFront', 'westLower'],
   ['westLower', 'westFront'],
-  ['westFront', 'westQueue'],
   ['westFront', 'westBack'],
-  ['queueApproach', 'westFront'],
-  ['westQueue', 'queueEntrance'],
+  ['checkoutApproach', 'westFront'],
   ['westFront', 'shelfFruit'],
   ['shelfFruit', 'frontMid'],
   ['frontMid', 'shelfBread'],
-  ['shelfBread', 'queueApproach'],
-  ['queueApproach', 'rightFront'],
+  ['shelfBread', 'checkoutApproach'],
+  ['checkoutApproach', 'rightFront'],
   ['rightFront', 'rightSouth'],
 
   ['westBack', 'backCenter'],
@@ -81,39 +71,79 @@ const LINKS = [
   ['backRight', 'shelfRightBack'],
   ['shelfRightBack', 'rightMid'],
   ['rightMid', 'shelfRightFront'],
-  ['shelfRightFront', 'rightSouth'],
-
-  ['queueEntrance', 'queue4'],
-  ['queue4', 'queue3'],
-  ['queue3', 'queue2'],
-  ['queue2', 'queue1'],
-  ['queue1', 'queue0']
+  ['shelfRightFront', 'rightSouth']
 ];
 
-const LEAVE_LINKS = [
-  ['queue0', 'queueApproach']
-];
+function appendQueue(nodes, links, leave, checkout) {
+  const spacing = checkout?.queueSpacing ?? 0.78;
+  const count = checkout?.queueSlots ?? 6;
+  const origin = checkout?.queueOrigin ?? [1.2, 3.7];
+  const zone = checkout?.zonePosition ?? [2.28, 3.7];
+  const originX = origin[0];
+  const originZ = origin[1];
+  const slotIds = [];
+
+  for (let i = 0; i < count; i += 1) {
+    const id = `queue${i}`;
+    slotIds.push(id);
+    const x = originX - i * spacing;
+    nodes.push(node(id, x, originZ, 'queue', [zone[0], originZ]));
+    if (i > 0) {
+      links.push([`queue${i}`, `queue${i - 1}`]);
+    }
+  }
+
+  const tailX = originX - (count - 1) * spacing;
+  nodes.push(node('queueApproach', -2.45, originZ - 1.15, 'approach'));
+  links.push(
+    ['westFront', 'queueApproach'],
+    ['queueApproach', `queue${count - 1}`]
+  );
+
+  let previousSide = null;
+  for (let i = 0; i < count; i += 1) {
+    const sideId = `queueSide${i}`;
+    const x = originX - i * spacing;
+    nodes.push(node(sideId, x, originZ + 0.95, 'approach'));
+    leave.push([`queue${i}`, sideId]);
+    if (previousSide) {
+      links.push([previousSide, sideId]);
+    }
+    previousSide = sideId;
+  }
+
+  nodes.push(node('queueExit', Math.min(tailX + 0.35, -2.45), originZ + 0.95, 'approach'));
+  links.push(
+    [previousSide, 'queueExit'],
+    ['queueExit', 'westFront']
+  );
+  return slotIds;
+}
 
 export class ShopperNavigation {
-  constructor() {
-    this.nodes = new Map(NODES.map((entry) => [entry.id, entry]));
+  constructor(checkout) {
+    const nodes = NODES.slice();
+    const links = LINKS.map((pair) => pair.slice());
+    const leave = [];
+    this.queueSlotIds = appendQueue(nodes, links, leave, checkout);
+    this.nodeList = nodes;
+    this.nodes = new Map(nodes.map((entry) => [entry.id, entry]));
     this.links = new Map();
     this.pickIds = [];
-    this.queueSlotIds = ['queue0', 'queue1', 'queue2', 'queue3', 'queue4'];
 
-    for (let i = 0; i < NODES.length; i += 1) {
-      this.links.set(NODES[i].id, []);
-      if (NODES[i].kind === 'pick') {
-        this.pickIds.push(NODES[i].id);
+    for (let i = 0; i < this.nodeList.length; i += 1) {
+      this.links.set(this.nodeList[i].id, []);
+      if (this.nodeList[i].kind === 'pick') {
+        this.pickIds.push(this.nodeList[i].id);
       }
     }
 
-    for (let i = 0; i < LINKS.length; i += 1) {
-      this.addLink(LINKS[i][0], LINKS[i][1], false);
-      this.addLink(LINKS[i][1], LINKS[i][0], false);
+    for (let i = 0; i < links.length; i += 1) {
+      this.addLink(links[i][0], links[i][1], false);
+      this.addLink(links[i][1], links[i][0], false);
     }
-    for (let i = 0; i < LEAVE_LINKS.length; i += 1) {
-      this.addLink(LEAVE_LINKS[i][0], LEAVE_LINKS[i][1], true);
+    for (let i = 0; i < leave.length; i += 1) {
+      this.addLink(leave[i][0], leave[i][1], true);
     }
   }
 
@@ -122,10 +152,10 @@ export class ShopperNavigation {
   }
 
   nearest(x, z, avoidQueue) {
-    let best = NODES[0];
+    let best = this.nodeList[0];
     let bestDistance = Infinity;
-    for (let i = 0; i < NODES.length; i += 1) {
-      const entry = NODES[i];
+    for (let i = 0; i < this.nodeList.length; i += 1) {
+      const entry = this.nodeList[i];
       if (avoidQueue && entry.kind === 'queue') {
         continue;
       }
@@ -207,8 +237,8 @@ export class ShopperNavigation {
     const geometry = new THREE.SphereGeometry(0.06, 8, 6);
     const positions = [];
 
-    for (let i = 0; i < NODES.length; i += 1) {
-      const entry = NODES[i];
+    for (let i = 0; i < this.nodeList.length; i += 1) {
+      const entry = this.nodeList[i];
       const color = colorForKind(entry.kind);
       const marker = new THREE.Mesh(
         geometry,
@@ -220,8 +250,8 @@ export class ShopperNavigation {
     }
 
     const seen = new Set();
-    for (let i = 0; i < NODES.length; i += 1) {
-      const from = NODES[i];
+    for (let i = 0; i < this.nodeList.length; i += 1) {
+      const from = this.nodeList[i];
       const neighbors = this.links.get(from.id);
       for (let n = 0; n < neighbors.length; n += 1) {
         const key = [from.id, neighbors[n].id].sort().join('|');

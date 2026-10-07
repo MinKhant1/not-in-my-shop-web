@@ -89,7 +89,7 @@ export class ShopperVisuals {
   createLabel() {
     const canvas = document.createElement('canvas');
     canvas.width = 256;
-    canvas.height = 180;
+    canvas.height = 256;
     const texture = new THREE.CanvasTexture(canvas);
     texture.colorSpace = THREE.SRGBColorSpace;
     this.debugCanvas = canvas;
@@ -100,7 +100,7 @@ export class ShopperVisuals {
       depthTest: false
     }));
     sprite.position.y = 2.05;
-    sprite.scale.set(1.05, 0.74, 1);
+    sprite.scale.set(1.05, 1.05, 1);
     sprite.name = 'shopper-debug';
     return sprite;
   }
@@ -110,15 +110,15 @@ export class ShopperVisuals {
       return;
     }
     const context = this.debugCanvas.getContext('2d');
-    context.clearRect(0, 0, 256, 180);
+    context.clearRect(0, 0, 256, 256);
     context.fillStyle = 'rgba(16, 18, 22, 0.78)';
-    context.fillRect(4, 4, 248, 172);
+    context.fillRect(4, 4, 248, 248);
     context.fillStyle = '#ffffff';
-    context.font = 'bold 26px sans-serif';
+    context.font = 'bold 24px sans-serif';
     context.textAlign = 'center';
     context.textBaseline = 'middle';
-    const lineHeight = 30;
-    const start = 22;
+    const lineHeight = 32;
+    const start = 24;
     for (let i = 0; i < lines.length; i += 1) {
       context.fillText(lines[i], 128, start + i * lineHeight);
     }
@@ -126,6 +126,7 @@ export class ShopperVisuals {
   }
 
   revealThief() {
+    this.hideCountdown();
     if (this.thiefMaterials) {
       return;
     }
@@ -136,6 +137,67 @@ export class ShopperVisuals {
     icon.scale.set(0.34, 0.34, 1);
     this.group.add(icon);
     this.icon = icon;
+  }
+
+  showCountdown(seconds) {
+    const shown = Math.max(1, Math.ceil(seconds));
+    if (!this.countdown) {
+      this.countdown = this.createCountdown();
+      this.group.add(this.countdown);
+    }
+    this.countdown.visible = true;
+    if (this.countdownValue !== shown) {
+      this.drawCountdown(shown, seconds <= 2);
+      this.countdownValue = shown;
+    }
+    const pulse = seconds <= 2 ? 1 + Math.sin(seconds * 16) * 0.12 : 1;
+    this.countdown.scale.set(0.46 * pulse, 0.46 * pulse, 1);
+  }
+
+  hideCountdown() {
+    if (this.countdown) {
+      this.countdown.visible = false;
+    }
+    this.countdownValue = 0;
+  }
+
+  createCountdown() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 128;
+    canvas.height = 128;
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    this.countdownCanvas = canvas;
+    this.countdownTexture = texture;
+    this.countdownValue = 0;
+    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: texture,
+      transparent: true,
+      depthTest: false
+    }));
+    sprite.position.y = 1.62;
+    sprite.scale.set(0.46, 0.46, 1);
+    sprite.name = 'queue-countdown';
+    sprite.visible = false;
+    return sprite;
+  }
+
+  drawCountdown(shown, urgent) {
+    const context = this.countdownCanvas.getContext('2d');
+    context.clearRect(0, 0, 128, 128);
+    context.fillStyle = urgent ? '#c62828' : '#1b2430';
+    context.beginPath();
+    context.arc(64, 64, 56, 0, Math.PI * 2);
+    context.fill();
+    context.lineWidth = 8;
+    context.strokeStyle = urgent ? '#ffd1d1' : '#ffe08a';
+    context.stroke();
+    context.fillStyle = '#ffffff';
+    context.font = 'bold 72px sans-serif';
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    context.fillText(String(shown), 64, 70);
+    this.countdownTexture.needsUpdate = true;
   }
 
   dispose() {
@@ -151,6 +213,11 @@ export class ShopperVisuals {
       this.debugSprite.removeFromParent();
       this.debugSprite.material.dispose();
       this.debugTexture.dispose();
+    }
+    if (this.countdown) {
+      this.countdown.removeFromParent();
+      this.countdown.material.dispose();
+      this.countdownTexture.dispose();
     }
   }
 }

@@ -50,7 +50,7 @@ function randomInt(min, max) {
 let nextShopperId = 1;
 
 export class ShopperAI {
-  constructor({ asset, modelUrl, config, navigation, collision, checkoutQueue, toonFactory, debug }) {
+  constructor({ asset, modelUrl, config, navigation, collision, checkoutQueue, checkoutConfig, toonFactory, debug }) {
     this.id = nextShopperId;
     nextShopperId += 1;
     this.modelUrl = modelUrl;
@@ -58,6 +58,7 @@ export class ShopperAI {
     this.navigation = navigation;
     this.collision = collision;
     this.checkoutQueue = checkoutQueue;
+    this.checkoutConfig = checkoutConfig;
     this.debug = debug;
     this.thiefChance = config.thiefChance;
     this.radius = config.radius;
@@ -72,6 +73,11 @@ export class ShopperAI {
     this.moving = false;
     this.lastPickId = null;
     this.queueIndex = -1;
+    this.hasReachedQueueSlot = false;
+    this.payment = 0;
+    this.impatient = false;
+    this.angerTimer = 0;
+    this.angerReact = 0;
     this.lookTarget = null;
     this.actionLock = null;
 
@@ -143,10 +149,22 @@ export class ShopperAI {
       return;
     }
 
-    if (this.state === ShopperState.WAITING_IN_QUEUE) {
+    if (
+      this.state === ShopperState.WAITING_IN_QUEUE
+      || this.state === ShopperState.WAITING_FOR_CHECKOUT
+      || this.state === ShopperState.CHECKING_OUT
+      || this.state === ShopperState.ANGRY
+    ) {
       this.moving = false;
       this.faceLook(dt);
       this.updateAnimation(false, dt);
+      if (this.state === ShopperState.ANGRY) {
+        this.angerReact -= dt;
+        if (this.angerReact <= 0) {
+          this.beginThiefEscape();
+        }
+      }
+      this.syncCountdown();
       this.refreshDebug();
       return;
     }
@@ -157,6 +175,7 @@ export class ShopperAI {
     if (result === 'arrived') {
       this.onArrived();
     }
+    this.syncCountdown();
     this.refreshDebug();
   }
 
@@ -221,14 +240,7 @@ export class ShopperAI {
     }
 
     if (this.state === ShopperState.GOING_TO_QUEUE) {
-      if (this.queueIndex === 0) {
-        this.beginCheckout();
-      } else {
-        this.state = ShopperState.WAITING_IN_QUEUE;
-        this.faceNode(destination);
-        this.moving = false;
-        this.refreshDebug();
-      }
+      this.arriveAtQueueSlot(destination);
       return;
     }
 
@@ -259,13 +271,53 @@ export class ShopperAI {
       this.becomeThief();
       return;
     }
+    this.payment = randomInt(
+      this.checkoutConfig.minCustomerPayment,
+      this.checkoutConfig.maxCustomerPayment
+    );
     const index = this.checkoutQueue.join(this);
     if (index < 0) {
       this.pause(0.4, () => this.decide());
     }
   }
 
+  becomeAngryThief() {
+    if (
+      this.isThief
+      || this.state === ShopperState.ANGRY
+      || this.state !== ShopperState.WAITING_IN_QUEUE
+      || !this.hasReachedQueueSlot
+    ) {
+      return;
+    }
+    this.state = ShopperState.ANGRY;
+    this.impatient = false;
+    this.angerTimer = 0;
+    this.visuals.hideCountdown();
+    this.isThief = true;
+    this.visuals.revealThief();
+    this.angerReact = this.checkoutConfig.angerReactTime ?? 0.65;
+    this.moving = false;
+    this.refreshDebug();
+  }
+
+  beginThiefEscape() {
+    if (this.state !== ShopperState.ANGRY) {
+      return;
+    }
+    if (this.checkoutQueue.queue.includes(this)) {
+      this.checkoutQueue.complete(this);
+    }
+    this.queueIndex = -1;
+    this.hasReachedQueueSlot = false;
+    this.route.config.moveSpeed *= 1.45;
+    this.state = ShopperState.THIEF;
+    this.goTo('despawn', true);
+  }
+
   becomeThief() {
+    this.impatient = false;
+    this.visuals.hideCountdown();
     this.isThief = true;
     this.state = ShopperState.THIEF;
     this.visuals.revealThief();
@@ -278,13 +330,26 @@ export class ShopperAI {
   }
 
   setQueueIndex(index) {
+    const previous = this.queueIndex;
     this.queueIndex = index;
     if (
       this.state === ShopperState.CHECKING_OUT
+      || this.state === ShopperState.ANGRY
       || this.state === ShopperState.EXITING
       || this.state === ShopperState.DESPAWNED
       || this.state === ShopperState.THIEF
     ) {
+      return;
+    }
+    if (
+      previous === index
+      && (
+        this.state === ShopperState.GOING_TO_QUEUE
+        || this.state === ShopperState.WAITING_IN_QUEUE
+        || this.state === ShopperState.WAITING_FOR_CHECKOUT
+      )
+    ) {
+      this.refreshDebug();
       return;
     }
     const slotId = this.checkoutQueue.slotId(index);
@@ -294,24 +359,89 @@ export class ShopperAI {
     const slot = this.navigation.nodes.get(slotId);
     const dx = slot.x - this.group.position.x;
     const dz = slot.z - this.group.position.z;
-    const reach = this.config.waypointReachDistance;
-    if (index === 0 && dx * dx + dz * dz <= reach * reach) {
-      this.beginCheckout();
+    const arrival = this.checkoutConfig.queueArrivalDistance ?? 0.45;
+    this.hasReachedQueueSlot = false;
+    this.visuals.hideCountdown();
+    if (dx * dx + dz * dz <= arrival * arrival) {
+      this.arriveAtQueueSlot(slot);
       return;
     }
     this.state = ShopperState.GOING_TO_QUEUE;
     this.goTo(slotId);
   }
 
-  beginCheckout() {
+  arriveAtQueueSlot(slot) {
+    const assigned = this.navigation.nodes.get(this.checkoutQueue.slotId(this.queueIndex));
+    const target = assigned ?? slot;
+    if (target) {
+      const dx = target.x - this.group.position.x;
+      const dz = target.z - this.group.position.z;
+      const arrival = Math.max(
+        this.checkoutConfig.queueArrivalDistance ?? 0.45,
+        this.config.waypointReachDistance
+      );
+      if (dx * dx + dz * dz > arrival * arrival) {
+        this.hasReachedQueueSlot = false;
+        this.state = ShopperState.GOING_TO_QUEUE;
+        this.goTo(target.id);
+        return;
+      }
+    }
+    this.hasReachedQueueSlot = true;
+    this.moving = false;
+    if (this.queueIndex === 0) {
+      this.waitForPlayer();
+      return;
+    }
+    this.state = ShopperState.WAITING_IN_QUEUE;
+    this.faceNode(target);
+    this.refreshDebug();
+  }
+
+  setImpatient(active, timer) {
+    const standing = this.state === ShopperState.WAITING_IN_QUEUE && this.hasReachedQueueSlot && !this.isThief;
+    this.angerTimer = timer ?? 0;
+    this.impatient = active === true && standing;
+    this.syncCountdown();
+    this.refreshDebug();
+  }
+
+  syncCountdown() {
+    if (
+      this.impatient
+      && this.hasReachedQueueSlot
+      && this.state === ShopperState.WAITING_IN_QUEUE
+      && this.angerTimer > 0
+      && !this.isThief
+    ) {
+      this.visuals.showCountdown(this.angerTimer);
+      return;
+    }
+    this.visuals.hideCountdown();
+  }
+
+  waitForPlayer() {
+    this.hasReachedQueueSlot = true;
+    this.state = ShopperState.WAITING_FOR_CHECKOUT;
+    this.faceNode(this.navigation.nodes.get('queue0'));
+    this.moving = false;
+    this.refreshDebug();
+  }
+
+  startCheckoutService() {
+    if (this.state === ShopperState.DESPAWNED || this.isThief) {
+      return;
+    }
     this.state = ShopperState.CHECKING_OUT;
     this.faceNode(this.navigation.nodes.get('queue0'));
-    this.pause(this.config.checkoutDuration, () => this.finishCheckout());
+    this.moving = false;
     this.refreshDebug();
   }
 
   finishCheckout() {
-    this.checkoutQueue.complete(this);
+    if (this.checkoutQueue.queue.includes(this)) {
+      this.checkoutQueue.complete(this);
+    }
     this.queueIndex = -1;
     this.state = ShopperState.EXITING;
     this.goTo('despawn', true);
@@ -428,16 +558,24 @@ export class ShopperAI {
     if (!this.debug) {
       return;
     }
-    const lines = [this.shortName, this.state];
+    const lines = [this.shortName];
     if (
       this.state === ShopperState.GOING_TO_QUEUE
       || this.state === ShopperState.WAITING_IN_QUEUE
+      || this.state === ShopperState.WAITING_FOR_CHECKOUT
       || this.state === ShopperState.CHECKING_OUT
+      || this.state === ShopperState.ANGRY
     ) {
-      lines.push(`Queue: ${this.queueIndex}`);
+      lines.push(`State: ${this.state}`);
+      lines.push(`Queue Index: ${this.queueIndex}`);
+      lines.push(`Reached Slot: ${this.hasReachedQueueSlot}`);
+      lines.push(`Timer Active: ${this.impatient}`);
+      lines.push(`Timer: ${this.angerTimer.toFixed(1)}`);
     } else if (this.isThief || this.destinationId === 'despawn') {
+      lines.push(this.state);
       lines.push('Target: Exit');
     } else {
+      lines.push(this.state);
       lines.push(`Target: ${this.destinationId ?? '-'}`);
     }
     lines.push(`Items: ${this.inventory.count}`);

@@ -9,6 +9,10 @@ import { FollowCamera } from '../camera/FollowCamera.js';
 import { Store } from '../world/Store.js';
 import { Player } from '../entities/Player.js';
 import { ShopperManager } from '../shoppers/ShopperManager.js';
+import { PlayerOcclusionManager } from '../systems/PlayerOcclusionManager.js';
+import { MoneyManager } from '../economy/MoneyManager.js';
+import { MoneyHUD } from '../ui/MoneyHUD.js';
+import { CheckoutInteraction } from '../checkout/CheckoutInteraction.js';
 
 export class Game {
   constructor(canvas, app) {
@@ -28,6 +32,9 @@ export class Game {
     this.followCamera = new FollowCamera(this.config);
     this.player = null;
     this.shoppers = new ShopperManager(this.scene, this.loader, this.collision, this.config);
+    this.occlusion = new PlayerOcclusionManager(this.scene, this.config);
+    this.money = new MoneyManager(this.config.economy?.startingMoney ?? 0);
+    this.moneyHud = new MoneyHUD(document.querySelector('#money-hud'), this.money);
     this.clock = new THREE.Clock();
     this.debugElement = document.querySelector('#debug-overlay');
     this.fpsFrames = 0;
@@ -41,6 +48,7 @@ export class Game {
 
     const store = new Store(this.scene, this.loader, this.collision, this.config);
     await store.load();
+    this.occlusion.collect(store);
 
     this.player = new Player(this.loader, this.input, this.collision, this.config);
     await this.player.load();
@@ -58,6 +66,19 @@ export class Game {
 
     this.scene.add(this.followCamera.camera);
     this.followCamera.follow(this.player);
+    this.occlusion.attach(this.followCamera.camera, this.player);
+    this.checkout = new CheckoutInteraction(
+      this.scene,
+      this.player,
+      this.shoppers.checkoutQueue,
+      this.money,
+      this.config.checkout
+    );
+    if (this.config.checkout.debugCheckout) {
+      window.__checkout = this.checkout;
+      window.__money = this.money;
+      window.__shoppers = this.shoppers;
+    }
     this.resize();
     this.followCamera.snap();
 
@@ -107,6 +128,8 @@ export class Game {
     this.player.update(dt);
     this.shoppers.update(dt);
     this.followCamera.update(dt);
+    this.checkout.update(dt);
+    this.occlusion.update(dt);
     this.updateDebug(dt);
     this.renderer.render(this.scene, this.followCamera.camera);
   }
@@ -124,7 +147,11 @@ export class Game {
 
     const fps = Math.round(this.fpsFrames / this.fpsTime);
     const shopperLine = this.config.shoppers?.debugNavigation ? ` ${this.shoppers.describe()}` : '';
-    this.debugElement.textContent = `${fps} FPS${shopperLine}`;
+    const checkoutLine = this.config.checkout?.debugCheckout ? ` ${this.shoppers.checkoutQueue.describe()}` : '';
+    const occlusionLine = this.config.occlusion?.debugOcclusion
+      ? ` occlusion ${this.occlusion.describe() || 'clear'}`
+      : '';
+    this.debugElement.textContent = `${fps} FPS${shopperLine}${checkoutLine}${occlusionLine}`;
     this.fpsFrames = 0;
     this.fpsTime = 0;
   }

@@ -6,7 +6,7 @@ const WALL_DOOR = '/models/environment/wall-door-rotate.glb';
 const FLOOR_MIN_X = -3;
 const FLOOR_MAX_X = 3;
 const FLOOR_MIN_Z = -4;
-const FLOOR_MAX_Z = 3;
+const FLOOR_MAX_Z = 5;
 const NORTH_Z = FLOOR_MIN_Z - 0.5;
 const SOUTH_Z = FLOOR_MAX_Z + 0.5;
 const WEST_X = FLOOR_MIN_X - 0.5;
@@ -19,7 +19,7 @@ function entry(id, model, position, rotation = [0, 0, 0], collision = false, sca
 function buildLayout() {
   const layout = [];
 
-  for (let z = -6; z <= 5; z += 1) {
+  for (let z = -6; z <= 7; z += 1) {
     for (let x = -4; x <= 4; x += 1) {
       layout.push(entry(`floor-${x}-${z}`, FLOOR, [x, 0, z]));
     }

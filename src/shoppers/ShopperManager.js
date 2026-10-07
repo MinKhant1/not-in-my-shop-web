@@ -14,9 +14,10 @@ export class ShopperManager {
     this.loader = loader;
     this.collision = collision;
     this.config = config.shoppers;
+    this.checkoutConfig = config.checkout;
     this.debug = this.config.debugNavigation === true;
-    this.navigation = new ShopperNavigation();
-    this.checkoutQueue = new CheckoutQueueManager(this.navigation.queueSlotIds);
+    this.navigation = new ShopperNavigation(config.checkout);
+    this.checkoutQueue = new CheckoutQueueManager(this.navigation.queueSlotIds, config.checkout);
     this.toonFactory = config.graphics?.toonShading
       ? new ToonMaterialFactory(config.graphics.toonSteps ?? 4)
       : null;
@@ -56,6 +57,7 @@ export class ShopperManager {
     for (let i = 0; i < this.shoppers.length; i += 1) {
       this.shoppers[i].update(dt);
     }
+    this.checkoutQueue.update(dt);
 
     for (let i = this.shoppers.length - 1; i >= 0; i -= 1) {
       if (this.shoppers[i].state === ShopperState.DESPAWNED) {
@@ -95,8 +97,9 @@ export class ShopperManager {
         navigation: this.navigation,
         collision: this.collision,
         checkoutQueue: this.checkoutQueue,
+        checkoutConfig: this.checkoutConfig,
         toonFactory: this.toonFactory,
-        debug: this.debug
+        debug: this.debug || this.checkoutConfig?.debugCheckout === true
       });
       const z = door.z + randomBetween(-0.22, 0.22);
       shopper.spawn(door.x, z);

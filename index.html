@@ -12,6 +12,11 @@
   </head>
   <body>
     <div id="app">
+      <div id="money-hud" aria-live="polite">
+        <span class="money-coin" aria-hidden="true"></span>
+        <span id="money-amount">0</span>
+        <span id="money-gain" hidden></span>
+      </div>
       <canvas id="game-canvas"></canvas>
       <div id="joystick-zone" aria-hidden="true"></div>
       <div id="debug-overlay" hidden></div>
