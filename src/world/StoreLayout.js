@@ -30,15 +30,15 @@ function buildLayout() {
   }
 
   for (let x = FLOOR_MIN_X; x <= FLOOR_MAX_X; x += 1) {
-    if (x === 0) {
-      layout.push(entry('wall-door-south', WALL_DOOR, [0, 0, SOUTH_Z], [0, 0, 0], true));
-    } else {
-      layout.push(entry(`wall-south-${x}`, WALL, [x, 0, SOUTH_Z], [0, 0, 0], true));
-    }
+    layout.push(entry(`wall-south-${x}`, WALL, [x, 0, SOUTH_Z], [0, 0, 0], true));
   }
 
   for (let z = FLOOR_MIN_Z; z <= FLOOR_MAX_Z; z += 1) {
-    layout.push(entry(`wall-west-${z}`, WALL, [WEST_X, 0, z], [0, Math.PI / 2, 0], true));
+    if (z === -3) {
+      layout.push(entry('entrance', WALL_DOOR, [WEST_X, 0, z], [0, Math.PI / 2, 0], false));
+    } else {
+      layout.push(entry(`wall-west-${z}`, WALL, [WEST_X, 0, z], [0, Math.PI / 2, 0], true));
+    }
     layout.push(entry(`wall-east-${z}`, WALL, [EAST_X, 0, z], [0, Math.PI / 2, 0], true));
   }
 
@@ -50,34 +50,33 @@ function buildLayout() {
   );
 
   layout.push(
-    entry('freezer-standing-left', '/models/store/freezers-standing.glb', [-2.15, 0, -3.75], [0, 0, 0], true),
-    entry('freezer-standing-right', '/models/store/freezers-standing.glb', [2.15, 0, -3.75], [0, 0, 0], true),
-    entry('freezer-chest-left', '/models/store/freezer.glb', [-0.42, 0, -3.5], [0, 0, 0], true),
-    entry('freezer-chest-right', '/models/store/freezer.glb', [0.42, 0, -3.5], [0, 0, 0], true),
+    entry('freezer-standing-left', '/models/store/freezers-standing.glb', [-0.5, 0, -3.7], [0, 0, 0], true),
+    entry('freezer-standing-right', '/models/store/freezers-standing.glb', [0.5, 0, -3.7], [0, 0, 0], true),
+    entry('freezer-chest-left', '/models/store/freezer.glb', [-0.6, 0, -3.4], [0, 0, 0], true),
+    entry('freezer-chest-right', '/models/store/freezer.glb', [0.6, 0, -3.4], [0, 0, 0], true),
 
-    entry('shelf-boxes-back', '/models/store/shelf-boxes.glb', [-1.55, 0, -2.35], [0, 0, 0], true),
-    entry('shelf-boxes-front', '/models/store/shelf-boxes.glb', [-1.55, 0, -0.95], [0, 0, 0], true),
-    entry('shelf-bags-back', '/models/store/shelf-bags.glb', [1.55, 0, -2.35], [0, 0, 0], true),
-    entry('shelf-bags-front', '/models/store/shelf-bags.glb', [1.55, 0, -0.95], [0, 0, 0], true),
-    entry('shelf-end-left', '/models/store/shelf-end.glb', [-1.55, 0, -0.15], [0, Math.PI, 0], true),
-    entry('shelf-end-right', '/models/store/shelf-end.glb', [1.55, 0, -0.15], [0, Math.PI, 0], true),
+    entry('shelf-aisle-1-back', '/models/store/shelf-boxes.glb', [-1.2, 0, -1.75], [0, 0, 0], true),
+    entry('shelf-aisle-1-front', '/models/store/shelf-boxes.glb', [-1.2, 0, -0.95], [0, 0, 0], true),
+    entry('shelf-aisle-1-end', '/models/store/shelf-end.glb', [-1.2, 0, -0.52], [0, Math.PI, 0], true),
+    entry('shelf-aisle-2-back', '/models/store/shelf-bags.glb', [1.2, 0, -1.75], [0, 0, 0], true),
+    entry('shelf-aisle-2-front', '/models/store/shelf-bags.glb', [1.2, 0, -0.95], [0, 0, 0], true),
+    entry('shelf-aisle-2-end', '/models/store/shelf-end.glb', [1.2, 0, -0.52], [0, Math.PI, 0], true),
 
-    entry('display-fruit', '/models/store/display-fruit.glb', [-1.55, 0, 1.2], [0, 0, 0], true),
-    entry('display-bread', '/models/store/display-bread.glb', [1.55, 0, 1.2], [0, 0, 0], true),
+    entry('display-fruit', '/models/store/display-fruit.glb', [-0.4, 0, 1.05], [0, 0, 0], true),
+    entry('display-bread', '/models/store/display-bread.glb', [0.45, 0, 1.05], [0, 0, 0], true),
 
-    entry('cart', '/models/store/shopping-cart.glb', [-2.35, 0, 2.25], [0, 0.4, 0], true),
-    entry('basket', '/models/store/shopping-basket.glb', [1.55, 0.74, 2.4], [0, 0.2, 0], false),
+    entry('cash-register', '/models/store/cash-register.glb', [2.15, 0, 2.55], [0, Math.PI, 0], true),
 
     {
-      id: 'checkout',
+      id: 'weapon-station',
       model: null,
-      position: [1.7, 0, 2.4],
+      position: [2.92, 0, 1.2],
       rotation: [0, 0, 0],
       scale: 1,
       collision: true,
       placeholder: {
-        size: [1.25, 0.74, 0.55],
-        color: 0xc49a6c
+        size: [0.5, 0.9, 0.7],
+        color: 0x4d5968
       }
     }
   );

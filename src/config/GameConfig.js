@@ -13,7 +13,7 @@ export const GameConfig = {
     modelRotationOffset: 0,
     modelYOffset: 0.03,
     collisionRadius: 0.22,
-    startPosition: [0, 0, 2.15]
+    startPosition: [-2.2, 0, 2.25]
   },
   camera: {
     height: 6.5,

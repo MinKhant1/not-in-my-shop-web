@@ -67,7 +67,7 @@ export class Store {
     object.scale.setScalar(entry.scale ?? 1);
 
     if (entry.placeholder) {
-      object.add(this.createCheckoutPlaceholder(entry));
+      object.add(this.createMapPlaceholder(entry));
     } else {
       const asset = await this.loader.load(entry.model);
       if (isMiniMarketModel(entry.model)) {
@@ -83,18 +83,18 @@ export class Store {
     this.records.push({ entry, object });
   }
 
-  createCheckoutPlaceholder(entry) {
-    // TEMPORARY CHECKOUT PLACEHOLDER
+  createMapPlaceholder(entry) {
     const [width, height, depth] = entry.placeholder.size;
+    const source = new THREE.MeshStandardMaterial({
+      color: entry.placeholder.color,
+      roughness: 0.74,
+      metalness: 0.02
+    });
     const mesh = new THREE.Mesh(
       new THREE.BoxGeometry(width, height, depth),
-      new THREE.MeshStandardMaterial({
-        color: entry.placeholder.color,
-        roughness: 0.74,
-        metalness: 0.02
-      })
+      this.toonMaterials ? this.toonMaterials.fromImported(source) : source
     );
-    mesh.name = 'checkout-placeholder';
+    mesh.name = entry.id;
     mesh.position.y = height / 2;
     if (this.shadows) {
       mesh.castShadow = true;
