@@ -28,5 +28,33 @@ export const GameConfig = {
   joystick: {
     maxRadius: 54,
     deadzone: 0.16
+  },
+  shoppers: {
+    debugNavigation: false,
+    maxActive: 3,
+    spawnInterval: 6,
+    firstSpawnDelay: 1.4,
+    thiefChance: 0.5,
+    minItems: 1,
+    maxItems: 4,
+    moveSpeed: 1.35,
+    speedJitter: 0.2,
+    rotationSpeed: 6,
+    waypointReachDistance: 0.4,
+    stuckDistance: 0.05,
+    stuckTimeout: 1.5,
+    maxRecoveryAttempts: 3,
+    pauseMin: 0.35,
+    pauseMax: 1.15,
+    checkoutDuration: 2,
+    pickupWait: 0.65,
+    radius: 0.2,
+    modelScale: 0.36,
+    modelYOffset: 0.03,
+    models: [
+      '/models/characters/Chef_Male.gltf',
+      '/models/characters/OldClassy_Male.gltf',
+      '/models/characters/Suit_Male.gltf'
+    ]
   }
 };

@@ -63,7 +63,15 @@ export class AssetLoader {
     return this.loadTexture(MINI_MARKET_TEXTURE);
   }
 
+  preload(url) {
+    return this.cached(url).then(() => undefined);
+  }
+
   load(url) {
+    return this.cached(url).then((gltf) => this.instantiate(gltf));
+  }
+
+  cached(url) {
     let pending = this.cache.get(url);
     if (!pending) {
       pending = this.fetch(url);
@@ -72,8 +80,7 @@ export class AssetLoader {
         this.cache.delete(url);
       });
     }
-
-    return pending.then((gltf) => this.instantiate(gltf));
+    return pending;
   }
 
   fetch(url) {

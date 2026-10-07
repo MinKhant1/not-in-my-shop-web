@@ -1,0 +1,124 @@
+import { ToonMaterialFactory } from '../rendering/ToonMaterial.js';
+import { CheckoutQueueManager } from './CheckoutQueueManager.js';
+import { ShopperAI } from './ShopperAI.js';
+import { ShopperNavigation } from './ShopperNavigation.js';
+import { ShopperState } from './ShopperState.js';
+
+function randomBetween(min, max) {
+  return min + Math.random() * (max - min);
+}
+
+export class ShopperManager {
+  constructor(scene, loader, collision, config) {
+    this.scene = scene;
+    this.loader = loader;
+    this.collision = collision;
+    this.config = config.shoppers;
+    this.debug = this.config.debugNavigation === true;
+    this.navigation = new ShopperNavigation();
+    this.checkoutQueue = new CheckoutQueueManager(this.navigation.queueSlotIds);
+    this.toonFactory = config.graphics?.toonShading
+      ? new ToonMaterialFactory(config.graphics.toonSteps ?? 4)
+      : null;
+    this.shoppers = [];
+    this.spawnTimer = this.config.firstSpawnDelay;
+    this.spawning = false;
+    this.ready = false;
+    if (this.debug) {
+      window.__shoppers = this;
+    }
+  }
+
+  async load() {
+    const models = this.config.models;
+    try {
+      await Promise.all(models.map((url) => this.loader.preload(url)));
+      this.ready = true;
+      if (this.debug) {
+        this.navigation.createDebug(this.scene);
+      }
+    } catch (error) {
+      console.error('Failed to preload shopper models', error);
+    }
+  }
+
+  update(dt) {
+    if (!this.ready) {
+      return;
+    }
+
+    this.spawnTimer -= dt;
+    if (this.spawnTimer <= 0 && !this.spawning) {
+      this.spawnTimer = this.config.spawnInterval * randomBetween(0.85, 1.2);
+      this.spawn();
+    }
+
+    for (let i = 0; i < this.shoppers.length; i += 1) {
+      this.shoppers[i].update(dt);
+    }
+
+    for (let i = this.shoppers.length - 1; i >= 0; i -= 1) {
+      if (this.shoppers[i].state === ShopperState.DESPAWNED) {
+        this.shoppers[i].dispose();
+        this.shoppers.splice(i, 1);
+      }
+    }
+  }
+
+  spawn() {
+    if (this.shoppers.length >= this.config.maxActive) {
+      return;
+    }
+
+    const door = this.navigation.nodes.get('entranceOutside');
+    for (let i = 0; i < this.shoppers.length; i += 1) {
+      const position = this.shoppers[i].group.position;
+      const dx = position.x - door.x;
+      const dz = position.z - door.z;
+      if (dx * dx + dz * dz < 0.64) {
+        return;
+      }
+    }
+
+    const models = this.config.models;
+    const modelUrl = models[Math.floor(Math.random() * models.length)];
+    this.spawning = true;
+    this.loader.load(modelUrl).then((asset) => {
+      this.spawning = false;
+      if (this.shoppers.length >= this.config.maxActive) {
+        return;
+      }
+      const shopper = new ShopperAI({
+        asset,
+        modelUrl,
+        config: this.config,
+        navigation: this.navigation,
+        collision: this.collision,
+        checkoutQueue: this.checkoutQueue,
+        toonFactory: this.toonFactory,
+        debug: this.debug
+      });
+      const z = door.z + randomBetween(-0.22, 0.22);
+      shopper.spawn(door.x, z);
+      this.scene.add(shopper.group);
+      this.shoppers.push(shopper);
+    }).catch((error) => {
+      this.spawning = false;
+      console.error('Failed to spawn shopper', error);
+    });
+  }
+
+  getShoppers() {
+    return this.shoppers;
+  }
+
+  describe() {
+    let thieves = 0;
+    for (let i = 0; i < this.shoppers.length; i += 1) {
+      if (this.shoppers[i].isThief) {
+        thieves += 1;
+      }
+    }
+    return `shoppers ${this.shoppers.length} thieves ${thieves}`;
+  }
+}

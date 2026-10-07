@@ -8,6 +8,7 @@ import { VirtualJoystick } from '../ui/VirtualJoystick.js';
 import { FollowCamera } from '../camera/FollowCamera.js';
 import { Store } from '../world/Store.js';
 import { Player } from '../entities/Player.js';
+import { ShopperManager } from '../shoppers/ShopperManager.js';
 
 export class Game {
   constructor(canvas, app) {
@@ -26,6 +27,7 @@ export class Game {
     this.input = new InputSystem(this.joystick);
     this.followCamera = new FollowCamera(this.config);
     this.player = null;
+    this.shoppers = new ShopperManager(this.scene, this.loader, this.collision, this.config);
     this.clock = new THREE.Clock();
     this.debugElement = document.querySelector('#debug-overlay');
     this.fpsFrames = 0;
@@ -43,6 +45,7 @@ export class Game {
     this.player = new Player(this.loader, this.input, this.collision, this.config);
     await this.player.load();
     this.scene.add(this.player.group);
+    await this.shoppers.load();
 
     const debugView = this.collision.createDebugVisuals();
     if (debugView) {
@@ -102,6 +105,7 @@ export class Game {
     requestAnimationFrame(this.loop);
     const dt = Math.min(this.clock.getDelta(), 0.05);
     this.player.update(dt);
+    this.shoppers.update(dt);
     this.followCamera.update(dt);
     this.updateDebug(dt);
     this.renderer.render(this.scene, this.followCamera.camera);
@@ -119,7 +123,8 @@ export class Game {
     }
 
     const fps = Math.round(this.fpsFrames / this.fpsTime);
-    this.debugElement.textContent = `${fps} FPS`;
+    const shopperLine = this.config.shoppers?.debugNavigation ? ` ${this.shoppers.describe()}` : '';
+    this.debugElement.textContent = `${fps} FPS${shopperLine}`;
     this.fpsFrames = 0;
     this.fpsTime = 0;
   }
