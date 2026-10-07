@@ -1,7 +1,8 @@
 import * as THREE from 'three';
+import { CheckoutProgressUI } from './CheckoutProgressUI.js';
 
 export class CheckoutInteraction {
-  constructor(scene, player, queue, money, checkout) {
+  constructor(scene, player, queue, money, checkout, camera) {
     this.player = player;
     this.queue = queue;
     this.money = money;
@@ -9,10 +10,13 @@ export class CheckoutInteraction {
     this.zoneX = checkout.zonePosition[0];
     this.zoneZ = checkout.zonePosition[1];
     this.zoneRadius = checkout.zoneRadius;
+    this.elapsed = 0;
     this.progress = 0;
+    this.isCheckoutCompleting = false;
     this.time = 0;
     this.zone = this.createZone();
     scene.add(this.zone);
+    this.progressUI = new CheckoutProgressUI(scene, camera);
   }
 
   createZone() {
@@ -60,28 +64,57 @@ export class CheckoutInteraction {
     this.ring.scale.set(pulse, pulse, 1);
 
     const front = this.queue.frontCustomer;
-    const serving = this.isServing(front);
-    if (this.playerInside() && serving) {
+    let active = this.playerInside() && this.isServing(front) && !this.isCheckoutCompleting;
+    if (active) {
       if (front.state !== 'CHECKING_OUT') {
         front.startCheckoutService();
       }
-      this.progress += dt;
-      if (this.progress >= this.checkoutTime) {
-        this.progress = 0;
-        const payment = front.payment ?? 0;
-        front.finishCheckout();
-        this.money.addMoney(payment);
+      this.elapsed += dt;
+      const duration = this.checkoutTime > 0 ? this.checkoutTime : 0.0001;
+      this.progress = Math.min(1, this.elapsed / duration);
+      if (this.progress >= 1) {
+        this.completeFront(front);
+        active = false;
       }
-    } else {
-      if (front && front.state === 'CHECKING_OUT') {
+    } else if (!this.isCheckoutCompleting) {
+      if (front && front.state === 'CHECKING_OUT' && !front.isThief) {
         front.waitForPlayer();
       }
+      this.elapsed = 0;
       this.progress = 0;
     }
 
-    const fill = this.checkoutTime > 0 ? this.progress / this.checkoutTime : 0;
-    this.disc.material.opacity = 0.14 + fill * 0.45;
-    this.ring.material.color.setHex(fill > 0 ? 0xffd15c : 0x3ddc97);
+    if (active) {
+      this.progressUI.show();
+      this.progressUI.setProgress(this.progress);
+    } else {
+      this.progressUI.reset();
+      this.progressUI.hide();
+    }
+    this.progressUI.update(dt);
+
+    this.disc.material.opacity = 0.14 + this.progress * 0.45;
+    this.ring.material.color.setHex(this.progress > 0 ? 0xffd15c : 0x3ddc97);
+  }
+
+  completeFront(front) {
+    if (this.isCheckoutCompleting || !front || front.isThief) {
+      return;
+    }
+    this.isCheckoutCompleting = true;
+    const payment = front.payment ?? 0;
+    this.elapsed = 0;
+    this.progress = 0;
+    front.finishCheckout();
+    this.money.addMoney(payment);
+    this.isCheckoutCompleting = false;
+  }
+
+  describe() {
+    const front = this.queue.frontCustomer;
+    const customer = front ? `Shopper_${front.id}` : 'none';
+    const active = this.progress > 0 && this.isServing(front);
+    return `Checkout active: ${active} Customer: ${customer} Progress: ${this.progress.toFixed(2)} Player in zone: ${this.playerInside()}`;
   }
 
   playerInside() {
@@ -93,6 +126,7 @@ export class CheckoutInteraction {
 
   isServing(shopper) {
     return Boolean(shopper)
+      && !shopper.isThief
       && (shopper.state === 'WAITING_FOR_CHECKOUT' || shopper.state === 'CHECKING_OUT');
   }
 }

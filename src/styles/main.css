@@ -38,10 +38,11 @@ body {
   position: absolute;
   left: 0;
   bottom: 0;
-  width: 50%;
-  height: 42%;
+  width: 80%;
+  height: 80%;
   z-index: 2;
   touch-action: none;
+  background: transparent;
 }
 
 .joystick-base,

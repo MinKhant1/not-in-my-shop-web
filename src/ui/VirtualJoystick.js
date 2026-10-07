@@ -20,7 +20,7 @@ export class VirtualJoystick {
     zone.append(this.base, this.knob);
 
     this.onPointerDown = (event) => {
-      if (this.pointerId !== null) {
+      if (this.pointerId !== null || this.startsOnInteractiveUi(event)) {
         return;
       }
 
@@ -62,6 +62,12 @@ export class VirtualJoystick {
     zone.addEventListener('pointerup', this.onPointerUp);
     zone.addEventListener('pointercancel', this.onPointerUp);
     zone.addEventListener('contextmenu', (event) => event.preventDefault());
+  }
+
+  startsOnInteractiveUi(event) {
+    const target = event.target;
+    return target instanceof Element
+      && Boolean(target.closest('button, a, input, textarea, select, [data-no-joystick]'));
   }
 
   applyDrag(event) {

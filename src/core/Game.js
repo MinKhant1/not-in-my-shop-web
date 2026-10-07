@@ -72,7 +72,8 @@ export class Game {
       this.player,
       this.shoppers.checkoutQueue,
       this.money,
-      this.config.checkout
+      this.config.checkout,
+      this.followCamera.camera
     );
     if (this.config.checkout.debugCheckout) {
       window.__checkout = this.checkout;
@@ -147,7 +148,9 @@ export class Game {
 
     const fps = Math.round(this.fpsFrames / this.fpsTime);
     const shopperLine = this.config.shoppers?.debugNavigation ? ` ${this.shoppers.describe()}` : '';
-    const checkoutLine = this.config.checkout?.debugCheckout ? ` ${this.shoppers.checkoutQueue.describe()}` : '';
+    const checkoutLine = this.config.checkout?.debugCheckout
+      ? ` ${this.shoppers.checkoutQueue.describe()} ${this.checkout.describe()}`
+      : '';
     const occlusionLine = this.config.occlusion?.debugOcclusion
       ? ` occlusion ${this.occlusion.describe() || 'clear'}`
       : '';
