@@ -60,9 +60,11 @@ export const GameConfig = {
     debugBroomGrip: true,
     model: '/models/objects/low_poly_broom.glb',
     // Local to RightHandWeaponSocket, which is parented to the right-hand bone (Fist.R).
-    broomEquipPosition: { x: 0, y: -0.42, z: 0.04 },
-    broomEquipRotation: { x: 0.35, y: 0.15, z: 1.15 },
+    broomEquipPosition: { x: 0, y: 0, z: 0.04 },
+    broomEquipRotation: { x: 3, y: -1, z: -1.99 },
     broomEquipScale: { x: 0.85, y: 0.85, z: 0.85 },
+    // Distance along the handle from the exported origin. 0 holds the near end; ~2.99 holds the far end.
+    broomGripDistance: 2.99,
     thiefMaxHP: 100,
     broomDamage: 20,
     attackRange: 1.5,

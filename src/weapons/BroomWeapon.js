@@ -83,11 +83,17 @@ export class BroomWeapon {
     this.holder.position.set(position.x, position.y, position.z);
     this.holder.rotation.set(rotation.x, rotation.y, rotation.z);
     this.holder.scale.set(scale.x, scale.y, scale.z);
+    if (this.model) {
+      this.model.position.set(0, -(this.config.broomGripDistance ?? 0), 0);
+    }
   }
 
   unequip(mount) {
     this.equipped = false;
     this.resetSwing();
+    if (this.model) {
+      this.model.position.set(0, 0, 0);
+    }
     mount.add(this.holder);
     applyStationPose(
       this.holder,
