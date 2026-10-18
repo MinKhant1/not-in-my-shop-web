@@ -11,7 +11,13 @@ import { Player } from '../entities/Player.js';
 import { ShopperManager } from '../shoppers/ShopperManager.js';
 import { PlayerOcclusionManager } from '../systems/PlayerOcclusionManager.js';
 import { MoneyManager } from '../economy/MoneyManager.js';
+import { ShopUpgrades } from '../economy/ShopUpgrades.js';
 import { MoneyHUD } from '../ui/MoneyHUD.js';
+import { DayNightController } from '../daynight/DayNightController.js';
+import { DayNightLighting } from '../daynight/DayNightLighting.js';
+import { DayStats } from '../daynight/DayStats.js';
+import { ShopAudio } from '../daynight/ShopAudio.js';
+import { DayNightHUD } from '../ui/DayNightHUD.js';
 import { CheckoutInteraction } from '../checkout/CheckoutInteraction.js';
 import { PlayerActivityManager } from '../player/PlayerActivity.js';
 import { WeaponStation } from '../weapons/WeaponStation.js';
@@ -39,7 +45,28 @@ export class Game {
     this.shoppers = new ShopperManager(this.scene, this.loader, this.collision, this.config);
     this.occlusion = new PlayerOcclusionManager(this.scene, this.config);
     this.money = new MoneyManager(this.config.economy?.startingMoney ?? 0);
+    this.upgrades = new ShopUpgrades();
     this.moneyHud = new MoneyHUD(document.querySelector('#money-hud'), this.money);
+    this.lighting = new DayNightLighting(this.scene, this.config.dayNight);
+    this.dayStats = new DayStats(this.money, this.config.weapons.itemRecoveryValue ?? 5);
+    this.shoppers.setDayStats(this.dayStats);
+    this.audio = new ShopAudio();
+    this.dayNight = new DayNightController(this.config.dayNight, {
+      setSpawning: (enabled) => this.shoppers.setSpawningEnabled(enabled),
+      prepareNextDay: () => {
+        this.shoppers.prepareNextDay();
+        this.dayStats.reset();
+      },
+      setUpgradesOpen: (open) => this.upgrades.setOpen(open),
+      dismissShoppers: () => {
+        this.shoppers.resolveOpenThieves();
+        this.shoppers.dismissForClosing();
+      },
+      snapshotStats: (dayNumber) => this.dayStats.snapshot(dayNumber, this.money.getMoney()),
+      onVisual: (phase) => this.lighting.setPhase(phase),
+      onClosingStart: () => this.audio.bell()
+    });
+    this.phaseHud = new DayNightHUD(app, this.dayNight, this.audio, () => this.money.getMoney());
     this.clock = new THREE.Clock();
     this.debugElement = document.querySelector('#debug-overlay');
     this.fpsFrames = 0;
@@ -49,8 +76,6 @@ export class Game {
   }
 
   async init() {
-    this.setupLights();
-
     const store = new Store(this.scene, this.loader, this.collision, this.config);
     await store.load();
     this.occlusion.collect(store);
@@ -87,6 +112,7 @@ export class Game {
       this.config.graphics.toonShading ? this.player.toonFactory : null
     );
     this.weaponStation.bind(this.activity);
+    this.checkout.onCheckout = (amount) => this.dayStats.recordCheckout(amount);
     this.drops = new DroppedItemManager(this.scene, this.config.weapons);
     this.hitFeedback = new HitFeedback(this.scene, this.config.weapons);
     this.weapons = new PlayerWeaponController(
@@ -98,13 +124,15 @@ export class Game {
       this.activity,
       this.config.weapons
     );
-    if (this.config.checkout.debugCheckout || this.config.weapons.debugWeapons || this.config.weapons.debugBroomGrip) {
+    if (this.config.debug || this.config.checkout.debugCheckout || this.config.weapons.debugWeapons || this.config.weapons.debugBroomGrip) {
       window.__checkout = this.checkout;
       window.__money = this.money;
       window.__shoppers = this.shoppers;
       window.__weapons = this.weapons;
       window.__activity = this.activity;
       window.__player = this.player;
+      window.__dayNight = this.dayNight;
+      window.__upgrades = this.upgrades;
     }
     this.resize();
     this.followCamera.snap();
@@ -117,26 +145,6 @@ export class Game {
 
     this.clock.start();
     this.loop();
-  }
-
-  setupLights() {
-    const toon = this.config.graphics.toonShading;
-    const hemisphere = new THREE.HemisphereLight(0xfff6ea, 0x8e99a3, toon ? 0.45 : 1.05);
-    this.scene.add(hemisphere);
-
-    const sun = new THREE.DirectionalLight(0xfffaf3, toon ? 2.0 : 0.8);
-    sun.position.set(toon ? 8 : 5, toon ? 6 : 10, toon ? 5 : 6);
-    if (this.config.graphics.shadows) {
-      sun.castShadow = true;
-      sun.shadow.mapSize.set(1024, 1024);
-      sun.shadow.camera.near = 0.5;
-      sun.shadow.camera.far = 30;
-      sun.shadow.camera.left = -10;
-      sun.shadow.camera.right = 10;
-      sun.shadow.camera.top = 10;
-      sun.shadow.camera.bottom = -10;
-    }
-    this.scene.add(sun);
   }
 
   resize() {
@@ -152,18 +160,25 @@ export class Game {
   loop() {
     requestAnimationFrame(this.loop);
     const dt = Math.min(this.clock.getDelta(), 0.05);
+    this.dayNight.update(dt);
+    this.lighting.update(dt);
+    this.phaseHud.update(dt);
+    const playing = !this.dayNight.blocksPlay();
+    this.player.movementLocked = !playing;
     this.player.update(dt);
     this.shoppers.update(dt);
-    this.activity.updateZones({
-      checkout: this.checkout.playerInside(),
-      weapon: this.weaponStation.playerInside()
-    });
-    this.weaponStation.update(dt);
-    this.weapons.update(dt);
-    this.drops.update(this.player, this.money);
+    if (playing) {
+      this.activity.updateZones({
+        checkout: this.checkout.playerInside(),
+        weapon: this.weaponStation.playerInside()
+      });
+      this.weaponStation.update(dt);
+      this.weapons.update(dt);
+      this.drops.update(this.player, this.money);
+      this.checkout.update(dt);
+    }
     this.hitFeedback.update(dt);
     this.followCamera.update(dt);
-    this.checkout.update(dt);
     this.occlusion.update(dt);
     this.updateDebug(dt);
     this.renderer.render(this.scene, this.followCamera.camera);
@@ -191,7 +206,8 @@ export class Game {
     const occlusionLine = this.config.occlusion?.debugOcclusion
       ? ` occlusion ${this.occlusion.describe() || 'clear'}`
       : '';
-    this.debugElement.textContent = `${fps} FPS${shopperLine}${checkoutLine}${weaponLine}${occlusionLine}`;
+    const phaseLine = ` ${this.dayNight.describe()}`;
+    this.debugElement.textContent = `${fps} FPS${phaseLine}${shopperLine}${checkoutLine}${weaponLine}${occlusionLine}`;
     this.fpsFrames = 0;
     this.fpsTime = 0;
   }

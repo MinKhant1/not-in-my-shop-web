@@ -40,6 +40,32 @@ export const GameConfig = {
   economy: {
     startingMoney: 0
   },
+  dayNight: {
+    dayDuration: 120,
+    transitionSeconds: 1.5,
+    closingSeconds: 2.6,
+    closingSoonSeconds: 10,
+    day: {
+      background: 0xc5ced6,
+      hemisphereSky: 0xfff6ea,
+      hemisphereGround: 0x8e99a3,
+      hemisphereIntensity: 0.45,
+      sunColor: 0xfffaf3,
+      sunIntensity: 2,
+      fillColor: 0xffc27a,
+      fillIntensity: 0
+    },
+    night: {
+      background: 0x2a3548,
+      hemisphereSky: 0x8ea6d8,
+      hemisphereGround: 0x3d3428,
+      hemisphereIntensity: 0.42,
+      sunColor: 0xb9c9ee,
+      sunIntensity: 0.72,
+      fillColor: 0xffb15e,
+      fillIntensity: 1.05
+    }
+  },
   checkout: {
     debugCheckout: false,
     checkoutTime: 1.5,

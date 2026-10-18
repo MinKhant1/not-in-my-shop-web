@@ -69,6 +69,7 @@ export class ShopperAI {
     this.state = ShopperState.ENTERING;
     this.isThief = false;
     this.isDefeated = false;
+    this.shopClosed = false;
     this.health = null;
     this.destinationId = null;
     this.pending = null;
@@ -193,6 +194,10 @@ export class ShopperAI {
   }
 
   goPick() {
+    if (this.shopClosed) {
+      this.leaveBecauseShopClosed();
+      return;
+    }
     const pickId = this.navigation.randomPick(this.lastPickId);
     this.lastPickId = pickId;
     this.pending = 'pick';
@@ -259,6 +264,10 @@ export class ShopperAI {
   }
 
   collectAndContinue() {
+    if (this.shopClosed) {
+      this.leaveBecauseShopClosed();
+      return;
+    }
     this.inventory.addRandom();
     this.refreshDebug();
     if (this.inventory.count < this.groceryTarget) {
@@ -272,6 +281,10 @@ export class ShopperAI {
   }
 
   decide() {
+    if (this.shopClosed) {
+      this.leaveBecauseShopClosed();
+      return;
+    }
     if (this.isThief) {
       this.leaveAsThief();
       return;
@@ -291,6 +304,9 @@ export class ShopperAI {
   }
 
   becomeAngryThief() {
+    if (this.shopClosed) {
+      return;
+    }
     if (
       this.isThief
       || this.state === ShopperState.ANGRY
@@ -326,6 +342,10 @@ export class ShopperAI {
   }
 
   becomeThief() {
+    if (this.shopClosed) {
+      this.leaveBecauseShopClosed();
+      return;
+    }
     this.impatient = false;
     this.visuals.hideCountdown();
     this.isThief = true;
@@ -368,6 +388,7 @@ export class ShopperAI {
       return [];
     }
     this.isDefeated = true;
+    this.onCaught?.();
     if (this.health) {
       this.health.isDefeated = true;
       this.health.currentHP = 0;
@@ -520,6 +541,39 @@ export class ShopperAI {
     this.refreshDebug();
   }
 
+  leaveBecauseShopClosed() {
+    this.shopClosed = true;
+    this.wait = 0;
+    this.afterWait = null;
+    this.pending = null;
+    this.impatient = false;
+    this.angerTimer = 0;
+    this.visuals.hideCountdown();
+    if (
+      this.state === ShopperState.DESPAWNED
+      || this.state === ShopperState.EXITING
+      || this.state === ShopperState.DEFEATED_FLEEING
+      || this.state === ShopperState.CHECKING_OUT
+      || (this.state === ShopperState.THIEF && this.destinationId === 'despawn')
+    ) {
+      return;
+    }
+    if (this.checkoutQueue.queue.includes(this)) {
+      this.checkoutQueue.complete(this);
+    }
+    this.queueIndex = -1;
+    this.hasReachedQueueSlot = false;
+    if (this.isThief || this.state === ShopperState.ANGRY || this.state === ShopperState.THIEF) {
+      this.state = ShopperState.THIEF;
+      this.leaveAsThief();
+      this.refreshDebug();
+      return;
+    }
+    this.state = ShopperState.EXITING;
+    this.goTo('despawn', true);
+    this.refreshDebug();
+  }
+
   finishCheckout() {
     if (this.checkoutQueue.queue.includes(this)) {
       this.checkoutQueue.complete(this);
@@ -529,7 +583,12 @@ export class ShopperAI {
     this.goTo('despawn', true);
   }
 
+  recordEscape() {
+    this.onEscaped?.();
+  }
+
   despawn() {
+    this.recordEscape();
     if (this.checkoutQueue.queue.includes(this)) {
       this.queueIndex = -1;
       this.checkoutQueue.complete(this);

@@ -25,6 +25,9 @@ export class ShopperManager {
     this.shoppers = [];
     this.spawnTimer = this.config.firstSpawnDelay;
     this.spawning = false;
+    this.spawningEnabled = true;
+    this.spawnGeneration = 0;
+    this.dayStats = null;
     this.ready = false;
     if (this.debug) {
       window.__shoppers = this;
@@ -49,10 +52,12 @@ export class ShopperManager {
       return;
     }
 
-    this.spawnTimer -= dt;
-    if (this.spawnTimer <= 0 && !this.spawning) {
-      this.spawnTimer = this.config.spawnInterval * randomBetween(0.85, 1.2);
-      this.spawn();
+    if (this.spawningEnabled) {
+      this.spawnTimer -= dt;
+      if (this.spawnTimer <= 0 && !this.spawning) {
+        this.spawnTimer = this.config.spawnInterval * randomBetween(0.85, 1.2);
+        this.spawn();
+      }
     }
 
     for (let i = 0; i < this.shoppers.length; i += 1) {
@@ -68,8 +73,39 @@ export class ShopperManager {
     }
   }
 
+  setSpawningEnabled(enabled) {
+    if (this.spawningEnabled === enabled) {
+      return;
+    }
+    this.spawningEnabled = enabled;
+    if (!enabled) {
+      this.spawnGeneration += 1;
+    }
+  }
+
+  prepareNextDay() {
+    this.spawnTimer = this.config.firstSpawnDelay;
+    this.setSpawningEnabled(true);
+  }
+
+  setDayStats(stats) {
+    this.dayStats = stats;
+  }
+
+  resolveOpenThieves() {
+    for (let i = 0; i < this.shoppers.length; i += 1) {
+      this.shoppers[i].recordEscape();
+    }
+  }
+
+  dismissForClosing() {
+    for (let i = 0; i < this.shoppers.length; i += 1) {
+      this.shoppers[i].leaveBecauseShopClosed();
+    }
+  }
+
   spawn() {
-    if (this.shoppers.length >= this.config.maxActive) {
+    if (!this.spawningEnabled || this.shoppers.length >= this.config.maxActive) {
       return;
     }
 
@@ -85,10 +121,11 @@ export class ShopperManager {
 
     const models = this.config.models;
     const modelUrl = models[Math.floor(Math.random() * models.length)];
+    const generation = this.spawnGeneration;
     this.spawning = true;
     this.loader.load(modelUrl).then((asset) => {
       this.spawning = false;
-      if (this.shoppers.length >= this.config.maxActive) {
+      if (!this.spawningEnabled || generation !== this.spawnGeneration || this.shoppers.length >= this.config.maxActive) {
         return;
       }
       const shopper = new ShopperAI({
@@ -105,8 +142,23 @@ export class ShopperManager {
       });
       const z = door.z + randomBetween(-0.22, 0.22);
       shopper.spawn(door.x, z);
+      shopper.onCaught = () => {
+        if (shopper.outcomeCounted) {
+          return;
+        }
+        shopper.outcomeCounted = true;
+        this.dayStats?.recordCaught();
+      };
+      shopper.onEscaped = () => {
+        if (shopper.outcomeCounted || !shopper.isThief || shopper.isDefeated) {
+          return;
+        }
+        shopper.outcomeCounted = true;
+        this.dayStats?.recordEscape(shopper.inventory.count);
+      };
       this.scene.add(shopper.group);
       this.shoppers.push(shopper);
+      this.dayStats?.recordCustomer();
     }).catch((error) => {
       this.spawning = false;
       console.error('Failed to spawn shopper', error);

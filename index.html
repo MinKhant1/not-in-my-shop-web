@@ -12,6 +12,78 @@
   </head>
   <body>
     <div id="app">
+      <div id="shop-clock">
+        <div id="clock-day">DAY 1</div>
+        <div id="clock-frame">
+          <div id="clock-window">
+            <div id="sky-fill-day"></div>
+            <div id="sky-fill-evening"></div>
+            <div id="sky-fill-night"></div>
+            <img id="sky-day" alt="" draggable="false" />
+            <img id="sky-evening" alt="" draggable="false" />
+            <img id="sky-night" alt="" draggable="false" />
+            <canvas id="clock-stars" width="1448" height="1086"></canvas>
+            <img id="clock-moon" alt="" draggable="false" />
+            <img id="clock-sun" alt="" draggable="false" />
+            <div id="cloud-1" class="clock-clouds">
+              <img alt="" draggable="false" />
+              <img alt="" draggable="false" />
+            </div>
+            <div id="cloud-2" class="clock-clouds">
+              <img alt="" draggable="false" />
+              <img alt="" draggable="false" />
+            </div>
+            <img id="clock-mountains" alt="" draggable="false" />
+            <img id="clock-town" alt="" draggable="false" />
+          </div>
+          <img id="clock-wood" alt="" draggable="false" />
+          <img id="clock-plaque-art" alt="" draggable="false" />
+          <p id="clock-plaque">9:00 AM</p>
+        </div>
+        <button id="next-day" type="button" data-no-joystick hidden>
+          <img id="next-day-icon" alt="" width="16" height="16" />
+          <span>Start Next Day</span>
+        </button>
+      </div>
+      <div id="closing-scrim" data-no-joystick hidden></div>
+      <div id="closing-announcement" hidden>
+        <p>9:00 PM</p>
+        <p>SHOP CLOSED</p>
+      </div>
+      <section id="results-panel" data-no-joystick hidden>
+        <img id="results-moon" alt="" width="28" height="28" />
+        <h2 id="results-day">DAY 1 COMPLETE</h2>
+        <p class="results-kicker">SHOP CLOSED</p>
+        <div class="results-stats">
+          <div>
+            <img id="stat-customers-icon" alt="" width="16" height="16" />
+            <strong id="stat-customers">0</strong>
+            <span>CUSTOMERS</span>
+          </div>
+          <div>
+            <img id="stat-checkouts-icon" alt="" width="16" height="16" />
+            <strong id="stat-checkouts">0</strong>
+            <span>CHECKOUTS</span>
+          </div>
+          <div>
+            <img id="stat-caught-icon" alt="" width="16" height="16" />
+            <strong id="stat-caught">0</strong>
+            <span>CAUGHT</span>
+          </div>
+        </div>
+        <div class="results-money">
+          <p><span>Checkout Income</span><b id="stat-income">0G</b></p>
+          <p><span><img id="stat-escaped-icon" alt="" width="14" height="14" /> Thieves Escaped</span><b id="stat-escaped">0</b></p>
+          <p class="is-loss"><span>Money Stolen</span><b id="stat-stolen">0G</b></p>
+          <p class="is-net"><span>Net Earnings</span><b id="stat-net">0G</b></p>
+        </div>
+        <p class="results-wallet-label"><img id="stat-coins-icon" alt="" width="16" height="16" /> Available for upgrades</p>
+        <p id="stat-available" class="results-wallet">0G</p>
+        <button id="results-continue" type="button" data-no-joystick>
+          <span>CONTINUE</span>
+          <img id="results-continue-icon" alt="" width="16" height="16" />
+        </button>
+      </section>
       <div id="money-hud" aria-live="polite">
         <span class="money-coin" aria-hidden="true"></span>
         <span id="money-amount">0</span>
@@ -21,6 +93,13 @@
       <div id="joystick-zone" aria-hidden="true"></div>
       <div id="debug-overlay" hidden></div>
     </div>
+    <svg id="clock-clip-svg" aria-hidden="true">
+      <defs>
+        <clipPath id="clock-arch" clipPathUnits="objectBoundingBox">
+          <path d="M0.4924,0.1777 L0.4178,0.1888 L0.386,0.1998 L0.3619,0.2109 L0.3425,0.2219 L0.326,0.233 L0.3108,0.244 L0.297,0.2551 L0.2852,0.2661 L0.2742,0.2772 L0.2638,0.2882 L0.2541,0.2993 L0.2452,0.3103 L0.2369,0.3214 L0.2293,0.3324 L0.2224,0.3435 L0.2162,0.3545 L0.2093,0.3656 L0.2037,0.3766 L0.1982,0.3877 L0.1934,0.3987 L0.1885,0.4098 L0.1837,0.4208 L0.1796,0.4319 L0.1754,0.4429 L0.172,0.454 L0.1685,0.465 L0.1657,0.4761 L0.1623,0.4871 L0.1595,0.4982 L0.1575,0.5092 L0.1554,0.5203 L0.1533,0.5313 L0.1519,0.5424 L0.1506,0.5534 L0.1492,0.5645 L0.1485,0.5755 L0.1471,0.5866 L0.1471,0.5976 L0.1464,0.6087 L0.1464,0.6197 L0.8467,0.6197 L0.8467,0.6087 L0.8467,0.5976 L0.846,0.5866 L0.8453,0.5755 L0.8446,0.5645 L0.8432,0.5534 L0.8419,0.5424 L0.8398,0.5313 L0.8377,0.5203 L0.8356,0.5092 L0.8336,0.4982 L0.8308,0.4871 L0.828,0.4761 L0.8253,0.465 L0.8218,0.454 L0.8184,0.4429 L0.8149,0.4319 L0.8108,0.4208 L0.8059,0.4098 L0.8018,0.3987 L0.7963,0.3877 L0.7914,0.3766 L0.7852,0.3656 L0.779,0.3545 L0.7728,0.3435 L0.7659,0.3324 L0.7583,0.3214 L0.75,0.3103 L0.7417,0.2993 L0.732,0.2882 L0.7224,0.2772 L0.7113,0.2661 L0.6989,0.2551 L0.6858,0.244 L0.6706,0.233 L0.654,0.2219 L0.6347,0.2109 L0.6105,0.1998 L0.5808,0.1888 L0.5069,0.1777 Z" />
+        </clipPath>
+      </defs>
+    </svg>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>

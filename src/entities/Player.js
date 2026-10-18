@@ -102,6 +102,7 @@ export class Player {
     this.attackClipDuration = 0;
     this.currentWeapon = WeaponId.NONE;
     this.hasBroomEquipped = false;
+    this.movementLocked = false;
     this.weaponSocket = null;
     this.handBone = null;
     this._box = new THREE.Box3();
@@ -226,6 +227,11 @@ export class Player {
   }
 
   update(dt) {
+    if (this.movementLocked) {
+      this.group.position.y = 0;
+      this.updateAnimation(false, dt);
+      return;
+    }
     const input = this.input.getMovementVector();
     const dx = input.x;
     const dz = -input.y;

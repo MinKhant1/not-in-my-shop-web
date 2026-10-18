@@ -107,6 +107,7 @@ export class CheckoutInteraction {
     this.progress = 0;
     front.finishCheckout();
     this.money.addMoney(payment);
+    this.onCheckout?.(payment);
     this.isCheckoutCompleting = false;
   }
 
