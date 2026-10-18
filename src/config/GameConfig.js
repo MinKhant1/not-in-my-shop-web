@@ -55,6 +55,30 @@ export const GameConfig = {
     zonePosition: [2.28, 3.7],
     zoneRadius: 0.48
   },
+  weapons: {
+    debugWeapons: false,
+    debugBroomGrip: true,
+    model: '/models/objects/low_poly_broom.glb',
+    // Local to RightHandWeaponSocket, which is parented to the right-hand bone (Fist.R).
+    broomEquipPosition: { x: 0, y: -0.42, z: 0.04 },
+    broomEquipRotation: { x: 0.35, y: 0.15, z: 1.15 },
+    broomEquipScale: { x: 0.85, y: 0.85, z: 0.85 },
+    thiefMaxHP: 100,
+    broomDamage: 20,
+    attackRange: 1.5,
+    attackCooldown: 0.6,
+    attackHitDelay: 0.16,
+    attackSwingDuration: 0.45,
+    swingAngle: 1.15,
+    pickupRadius: 1,
+    itemRecoveryValue: 5,
+    defeatedThiefRunSpeed: 2.4,
+    zonePosition: [1.9, 1.25],
+    zoneRadius: 0.42,
+    broomStationOffset: [-0.52, 0.02, 0.08],
+    broomStationRotation: [0.2, 0.5, 0.55],
+    broomStationScale: 0.34
+  },
   shoppers: {
     debugNavigation: false,
     maxActive: 8,

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { ToonMaterialFactory } from '../rendering/ToonMaterial.js';
+import { WeaponId } from '../player/PlayerActivity.js';
 
 const PLAYER_MODEL = '/models/characters/Casual_Male.gltf';
 const ROOT_POSITION_TRACKS = new Set([
@@ -8,6 +9,21 @@ const ROOT_POSITION_TRACKS = new Set([
 ]);
 const FADE_SECONDS = 0.18;
 const TURN_RESPONSE = 12;
+const RIGHT_HAND_BONE_NAMES = [
+  'RightHand',
+  'Hand_R',
+  'mixamorigRightHand',
+  'Right_Hand',
+  'hand.R',
+  'Fist.R',
+  'FistR',
+  'Hand.R',
+  'HandR'
+];
+
+function sanitizeBoneName(name) {
+  return name.replace(/\s/g, '_').replace(/\./g, '');
+}
 
 function findClip(clips, name) {
   const needle = name.toLowerCase();
@@ -30,6 +46,23 @@ function findWalkClip(clips) {
     ?? null;
 }
 
+function addAxes(parent, name, size) {
+  const axes = new THREE.AxesHelper(size);
+  axes.name = name;
+  axes.traverse((child) => {
+    const materials = Array.isArray(child.material) ? child.material : [child.material];
+    for (const material of materials) {
+      if (!material) {
+        continue;
+      }
+      material.depthTest = false;
+      material.transparent = true;
+    }
+    child.renderOrder = 30;
+  });
+  parent.add(axes);
+}
+
 function withoutRootMotion(clip) {
   const copy = clip.clone();
   copy.tracks = copy.tracks.filter((track) => !ROOT_POSITION_TRACKS.has(track.name));
@@ -42,6 +75,7 @@ export class Player {
     this.input = input;
     this.collision = collision;
     this.config = config.player;
+    this.weaponsConfig = config.weapons;
     this.debug = config.debug;
     this.toonPlayer = config.graphics?.toonPlayer === true;
     this.toonSteps = config.graphics?.toonSteps ?? 4;
@@ -62,8 +96,14 @@ export class Player {
     this.group.rotation.y = Math.PI;
 
     this.mixer = null;
-    this.actions = { idle: null, walk: null };
+    this.actions = { idle: null, walk: null, attack: null };
     this.currentAction = null;
+    this.attacking = false;
+    this.attackClipDuration = 0;
+    this.currentWeapon = WeaponId.NONE;
+    this.hasBroomEquipped = false;
+    this.weaponSocket = null;
+    this.handBone = null;
     this._box = new THREE.Box3();
     this._size = new THREE.Vector3();
   }
@@ -86,6 +126,7 @@ export class Player {
     console.log('Casual_Male animations:', clips.map((clip) => clip.name));
     this.prepareMaterials(model);
     this.setupAnimations(model, clips);
+    this.createWeaponSocket();
 
     if (this.debug) {
       this._box.setFromObject(this.visual);
@@ -159,7 +200,8 @@ export class Player {
 
     const idleClip = findIdleClip(clips);
     const walkClip = findWalkClip(clips);
-    if (!idleClip && !walkClip) {
+    const attackClip = findClip(clips, 'SwordSlash') ?? findClip(clips, 'Punch');
+    if (!idleClip && !walkClip && !attackClip) {
       return;
     }
 
@@ -169,6 +211,13 @@ export class Player {
     }
     if (walkClip) {
       this.actions.walk = this.mixer.clipAction(withoutRootMotion(walkClip));
+    }
+    if (attackClip) {
+      const action = this.mixer.clipAction(withoutRootMotion(attackClip));
+      action.setLoop(THREE.LoopOnce, 1);
+      action.clampWhenFinished = true;
+      this.actions.attack = action;
+      this.attackClipDuration = action.getClip().duration;
     }
 
     const starting = this.actions.idle ?? this.actions.walk;
@@ -209,8 +258,77 @@ export class Player {
     this.updateAnimation(moving, dt);
   }
 
+  createWeaponSocket() {
+    const boneNames = [];
+    this.model.traverse((child) => {
+      if (child.isBone) {
+        boneNames.push(child.name);
+      }
+    });
+    console.log('Player skeleton bones:', boneNames.join(', '));
+
+    const bonesByName = new Map();
+    this.model.traverse((child) => {
+      if (child.isBone) {
+        bonesByName.set(child.name, child);
+        bonesByName.set(sanitizeBoneName(child.name), child);
+      }
+    });
+
+    let hand = null;
+    for (const name of RIGHT_HAND_BONE_NAMES) {
+      const found = bonesByName.get(name) ?? bonesByName.get(sanitizeBoneName(name));
+      if (found) {
+        hand = found;
+        break;
+      }
+    }
+
+    const socket = new THREE.Group();
+    socket.name = 'RightHandWeaponSocket';
+    this.weaponSocket = socket;
+
+    if (!hand) {
+      console.error('Right-hand bone not found. Broom socket was not attached to the player root.', boneNames);
+      return;
+    }
+
+    hand.add(socket);
+    this.handBone = hand;
+    console.log('Right-hand bone:', hand.name, 'parent:', hand.parent?.name ?? 'none');
+
+    if (this.weaponsConfig?.debugBroomGrip) {
+      addAxes(hand, 'RightHandBoneAxes', 1.15);
+      addAxes(socket, 'RightHandWeaponSocketAxes', 0.72);
+    }
+  }
+
+  playAttack(timeScale) {
+    if (!this.actions.attack) {
+      return false;
+    }
+    this.attacking = true;
+    const action = this.actions.attack;
+    action.setEffectiveTimeScale(timeScale > 0 ? timeScale : 1);
+    action.reset().fadeIn(0.05).play();
+    if (this.currentAction && this.currentAction !== 'attack' && this.actions[this.currentAction]) {
+      this.actions[this.currentAction].fadeOut(0.05);
+    }
+    this.currentAction = 'attack';
+    return true;
+  }
+
+  endAttack() {
+    this.attacking = false;
+  }
+
   updateAnimation(moving, dt) {
     if (!this.mixer) {
+      return;
+    }
+
+    if (this.attacking) {
+      this.mixer.update(dt);
       return;
     }
 

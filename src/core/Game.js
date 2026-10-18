@@ -13,6 +13,11 @@ import { PlayerOcclusionManager } from '../systems/PlayerOcclusionManager.js';
 import { MoneyManager } from '../economy/MoneyManager.js';
 import { MoneyHUD } from '../ui/MoneyHUD.js';
 import { CheckoutInteraction } from '../checkout/CheckoutInteraction.js';
+import { PlayerActivityManager } from '../player/PlayerActivity.js';
+import { WeaponStation } from '../weapons/WeaponStation.js';
+import { PlayerWeaponController } from '../weapons/PlayerWeaponController.js';
+import { DroppedItemManager } from '../combat/DroppedItemManager.js';
+import { HitFeedback } from '../combat/HitFeedback.js';
 
 export class Game {
   constructor(canvas, app) {
@@ -75,10 +80,31 @@ export class Game {
       this.config.checkout,
       this.followCamera.camera
     );
-    if (this.config.checkout.debugCheckout) {
+    this.activity = new PlayerActivityManager();
+    this.weaponStation = new WeaponStation(this.scene, this.player, this.config.weapons);
+    await this.weaponStation.load(
+      this.loader,
+      this.config.graphics.toonShading ? this.player.toonFactory : null
+    );
+    this.weaponStation.bind(this.activity);
+    this.drops = new DroppedItemManager(this.scene, this.config.weapons);
+    this.hitFeedback = new HitFeedback(this.scene, this.config.weapons);
+    this.weapons = new PlayerWeaponController(
+      this.player,
+      this.shoppers,
+      this.weaponStation.broom,
+      this.drops,
+      this.hitFeedback,
+      this.activity,
+      this.config.weapons
+    );
+    if (this.config.checkout.debugCheckout || this.config.weapons.debugWeapons || this.config.weapons.debugBroomGrip) {
       window.__checkout = this.checkout;
       window.__money = this.money;
       window.__shoppers = this.shoppers;
+      window.__weapons = this.weapons;
+      window.__activity = this.activity;
+      window.__player = this.player;
     }
     this.resize();
     this.followCamera.snap();
@@ -128,6 +154,14 @@ export class Game {
     const dt = Math.min(this.clock.getDelta(), 0.05);
     this.player.update(dt);
     this.shoppers.update(dt);
+    this.activity.updateZones({
+      checkout: this.checkout.playerInside(),
+      weapon: this.weaponStation.playerInside()
+    });
+    this.weaponStation.update(dt);
+    this.weapons.update(dt);
+    this.drops.update(this.player, this.money);
+    this.hitFeedback.update(dt);
     this.followCamera.update(dt);
     this.checkout.update(dt);
     this.occlusion.update(dt);
@@ -151,10 +185,13 @@ export class Game {
     const checkoutLine = this.config.checkout?.debugCheckout
       ? ` ${this.shoppers.checkoutQueue.describe()} ${this.checkout.describe()}`
       : '';
+    const weaponLine = this.config.weapons?.debugWeapons
+      ? ` ${this.weapons.describe()} ${this.drops.describe()}`
+      : '';
     const occlusionLine = this.config.occlusion?.debugOcclusion
       ? ` occlusion ${this.occlusion.describe() || 'clear'}`
       : '';
-    this.debugElement.textContent = `${fps} FPS${shopperLine}${checkoutLine}${occlusionLine}`;
+    this.debugElement.textContent = `${fps} FPS${shopperLine}${checkoutLine}${weaponLine}${occlusionLine}`;
     this.fpsFrames = 0;
     this.fpsTime = 0;
   }

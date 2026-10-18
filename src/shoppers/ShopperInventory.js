@@ -45,8 +45,14 @@ export class ShopperInventory {
     const row = Math.floor(this.items.length / 2);
     mesh.position.set((column - 0.5) * 0.16, row * 0.12, 0);
     this.holder.add(mesh);
+    mesh.userData.value = entry.value ?? null;
     this.items.push(mesh);
     return entry.id;
+  }
+
+  releaseAll() {
+    const items = this.items.splice(0, this.items.length);
+    return items;
   }
 
   dispose() {

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { ShopperState } from './ShopperState.js';
+import { ThiefHealth } from '../combat/ThiefHealth.js';
 import { ShopperInventory } from './ShopperInventory.js';
 import { ShopperRoute } from './ShopperNavigation.js';
 import { ShopperVisuals, applyToonOutfit } from './ShopperVisuals.js';
@@ -50,7 +51,7 @@ function randomInt(min, max) {
 let nextShopperId = 1;
 
 export class ShopperAI {
-  constructor({ asset, modelUrl, config, navigation, collision, checkoutQueue, checkoutConfig, toonFactory, debug }) {
+  constructor({ asset, modelUrl, config, navigation, collision, checkoutQueue, checkoutConfig, weaponsConfig, toonFactory, debug }) {
     this.id = nextShopperId;
     nextShopperId += 1;
     this.modelUrl = modelUrl;
@@ -59,6 +60,7 @@ export class ShopperAI {
     this.collision = collision;
     this.checkoutQueue = checkoutQueue;
     this.checkoutConfig = checkoutConfig;
+    this.weaponsConfig = weaponsConfig;
     this.debug = debug;
     this.thiefChance = config.thiefChance;
     this.radius = config.radius;
@@ -66,6 +68,8 @@ export class ShopperAI {
 
     this.state = ShopperState.ENTERING;
     this.isThief = false;
+    this.isDefeated = false;
+    this.health = null;
     this.destinationId = null;
     this.pending = null;
     this.wait = 0;
@@ -136,6 +140,7 @@ export class ShopperAI {
     if (this.state === ShopperState.DESPAWNED) {
       return;
     }
+    this.visuals.tick(dt);
 
     if (this.wait > 0) {
       this.wait -= dt;
@@ -244,7 +249,11 @@ export class ShopperAI {
       return;
     }
 
-    if (this.state === ShopperState.THIEF || this.state === ShopperState.EXITING) {
+    if (
+      this.state === ShopperState.THIEF
+      || this.state === ShopperState.EXITING
+      || this.state === ShopperState.DEFEATED_FLEEING
+    ) {
       this.despawn();
     }
   }
@@ -296,6 +305,7 @@ export class ShopperAI {
     this.visuals.hideCountdown();
     this.isThief = true;
     this.visuals.revealThief();
+    this.ensureCombatant();
     this.angerReact = this.checkoutConfig.angerReactTime ?? 0.65;
     this.moving = false;
     this.refreshDebug();
@@ -321,7 +331,78 @@ export class ShopperAI {
     this.isThief = true;
     this.state = ShopperState.THIEF;
     this.visuals.revealThief();
+    this.ensureCombatant();
     this.leaveAsThief();
+  }
+
+  ensureCombatant() {
+    if (this.health) {
+      return;
+    }
+    const maxHP = this.weaponsConfig?.thiefMaxHP ?? 100;
+    this.health = new ThiefHealth(maxHP);
+    this.visuals.showHealth(1);
+  }
+
+  isAttackable() {
+    return this.isThief
+      && !this.isDefeated
+      && this.state !== ShopperState.DESPAWNED
+      && this.state !== ShopperState.DEFEATED_FLEEING;
+  }
+
+  takeDamage(amount) {
+    if (!this.isAttackable()) {
+      return false;
+    }
+    this.ensureCombatant();
+    const defeated = this.health.takeDamage(amount);
+    this.visuals.flashHit();
+    this.visuals.showHealth(this.health.ratio);
+    this.refreshDebug();
+    return defeated;
+  }
+
+  dieOrFlee(runSpeed) {
+    if (this.isDefeated) {
+      return [];
+    }
+    this.isDefeated = true;
+    if (this.health) {
+      this.health.isDefeated = true;
+      this.health.currentHP = 0;
+    }
+    this.visuals.hideThiefIcon();
+    this.visuals.hideHealth();
+    this.visuals.hideCountdown();
+    this.impatient = false;
+    this.angerTimer = 0;
+
+    const origin = new THREE.Vector3();
+    this.group.getWorldPosition(origin);
+    const released = this.inventory.releaseAll();
+    const drops = [];
+    for (let i = 0; i < released.length; i += 1) {
+      const angle = released.length === 1 ? 0 : (i / released.length) * Math.PI * 2;
+      drops.push({
+        mesh: released[i],
+        x: origin.x + Math.cos(angle) * 0.28,
+        z: origin.z + Math.sin(angle) * 0.28,
+        angle,
+        value: released[i].userData.value
+      });
+    }
+
+    if (this.checkoutQueue.queue.includes(this)) {
+      this.checkoutQueue.complete(this);
+    }
+    this.queueIndex = -1;
+    this.hasReachedQueueSlot = false;
+    this.state = ShopperState.DEFEATED_FLEEING;
+    this.route.config.moveSpeed = runSpeed;
+    this.goTo('despawn', true);
+    this.refreshDebug();
+    return drops;
   }
 
   leaveAsThief() {
@@ -338,6 +419,7 @@ export class ShopperAI {
       || this.state === ShopperState.EXITING
       || this.state === ShopperState.DESPAWNED
       || this.state === ShopperState.THIEF
+      || this.state === ShopperState.DEFEATED_FLEEING
     ) {
       return;
     }
@@ -571,12 +653,15 @@ export class ShopperAI {
       lines.push(`Reached Slot: ${this.hasReachedQueueSlot}`);
       lines.push(`Timer Active: ${this.impatient}`);
       lines.push(`Timer: ${this.angerTimer.toFixed(1)}`);
-    } else if (this.isThief || this.destinationId === 'despawn') {
-      lines.push(this.state);
+    } else if (this.isThief || this.state === ShopperState.DEFEATED_FLEEING || this.destinationId === 'despawn') {
+      lines.push(`State: ${this.state}`);
       lines.push('Target: Exit');
     } else {
       lines.push(this.state);
       lines.push(`Target: ${this.destinationId ?? '-'}`);
+    }
+    if (this.health) {
+      lines.push(`HP: ${this.health.currentHP} / ${this.health.maxHP}`);
     }
     lines.push(`Items: ${this.inventory.count}`);
     const point = this.route.point;

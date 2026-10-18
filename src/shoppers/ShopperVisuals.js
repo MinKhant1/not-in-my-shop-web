@@ -78,6 +78,8 @@ export class ShopperVisuals {
     this.model = model;
     this.icon = null;
     this.thiefMaterials = null;
+    this.healthSprite = null;
+    this.flashTime = 0;
     this.debugSprite = null;
     this.debugTexture = null;
     if (debug) {
@@ -123,6 +125,85 @@ export class ShopperVisuals {
       context.fillText(lines[i], 128, start + i * lineHeight);
     }
     this.debugTexture.needsUpdate = true;
+  }
+
+  hideThiefIcon() {
+    if (this.icon) {
+      this.icon.visible = false;
+    }
+  }
+
+  showHealth(ratio) {
+    if (!this.healthSprite) {
+      this.healthSprite = this.createHealthBar();
+      this.group.add(this.healthSprite);
+    }
+    this.healthSprite.visible = true;
+    const shown = Math.round(Math.min(1, Math.max(0, ratio)) * 20) / 20;
+    if (this.healthValue !== shown) {
+      this.drawHealth(shown);
+      this.healthValue = shown;
+    }
+  }
+
+  hideHealth() {
+    if (this.healthSprite) {
+      this.healthSprite.visible = false;
+    }
+  }
+
+  flashHit() {
+    this.flashTime = 0.12;
+  }
+
+  tick(dt) {
+    if (this.flashTime <= 0 || !this.thiefMaterials) {
+      return;
+    }
+    this.flashTime -= dt;
+    const flashing = this.flashTime > 0;
+    for (let i = 0; i < this.thiefMaterials.length; i += 1) {
+      const material = this.thiefMaterials[i];
+      if (!material.emissive) {
+        continue;
+      }
+      material.emissive.setHex(flashing ? 0xfff1c9 : 0xff2a2a);
+      material.emissiveIntensity = flashing ? 1.35 : 0.7;
+    }
+  }
+
+  createHealthBar() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 128;
+    canvas.height = 32;
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.generateMipmaps = false;
+    texture.minFilter = THREE.LinearFilter;
+    texture.magFilter = THREE.LinearFilter;
+    this.healthCanvas = canvas;
+    this.healthTexture = texture;
+    this.healthValue = -1;
+    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: texture,
+      transparent: true,
+      depthTest: false
+    }));
+    sprite.position.y = 1.78;
+    sprite.scale.set(0.62, 0.16, 1);
+    sprite.name = 'thief-health';
+    sprite.visible = false;
+    return sprite;
+  }
+
+  drawHealth(ratio) {
+    const context = this.healthCanvas.getContext('2d');
+    context.clearRect(0, 0, 128, 32);
+    context.fillStyle = 'rgba(18, 24, 32, 0.85)';
+    context.fillRect(4, 8, 120, 16);
+    context.fillStyle = ratio > 0.35 ? '#7dffb2' : '#ff5a5a';
+    context.fillRect(6, 10, 116 * ratio, 12);
+    this.healthTexture.needsUpdate = true;
   }
 
   revealThief() {
@@ -218,6 +299,11 @@ export class ShopperVisuals {
       this.countdown.removeFromParent();
       this.countdown.material.dispose();
       this.countdownTexture.dispose();
+    }
+    if (this.healthSprite) {
+      this.healthSprite.removeFromParent();
+      this.healthSprite.material.dispose();
+      this.healthTexture.dispose();
     }
   }
 }

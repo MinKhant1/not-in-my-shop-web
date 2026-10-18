@@ -15,6 +15,7 @@ export class ShopperManager {
     this.collision = collision;
     this.config = config.shoppers;
     this.checkoutConfig = config.checkout;
+    this.weaponsConfig = config.weapons;
     this.debug = this.config.debugNavigation === true;
     this.navigation = new ShopperNavigation(config.checkout);
     this.checkoutQueue = new CheckoutQueueManager(this.navigation.queueSlotIds, config.checkout);
@@ -98,8 +99,9 @@ export class ShopperManager {
         collision: this.collision,
         checkoutQueue: this.checkoutQueue,
         checkoutConfig: this.checkoutConfig,
+        weaponsConfig: this.weaponsConfig,
         toonFactory: this.toonFactory,
-        debug: this.debug || this.checkoutConfig?.debugCheckout === true
+        debug: this.debug || this.checkoutConfig?.debugCheckout === true || this.weaponsConfig?.debugWeapons === true
       });
       const z = door.z + randomBetween(-0.22, 0.22);
       shopper.spawn(door.x, z);
