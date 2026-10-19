@@ -5,6 +5,8 @@ export class CollisionSystem {
     this.padding = config.collision.padding;
     this.debug = config.debug;
     this.boxes = [];
+    this.debugRoot = null;
+    this.debugMaterial = null;
     this._box = new THREE.Box3();
   }
 
@@ -19,12 +21,43 @@ export class CollisionSystem {
     this.boxes.push({
       id: meta?.id ?? null,
       group: meta?.group ?? '',
-      enabled: true,
+      enabled: meta?.enabled !== false,
       minX: this._box.min.x - pad,
       maxX: this._box.max.x + pad,
       minZ: this._box.min.z - pad,
       maxZ: this._box.max.z + pad
     });
+  }
+
+  setIdEnabled(id, enabled) {
+    const boxes = this.boxes;
+    let changed = false;
+    for (let i = 0; i < boxes.length; i += 1) {
+      if (boxes[i].id === id && boxes[i].enabled !== (enabled === true)) {
+        boxes[i].enabled = enabled === true;
+        changed = true;
+      }
+    }
+    return changed;
+  }
+
+  overlapsId(id, x, z, radius) {
+    const radiusSquared = radius * radius;
+    const boxes = this.boxes;
+    for (let i = 0; i < boxes.length; i += 1) {
+      const box = boxes[i];
+      if (box.id !== id) {
+        continue;
+      }
+      const closestX = x < box.minX ? box.minX : x > box.maxX ? box.maxX : x;
+      const closestZ = z < box.minZ ? box.minZ : z > box.maxZ ? box.maxZ : z;
+      const dx = x - closestX;
+      const dz = z - closestZ;
+      if (dx * dx + dz * dz < radiusSquared) {
+        return true;
+      }
+    }
+    return false;
   }
 
   setGroupEnabled(group, enabled) {
@@ -62,13 +95,31 @@ export class CollisionSystem {
       return null;
     }
 
-    const group = new THREE.Group();
-    group.name = 'collision-debug';
-    const material = new THREE.LineBasicMaterial({ color: 0x3ddc97 });
-    const y = 0.08;
+    this.debugRoot = new THREE.Group();
+    this.debugRoot.name = 'collision-debug';
+    this.debugMaterial = new THREE.LineBasicMaterial({ color: 0x3ddc97 });
+    this.rebuildDebug();
+    return this.debugRoot;
+  }
 
+  rebuildDebug() {
+    if (!this.debugRoot) {
+      return;
+    }
+
+    const root = this.debugRoot;
+    for (let i = root.children.length - 1; i >= 0; i -= 1) {
+      const child = root.children[i];
+      child.geometry.dispose();
+      root.remove(child);
+    }
+
+    const y = 0.08;
     for (let i = 0; i < this.boxes.length; i += 1) {
       const box = this.boxes[i];
+      if (box.enabled === false) {
+        continue;
+      }
       const geometry = new THREE.BufferGeometry();
       geometry.setAttribute(
         'position',
@@ -82,9 +133,7 @@ export class CollisionSystem {
           3
         )
       );
-      group.add(new THREE.LineLoop(geometry, material));
+      root.add(new THREE.LineLoop(geometry, this.debugMaterial));
     }
-
-    return group;
   }
 }

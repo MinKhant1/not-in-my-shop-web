@@ -562,6 +562,85 @@ body {
   pointer-events: none;
 }
 
+#expansion-panel,
+#purchase-prompt {
+  position: absolute;
+  z-index: 6;
+  width: min(188px, 48vw);
+  padding: 10px 12px 12px;
+  border-radius: 14px;
+  background: rgba(20, 24, 28, 0.88);
+  color: #fff8e8;
+  pointer-events: auto;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.22);
+}
+
+#expansion-panel {
+  left: max(12px, env(safe-area-inset-left));
+  top: 38%;
+}
+
+#purchase-prompt {
+  right: max(12px, env(safe-area-inset-right));
+  bottom: max(56px, calc(env(safe-area-inset-bottom) + 48px));
+}
+
+#expansion-panel[hidden],
+#purchase-prompt[hidden] {
+  display: none;
+}
+
+.shop-card-kicker,
+.shop-card-title,
+.shop-card-price {
+  margin: 0;
+  text-align: center;
+}
+
+.shop-card-kicker {
+  font: 800 10px/1.2 system-ui, sans-serif;
+  letter-spacing: 0.08em;
+  color: #f0b429;
+}
+
+.shop-card-title {
+  margin-top: 4px;
+  font: 800 15px/1.2 system-ui, sans-serif;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.shop-card-price {
+  margin: 6px 0 8px;
+  font: 800 18px/1 system-ui, sans-serif;
+  color: #fff1b8;
+}
+
+#expansion-panel button,
+#purchase-prompt button {
+  width: 100%;
+  min-height: 36px;
+  border: 0;
+  border-radius: 999px;
+  background: #f0b429;
+  color: #1c160c;
+  font: 800 13px/1 system-ui, sans-serif;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+#expansion-panel.is-broke .shop-card-price,
+#purchase-prompt.is-broke .shop-card-price {
+  color: #e07a7a;
+}
+
+#expansion-panel button:disabled,
+#purchase-prompt button:disabled {
+  background: #3a4654;
+  color: #c5ced6;
+  cursor: default;
+}
+
 #load-error {
   position: absolute;
   left: 16px;

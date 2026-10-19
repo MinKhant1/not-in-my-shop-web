@@ -13,7 +13,8 @@ import { PlayerOcclusionManager } from '../systems/PlayerOcclusionManager.js';
 import { MoneyManager } from '../economy/MoneyManager.js';
 import { ShopUpgrades } from '../economy/ShopUpgrades.js';
 import { UpgradeManager } from '../economy/UpgradeManager.js';
-import { ShopExpansionUpgrade } from '../economy/ShopExpansionUpgrade.js';
+import { StoreSave } from '../economy/StoreSave.js';
+import { PurchaseManager } from '../economy/PurchaseManager.js';
 import { MoneyHUD } from '../ui/MoneyHUD.js';
 import { DebugMoneyUI } from '../ui/DebugMoneyUI.js';
 import { DayNightController } from '../daynight/DayNightController.js';
@@ -49,6 +50,8 @@ export class Game {
     this.occlusion = new PlayerOcclusionManager(this.scene, this.config);
     this.money = new MoneyManager(this.config.economy?.startingMoney ?? 0);
     this.upgrades = new ShopUpgrades();
+    this.save = new StoreSave();
+    this.save.apply(this.money, this.upgrades);
     this.moneyHud = new MoneyHUD(document.querySelector('#money-hud'), this.money);
     this.lighting = new DayNightLighting(this.scene, this.config.dayNight);
     this.dayStats = new DayStats(this.money, this.config.weapons.itemRecoveryValue ?? 5);
@@ -80,10 +83,17 @@ export class Game {
   }
 
   async init() {
+    this.save.claimPendingRefund(this.money);
+    this.money.setPersist((amount) => {
+      this.save.write({ money: amount });
+    });
+    const unlocked = this.save.unlockedSections();
+    const ownedFixtures = this.save.purchasedFixtures(unlocked);
     const store = new Store(this.scene, this.loader, this.collision, this.config);
-    await store.load();
+    store.onBoundsChanged = (limits) => this.followCamera.setLimits(limits);
+    await store.load(unlocked, ownedFixtures);
     this.occlusion.collect(store);
-    store.setGroupVisible('expansion', false);
+    store.onFixtureSpawned = (object, id) => this.occlusion.track(object, id);
     this.store = store;
 
     this.player = new Player(this.loader, this.input, this.collision, this.config);
@@ -119,7 +129,6 @@ export class Game {
     );
     this.weaponStation.bind(this.activity);
     this.checkout.onCheckout = (amount) => this.dayStats.recordCheckout(amount);
-    const expansion = new ShopExpansionUpgrade(store);
     const upgradeConfig = this.config.upgrades ?? {};
     this.upgradeManager = new UpgradeManager(
       this.scene,
@@ -128,13 +137,16 @@ export class Game {
       () => this.player.group.position,
       upgradeConfig.coinInterval ?? 0.15
     );
-    const rightExpansion = upgradeConfig.rightExpansion;
-    if (rightExpansion) {
-      this.upgradeManager.add({
-        ...rightExpansion,
-        onPurchase: () => expansion.activate()
-      });
-    }
+    this.purchases = new PurchaseManager(
+      this.scene,
+      store,
+      this.money,
+      this.upgrades,
+      this.save,
+      this.config.purchases
+    );
+    this.purchases.restoreOwned(ownedFixtures);
+    this.purchases.syncOffers();
     this.debugMoney = new DebugMoneyUI(
       this.app,
       this.money,
@@ -163,6 +175,8 @@ export class Game {
       window.__upgrades = this.upgrades;
       window.__store = this.store;
       window.__upgradeManager = this.upgradeManager;
+      window.__purchases = this.purchases;
+      window.__save = this.save;
     }
     this.resize();
     this.followCamera.snap();
@@ -197,6 +211,8 @@ export class Game {
     this.player.movementLocked = !playing;
     this.player.update(dt);
     this.upgradeManager?.update(dt);
+    const position = this.player.group.position;
+    this.purchases?.update(dt, playing, position.x, position.z);
     this.shoppers.update(dt);
     if (playing) {
       this.activity.updateZones({

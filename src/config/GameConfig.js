@@ -42,14 +42,11 @@ export const GameConfig = {
     debugMoney: true
   },
   upgrades: {
-    coinInterval: 0.15,
-    rightExpansion: {
-      id: 'right-shop-expansion',
-      name: 'SHOP EXPANSION',
-      cost: 15,
-      position: [2.4, 0.2],
-      halfSize: 0.72
-    }
+    coinInterval: 0.15
+  },
+  purchases: {
+    paymentInterval: 0.04,
+    paymentPerTick: 1
   },
   dayNight: {
     dayDuration: 120,

@@ -2,6 +2,18 @@ export class MoneyManager {
   constructor(startingMoney = 0) {
     this.amount = startingMoney;
     this.listener = null;
+    this.persist = null;
+  }
+
+  setPersist(persist) {
+    this.persist = persist;
+  }
+
+  notify(delta) {
+    this.listener?.(this.amount, delta);
+    if (delta !== 0) {
+      this.persist?.(this.amount);
+    }
   }
 
   setListener(listener) {
@@ -19,7 +31,7 @@ export class MoneyManager {
       return this.amount;
     }
     this.amount += gain;
-    this.listener?.(this.amount, gain);
+    this.notify(gain);
     return this.amount;
   }
 
@@ -29,7 +41,7 @@ export class MoneyManager {
       return this.amount;
     }
     this.amount = Math.max(0, this.amount - loss);
-    this.listener?.(this.amount, -loss);
+    this.notify(-loss);
     return this.amount;
   }
 
@@ -42,7 +54,7 @@ export class MoneyManager {
       return false;
     }
     this.amount -= cost;
-    this.listener?.(this.amount, -cost);
+    this.notify(-cost);
     return true;
   }
 
@@ -50,7 +62,7 @@ export class MoneyManager {
     const next = Math.max(0, Math.round(amount));
     const delta = next - this.amount;
     this.amount = next;
-    this.listener?.(this.amount, delta);
+    this.notify(delta);
     return this.amount;
   }
 }

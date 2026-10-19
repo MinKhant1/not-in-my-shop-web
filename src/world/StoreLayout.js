@@ -81,24 +81,6 @@ function buildLayout() {
     }
   );
 
-  const expansionEast = 6.5;
-  for (let z = -6; z <= 7; z += 1) {
-    for (let x = 5; x <= 7; x += 1) {
-      layout.push(entry(`floor-exp-${x}-${z}`, FLOOR, [x, 0, z], [0, 0, 0], false, 1, 'expansion'));
-    }
-  }
-  for (let x = 4; x <= 6; x += 1) {
-    layout.push(entry(`wall-exp-north-${x}`, WALL, [x, 0, NORTH_Z], [0, 0, 0], true, 1, 'expansion'));
-    layout.push(entry(`wall-exp-south-${x}`, WALL, [x, 0, SOUTH_Z], [0, 0, 0], true, 1, 'expansion'));
-  }
-  for (let z = FLOOR_MIN_Z; z <= FLOOR_MAX_Z; z += 1) {
-    layout.push(entry(`wall-exp-east-${z}`, WALL, [expansionEast, 0, z], [0, Math.PI / 2, 0], true, 1, 'expansion'));
-  }
-  layout.push(
-    entry('corner-exp-se', WALL_CORNER, [expansionEast, 0, SOUTH_Z], [0, 0, 0], true, 1, 'expansion'),
-    entry('corner-exp-ne', WALL_CORNER, [expansionEast, 0, NORTH_Z], [0, Math.PI / 2, 0], true, 1, 'expansion')
-  );
-
   return layout;
 }
 

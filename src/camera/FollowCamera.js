@@ -13,6 +13,16 @@ export class FollowCamera {
     this.desiredPosition = new THREE.Vector3();
     this.desiredTarget = new THREE.Vector3();
     this.currentTarget = new THREE.Vector3();
+    this.limitMinX = null;
+    this.limitMaxX = null;
+  }
+
+  setLimits(limits) {
+    if (!limits) {
+      return;
+    }
+    this.limitMinX = limits.minX;
+    this.limitMaxX = limits.maxX;
   }
 
   follow(player) {
@@ -33,6 +43,7 @@ export class FollowCamera {
     const position = this.player.group.position;
     this.desiredPosition.set(position.x, this.height, position.z + this.distance);
     this.desiredTarget.set(position.x, 0, position.z - this.lookAhead);
+    this.clampDesiredX();
 
     if (!this.hasSnapped) {
       this.camera.position.copy(this.desiredPosition);
@@ -45,5 +56,22 @@ export class FollowCamera {
     }
 
     this.camera.lookAt(this.currentTarget);
+  }
+
+  clampDesiredX() {
+    if (this.limitMinX == null || this.limitMaxX == null) {
+      return;
+    }
+    const min = this.limitMinX;
+    const max = this.limitMaxX;
+    const x = max > min
+      ? Math.min(max, Math.max(min, this.desiredPosition.x))
+      : (min + max) * 0.5;
+    const shift = x - this.desiredPosition.x;
+    if (shift === 0) {
+      return;
+    }
+    this.desiredPosition.x = x;
+    this.desiredTarget.x += shift;
   }
 }

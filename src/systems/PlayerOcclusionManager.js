@@ -7,7 +7,7 @@ const SETTLE_EPSILON = 0.01;
 const slabRange = { tmin: 0, tmax: 1 };
 
 function isEnvironmentOccluder(id) {
-  return Boolean(id) && !id.startsWith('floor-');
+  return Boolean(id) && !id.startsWith('floor-') && !id.startsWith('decor-');
 }
 
 function axisSlab(origin, delta, min, max, range) {
@@ -119,36 +119,7 @@ export class PlayerOcclusionManager {
       if (!isEnvironmentOccluder(record.entry?.id)) {
         continue;
       }
-      record.object.updateWorldMatrix(true, true);
-      this._box.setFromObject(record.object);
-      if (this._box.isEmpty()) {
-        continue;
-      }
-      const meshes = [];
-      record.object.traverse((child) => {
-        if (!child.isMesh || !child.material) {
-          return;
-        }
-        child.layers.enable(OCCLUDER_LAYER);
-        meshes.push(child);
-      });
-      if (meshes.length === 0) {
-        continue;
-      }
-      this.occluders.push({
-        id: record.entry.id,
-        object: record.object,
-        meshes,
-        slots: null,
-        blocking: false,
-        tracked: false,
-        minX: this._box.min.x,
-        maxX: this._box.max.x,
-        minY: this._box.min.y,
-        maxY: this._box.max.y,
-        minZ: this._box.min.z,
-        maxZ: this._box.max.z
-      });
+      this.track(record.object, record.entry.id);
     }
     if (this.debug) {
       this.createDebug();
@@ -156,6 +127,42 @@ export class PlayerOcclusionManager {
         window.__occlusion = this;
       }
     }
+  }
+
+  track(object, id) {
+    if (!object || !id || this.occluders.some((item) => item.id === id)) {
+      return;
+    }
+    object.updateWorldMatrix(true, true);
+    this._box.setFromObject(object);
+    if (this._box.isEmpty()) {
+      return;
+    }
+    const meshes = [];
+    object.traverse((child) => {
+      if (!child.isMesh || !child.material) {
+        return;
+      }
+      child.layers.enable(OCCLUDER_LAYER);
+      meshes.push(child);
+    });
+    if (meshes.length === 0) {
+      return;
+    }
+    this.occluders.push({
+      id,
+      object,
+      meshes,
+      slots: null,
+      blocking: false,
+      tracked: false,
+      minX: this._box.min.x,
+      maxX: this._box.max.x,
+      minY: this._box.min.y,
+      maxY: this._box.max.y,
+      minZ: this._box.min.z,
+      maxZ: this._box.max.z
+    });
   }
 
   createDebug() {
