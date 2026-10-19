@@ -54,6 +54,16 @@ export class CheckoutQueueManager {
     this.refreshImpatience(0);
   }
 
+  clear() {
+    const queued = this.queue.splice(0, this.queue.length);
+    if (this.impatient) {
+      this.impatient.setImpatient(false, 0);
+    }
+    this.impatient = null;
+    this.angerTimer = 0;
+    return queued;
+  }
+
   slotId(index) {
     return this.slotIds[index] ?? null;
   }

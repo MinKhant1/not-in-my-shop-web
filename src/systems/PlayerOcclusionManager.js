@@ -137,6 +137,7 @@ export class PlayerOcclusionManager {
       }
       this.occluders.push({
         id: record.entry.id,
+        object: record.object,
         meshes,
         slots: null,
         blocking: false,
@@ -187,6 +188,10 @@ export class PlayerOcclusionManager {
 
     for (let i = 0; i < this.occluders.length; i += 1) {
       const item = this.occluders[i];
+      if (item.object && item.object.visible === false) {
+        item.blocking = false;
+        continue;
+      }
       const hit = segmentHitsExpandedAabb(
         origin.x,
         origin.y,

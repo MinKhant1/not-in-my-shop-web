@@ -12,8 +12,8 @@ const SOUTH_Z = FLOOR_MAX_Z + 0.5;
 const WEST_X = FLOOR_MIN_X - 0.5;
 const EAST_X = FLOOR_MAX_X + 0.5;
 
-function entry(id, model, position, rotation = [0, 0, 0], collision = false, scale = 1) {
-  return { id, model, position, rotation, scale, collision };
+function entry(id, model, position, rotation = [0, 0, 0], collision = false, scale = 1, group = '') {
+  return { id, model, position, rotation, scale, collision, group };
 }
 
 function buildLayout() {
@@ -39,12 +39,12 @@ function buildLayout() {
     } else {
       layout.push(entry(`wall-west-${z}`, WALL, [WEST_X, 0, z], [0, Math.PI / 2, 0], true));
     }
-    layout.push(entry(`wall-east-${z}`, WALL, [EAST_X, 0, z], [0, Math.PI / 2, 0], true));
+    layout.push(entry(`wall-east-${z}`, WALL, [EAST_X, 0, z], [0, Math.PI / 2, 0], true, 1, 'east-wall'));
   }
 
   layout.push(
-    entry('corner-se', WALL_CORNER, [EAST_X, 0, SOUTH_Z], [0, 0, 0], true),
-    entry('corner-ne', WALL_CORNER, [EAST_X, 0, NORTH_Z], [0, Math.PI / 2, 0], true),
+    entry('corner-se', WALL_CORNER, [EAST_X, 0, SOUTH_Z], [0, 0, 0], true, 1, 'east-wall'),
+    entry('corner-ne', WALL_CORNER, [EAST_X, 0, NORTH_Z], [0, Math.PI / 2, 0], true, 1, 'east-wall'),
     entry('corner-nw', WALL_CORNER, [WEST_X, 0, NORTH_Z], [0, Math.PI, 0], true),
     entry('corner-sw', WALL_CORNER, [WEST_X, 0, SOUTH_Z], [0, -Math.PI / 2, 0], true)
   );
@@ -79,6 +79,24 @@ function buildLayout() {
         color: 0x4d5968
       }
     }
+  );
+
+  const expansionEast = 6.5;
+  for (let z = -6; z <= 7; z += 1) {
+    for (let x = 5; x <= 7; x += 1) {
+      layout.push(entry(`floor-exp-${x}-${z}`, FLOOR, [x, 0, z], [0, 0, 0], false, 1, 'expansion'));
+    }
+  }
+  for (let x = 4; x <= 6; x += 1) {
+    layout.push(entry(`wall-exp-north-${x}`, WALL, [x, 0, NORTH_Z], [0, 0, 0], true, 1, 'expansion'));
+    layout.push(entry(`wall-exp-south-${x}`, WALL, [x, 0, SOUTH_Z], [0, 0, 0], true, 1, 'expansion'));
+  }
+  for (let z = FLOOR_MIN_Z; z <= FLOOR_MAX_Z; z += 1) {
+    layout.push(entry(`wall-exp-east-${z}`, WALL, [expansionEast, 0, z], [0, Math.PI / 2, 0], true, 1, 'expansion'));
+  }
+  layout.push(
+    entry('corner-exp-se', WALL_CORNER, [expansionEast, 0, SOUTH_Z], [0, 0, 0], true, 1, 'expansion'),
+    entry('corner-exp-ne', WALL_CORNER, [expansionEast, 0, NORTH_Z], [0, Math.PI / 2, 0], true, 1, 'expansion')
   );
 
   return layout;

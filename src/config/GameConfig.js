@@ -38,7 +38,18 @@ export const GameConfig = {
     deadzone: 0.16
   },
   economy: {
-    startingMoney: 0
+    startingMoney: 0,
+    debugMoney: true
+  },
+  upgrades: {
+    coinInterval: 0.15,
+    rightExpansion: {
+      id: 'right-shop-expansion',
+      name: 'SHOP EXPANSION',
+      cost: 15,
+      position: [2.4, 0.2],
+      halfSize: 0.72
+    }
   },
   dayNight: {
     dayDuration: 120,

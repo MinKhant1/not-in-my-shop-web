@@ -20,10 +20,17 @@ export class ShopUpgrades {
     if (!this.open || this.purchased.has(id)) {
       return false;
     }
-    if (money.getMoney() < cost) {
+    if (!money.spendMoney(cost)) {
       return false;
     }
-    money.removeMoney(cost);
+    this.purchased.add(id);
+    return true;
+  }
+
+  markPurchased(id) {
+    if (this.purchased.has(id)) {
+      return false;
+    }
     this.purchased.add(id);
     return true;
   }

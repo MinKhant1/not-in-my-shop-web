@@ -155,7 +155,7 @@ export class DayNightController {
     this.hooks.setSpawning?.(dayOpen);
     this.hooks.setUpgradesOpen?.(night);
     this.hooks.onVisual?.(night ? 'night' : 'day');
-    if (dismiss) {
+    if (dismiss || night) {
       this.hooks.dismissShoppers?.();
     }
   }

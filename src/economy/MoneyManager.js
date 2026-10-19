@@ -32,4 +32,25 @@ export class MoneyManager {
     this.listener?.(this.amount, -loss);
     return this.amount;
   }
+
+  spendMoney(amount) {
+    const cost = Math.round(amount);
+    if (cost <= 0) {
+      return true;
+    }
+    if (this.amount < cost) {
+      return false;
+    }
+    this.amount -= cost;
+    this.listener?.(this.amount, -cost);
+    return true;
+  }
+
+  setMoney(amount) {
+    const next = Math.max(0, Math.round(amount));
+    const delta = next - this.amount;
+    this.amount = next;
+    this.listener?.(this.amount, delta);
+    return this.amount;
+  }
 }

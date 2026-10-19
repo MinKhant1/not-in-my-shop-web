@@ -12,7 +12,10 @@ import { ShopperManager } from '../shoppers/ShopperManager.js';
 import { PlayerOcclusionManager } from '../systems/PlayerOcclusionManager.js';
 import { MoneyManager } from '../economy/MoneyManager.js';
 import { ShopUpgrades } from '../economy/ShopUpgrades.js';
+import { UpgradeManager } from '../economy/UpgradeManager.js';
+import { ShopExpansionUpgrade } from '../economy/ShopExpansionUpgrade.js';
 import { MoneyHUD } from '../ui/MoneyHUD.js';
+import { DebugMoneyUI } from '../ui/DebugMoneyUI.js';
 import { DayNightController } from '../daynight/DayNightController.js';
 import { DayNightLighting } from '../daynight/DayNightLighting.js';
 import { DayStats } from '../daynight/DayStats.js';
@@ -59,6 +62,7 @@ export class Game {
       },
       setUpgradesOpen: (open) => this.upgrades.setOpen(open),
       dismissShoppers: () => {
+        this.checkout?.cancel();
         this.shoppers.resolveOpenThieves();
         this.shoppers.dismissForClosing();
       },
@@ -79,6 +83,8 @@ export class Game {
     const store = new Store(this.scene, this.loader, this.collision, this.config);
     await store.load();
     this.occlusion.collect(store);
+    store.setGroupVisible('expansion', false);
+    this.store = store;
 
     this.player = new Player(this.loader, this.input, this.collision, this.config);
     await this.player.load();
@@ -113,6 +119,28 @@ export class Game {
     );
     this.weaponStation.bind(this.activity);
     this.checkout.onCheckout = (amount) => this.dayStats.recordCheckout(amount);
+    const expansion = new ShopExpansionUpgrade(store);
+    const upgradeConfig = this.config.upgrades ?? {};
+    this.upgradeManager = new UpgradeManager(
+      this.scene,
+      this.money,
+      this.upgrades,
+      () => this.player.group.position,
+      upgradeConfig.coinInterval ?? 0.15
+    );
+    const rightExpansion = upgradeConfig.rightExpansion;
+    if (rightExpansion) {
+      this.upgradeManager.add({
+        ...rightExpansion,
+        onPurchase: () => expansion.activate()
+      });
+    }
+    this.debugMoney = new DebugMoneyUI(
+      this.app,
+      this.money,
+      this.config.economy?.startingMoney ?? 0,
+      import.meta.env.DEV && this.config.economy?.debugMoney !== false
+    );
     this.drops = new DroppedItemManager(this.scene, this.config.weapons);
     this.hitFeedback = new HitFeedback(this.scene, this.config.weapons);
     this.weapons = new PlayerWeaponController(
@@ -133,6 +161,8 @@ export class Game {
       window.__player = this.player;
       window.__dayNight = this.dayNight;
       window.__upgrades = this.upgrades;
+      window.__store = this.store;
+      window.__upgradeManager = this.upgradeManager;
     }
     this.resize();
     this.followCamera.snap();
@@ -166,6 +196,7 @@ export class Game {
     const playing = !this.dayNight.blocksPlay();
     this.player.movementLocked = !playing;
     this.player.update(dt);
+    this.upgradeManager?.update(dt);
     this.shoppers.update(dt);
     if (playing) {
       this.activity.updateZones({

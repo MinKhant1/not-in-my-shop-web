@@ -515,6 +515,39 @@ body {
   }
 }
 
+#debug-money {
+  position: absolute;
+  left: max(8px, env(safe-area-inset-left));
+  bottom: max(12px, env(safe-area-inset-bottom));
+  z-index: 6;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  width: 148px;
+  padding: 6px;
+  border-radius: 12px;
+  background: rgba(20, 24, 28, 0.82);
+  color: #fff8e8;
+  pointer-events: auto;
+}
+
+#debug-money p {
+  grid-column: 1 / -1;
+  margin: 0 0 2px;
+  font: 800 10px/1 system-ui, sans-serif;
+  letter-spacing: 0.05em;
+}
+
+#debug-money button {
+  min-height: 28px;
+  border: 0;
+  border-radius: 8px;
+  background: #3a4654;
+  color: #fff8e8;
+  font: 700 11px/1 system-ui, sans-serif;
+  cursor: pointer;
+}
+
 #debug-overlay {
   position: absolute;
   top: 196px;

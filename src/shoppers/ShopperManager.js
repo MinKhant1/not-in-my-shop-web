@@ -99,6 +99,7 @@ export class ShopperManager {
   }
 
   dismissForClosing() {
+    this.checkoutQueue.clear();
     for (let i = 0; i < this.shoppers.length; i += 1) {
       this.shoppers[i].leaveBecauseShopClosed();
     }

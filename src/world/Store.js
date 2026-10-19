@@ -38,6 +38,7 @@ export class Store {
     this.group = new THREE.Group();
     this.group.name = 'store';
     this.records = [];
+    this.expansionOpen = false;
     this.reportedModels = new Set();
     this.miniMarketTexture = null;
     this.toonMaterials = this.toonShading
@@ -53,8 +54,40 @@ export class Store {
 
     for (let i = 0; i < this.records.length; i += 1) {
       const record = this.records[i];
-      if (record.entry.collision) {
-        this.collision.addObject(record.object);
+      if (record.entry.collision && record.entry.group !== 'expansion') {
+        this.collision.addObject(record.object, {
+          id: record.entry.id,
+          group: record.entry.group || ''
+        });
+      }
+    }
+  }
+
+  setGroupVisible(group, visible) {
+    const records = this.records;
+    for (let i = 0; i < records.length; i += 1) {
+      if (records[i].entry.group === group) {
+        records[i].object.visible = visible === true;
+      }
+    }
+  }
+
+  openRightExpansion() {
+    if (this.expansionOpen) {
+      return;
+    }
+    this.expansionOpen = true;
+    this.setGroupVisible('east-wall', false);
+    this.setGroupVisible('expansion', true);
+    this.collision.setGroupEnabled('east-wall', false);
+    const records = this.records;
+    for (let i = 0; i < records.length; i += 1) {
+      const entry = records[i].entry;
+      if (entry.group === 'expansion' && entry.collision) {
+        this.collision.addObject(records[i].object, {
+          id: entry.id,
+          group: entry.group
+        });
       }
     }
   }

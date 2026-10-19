@@ -8,7 +8,7 @@ export class CollisionSystem {
     this._box = new THREE.Box3();
   }
 
-  addObject(object) {
+  addObject(object, meta = null) {
     object.updateWorldMatrix(true, true);
     this._box.setFromObject(object);
     if (this._box.isEmpty()) {
@@ -17,11 +17,23 @@ export class CollisionSystem {
 
     const pad = this.padding;
     this.boxes.push({
+      id: meta?.id ?? null,
+      group: meta?.group ?? '',
+      enabled: true,
       minX: this._box.min.x - pad,
       maxX: this._box.max.x + pad,
       minZ: this._box.min.z - pad,
       maxZ: this._box.max.z + pad
     });
+  }
+
+  setGroupEnabled(group, enabled) {
+    const boxes = this.boxes;
+    for (let i = 0; i < boxes.length; i += 1) {
+      if (boxes[i].group === group) {
+        boxes[i].enabled = enabled === true;
+      }
+    }
   }
 
   blocksMovement(x, z, radius) {
@@ -30,6 +42,9 @@ export class CollisionSystem {
 
     for (let i = 0; i < boxes.length; i += 1) {
       const box = boxes[i];
+      if (box.enabled === false) {
+        continue;
+      }
       const closestX = x < box.minX ? box.minX : x > box.maxX ? box.maxX : x;
       const closestZ = z < box.minZ ? box.minZ : z > box.maxZ ? box.maxZ : z;
       const dx = x - closestX;

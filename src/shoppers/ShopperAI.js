@@ -549,13 +549,7 @@ export class ShopperAI {
     this.impatient = false;
     this.angerTimer = 0;
     this.visuals.hideCountdown();
-    if (
-      this.state === ShopperState.DESPAWNED
-      || this.state === ShopperState.EXITING
-      || this.state === ShopperState.DEFEATED_FLEEING
-      || this.state === ShopperState.CHECKING_OUT
-      || (this.state === ShopperState.THIEF && this.destinationId === 'despawn')
-    ) {
+    if (this.state === ShopperState.DESPAWNED) {
       return;
     }
     if (this.checkoutQueue.queue.includes(this)) {
@@ -563,6 +557,14 @@ export class ShopperAI {
     }
     this.queueIndex = -1;
     this.hasReachedQueueSlot = false;
+    if (
+      this.state === ShopperState.EXITING
+      || this.state === ShopperState.DEFEATED_FLEEING
+      || (this.state === ShopperState.THIEF && this.destinationId === 'despawn')
+    ) {
+      this.refreshDebug();
+      return;
+    }
     if (this.isThief || this.state === ShopperState.ANGRY || this.state === ShopperState.THIEF) {
       this.state = ShopperState.THIEF;
       this.leaveAsThief();

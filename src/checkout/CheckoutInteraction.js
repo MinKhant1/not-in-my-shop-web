@@ -97,6 +97,16 @@ export class CheckoutInteraction {
     this.ring.material.color.setHex(this.progress > 0 ? 0xffd15c : 0x3ddc97);
   }
 
+  cancel() {
+    this.elapsed = 0;
+    this.progress = 0;
+    this.isCheckoutCompleting = false;
+    this.progressUI.reset();
+    this.progressUI.hide();
+    this.disc.material.opacity = 0.14;
+    this.ring.material.color.setHex(0x3ddc97);
+  }
+
   completeFront(front) {
     if (this.isCheckoutCompleting || !front || front.isThief) {
       return;
