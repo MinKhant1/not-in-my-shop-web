@@ -156,6 +156,7 @@ export class PurchaseManager {
   addOffer(spec) {
     const investment = new UpgradeInvestment(spec.price);
     const view = new PurchaseSquare(spec);
+    view.root.visible = this.upgradesOpen();
     this.scene.add(view.root);
     this.offers.push({
       ...spec,
@@ -163,6 +164,19 @@ export class PurchaseManager {
       view,
       savedPaid: 0
     });
+  }
+
+  upgradesOpen() {
+    return this.upgrades?.canPurchase() === true;
+  }
+
+  setNightVisible(open) {
+    for (let i = 0; i < this.offers.length; i += 1) {
+      this.offers[i].view.root.visible = open;
+    }
+    for (let i = 0; i < this.fading.length; i += 1) {
+      this.fading[i].view.root.visible = open;
+    }
   }
 
   contains(offer, x, z, padded) {
@@ -199,6 +213,16 @@ export class PurchaseManager {
     this.updateFading(dt);
     for (let i = 0; i < this.offers.length; i += 1) {
       this.offers[i].view.update(dt);
+    }
+    const open = this.upgradesOpen();
+    this.setNightVisible(open);
+    if (!open) {
+      if (playing && this.active && !this.active.investment.purchased) {
+        this.cancel(this.active);
+        this.active = null;
+      }
+      this.refreshViews();
+      return;
     }
     if (!playing || this.busy) {
       this.refreshViews();

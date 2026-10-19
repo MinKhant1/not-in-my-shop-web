@@ -151,7 +151,8 @@ export class Game {
       this.app,
       this.money,
       this.config.economy?.startingMoney ?? 0,
-      import.meta.env.DEV && this.config.economy?.debugMoney !== false
+      import.meta.env.DEV && this.config.economy?.debugMoney !== false,
+      this.save
     );
     this.drops = new DroppedItemManager(this.scene, this.config.weapons);
     this.hitFeedback = new HitFeedback(this.scene, this.config.weapons);

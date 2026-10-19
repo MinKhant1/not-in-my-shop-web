@@ -35,6 +35,19 @@ export class StoreSave {
     this.data = readData();
   }
 
+  clear() {
+    this.data = {};
+    const store = storage();
+    if (!store) {
+      return;
+    }
+    try {
+      store.removeItem(SAVE_KEY);
+    } catch {
+      // Ignore a blocked storage write. The reload still starts from memory.
+    }
+  }
+
   write(partial) {
     this.data = { version: 1, ...this.data, ...partial };
     const store = storage();

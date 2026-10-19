@@ -7,10 +7,11 @@ function button(label, onClick) {
 }
 
 export class DebugMoneyUI {
-  constructor(app, money, startingMoney, enabled) {
+  constructor(app, money, startingMoney, enabled, save) {
     this.enabled = enabled === true;
     this.money = money;
     this.startingMoney = startingMoney;
+    this.save = save;
     if (!this.enabled) {
       return;
     }
@@ -25,7 +26,8 @@ export class DebugMoneyUI {
       button('+10', () => money.addMoney(10)),
       button('+50', () => money.addMoney(50)),
       button('SET 100', () => money.setMoney(100)),
-      button('RESET', () => money.setMoney(startingMoney))
+      button('RESET', () => money.setMoney(startingMoney)),
+      this.progressButton()
     );
     app.append(this.root);
 
@@ -49,5 +51,14 @@ export class DebugMoneyUI {
       event.preventDefault();
     };
     window.addEventListener('keydown', this.onKeyDown);
+  }
+
+  progressButton() {
+    const element = button('RESET PROGRESS', () => {
+      this.save?.clear();
+      window.location.reload();
+    });
+    element.className = 'reset-progress';
+    return element;
   }
 }
