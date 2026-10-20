@@ -1,3 +1,5 @@
+import { CORNER_FLUSH } from './StoreSections.js';
+
 const FLOOR = '/models/environment/floor.glb';
 const WALL = '/models/environment/wall.glb';
 const WALL_CORNER = '/models/environment/wall-corner.glb';
@@ -19,8 +21,8 @@ function entry(id, model, position, rotation = [0, 0, 0], collision = false, sca
 function buildLayout() {
   const layout = [];
 
-  for (let z = -6; z <= 7; z += 1) {
-    for (let x = -4; x <= 4; x += 1) {
+  for (let z = FLOOR_MIN_Z; z <= FLOOR_MAX_Z; z += 1) {
+    for (let x = FLOOR_MIN_X; x <= FLOOR_MAX_X; x += 1) {
       layout.push(entry(`floor-${x}-${z}`, FLOOR, [x, 0, z]));
     }
   }
@@ -43,10 +45,10 @@ function buildLayout() {
   }
 
   layout.push(
-    entry('corner-se', WALL_CORNER, [EAST_X, 0, SOUTH_Z], [0, 0, 0], true, 1, 'east-wall'),
-    entry('corner-ne', WALL_CORNER, [EAST_X, 0, NORTH_Z], [0, Math.PI / 2, 0], true, 1, 'east-wall'),
-    entry('corner-nw', WALL_CORNER, [WEST_X, 0, NORTH_Z], [0, Math.PI, 0], true),
-    entry('corner-sw', WALL_CORNER, [WEST_X, 0, SOUTH_Z], [0, -Math.PI / 2, 0], true)
+    entry('corner-se', WALL_CORNER, [EAST_X, 0, SOUTH_Z - CORNER_FLUSH], [0, 0, 0], true, 1, 'east-wall'),
+    entry('corner-ne', WALL_CORNER, [EAST_X - CORNER_FLUSH, 0, NORTH_Z], [0, Math.PI / 2, 0], true, 1, 'east-wall'),
+    entry('corner-nw', WALL_CORNER, [WEST_X, 0, NORTH_Z + CORNER_FLUSH], [0, Math.PI, 0], true),
+    entry('corner-sw', WALL_CORNER, [WEST_X + CORNER_FLUSH, 0, SOUTH_Z], [0, -Math.PI / 2, 0], true)
   );
 
   layout.push(

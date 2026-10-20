@@ -4,11 +4,9 @@ import moonUrl from '../assets/icons/moon.svg';
 import sunriseUrl from '../assets/icons/sunrise.svg';
 import bugUrl from '../assets/icons/bug.svg';
 import usersUrl from '../assets/icons/users.svg';
-import bagUrl from '../assets/icons/shopping-bag.svg';
-import caughtUrl from '../assets/icons/shield-check.svg';
-import escapedUrl from '../assets/icons/user-round-x.svg';
-import coinsUrl from '../assets/icons/coins.svg';
-import arrowUrl from '../assets/icons/arrow-right.svg';
+import clipboardUrl from '../assets/icons/clipboard-check.svg';
+import caughtUrl from '../assets/icons/shield-star.svg';
+import escapedUrl from '../assets/icons/runner.svg';
 
 const CLOCK_ART = '/assets/ui/clock-layers';
 const ARCH = { x: 0.1464, y: 0.1777, w: 0.7003, h: 0.442 };
@@ -114,6 +112,7 @@ export class DayNightHUD {
     this.resultsShown = false;
     this.countTimer = 0;
     this.countDone = false;
+    this.debugPreview = false;
     this.tickSecond = null;
 
     this.dayLabel = document.querySelector('#clock-day');
@@ -147,13 +146,11 @@ export class DayNightHUD {
 
     this.nextDayIcon.src = sunriseUrl;
     this.preloadClockArt();
-    document.querySelector('#results-moon').src = moonUrl;
-    document.querySelector('#stat-customers-icon').src = usersUrl;
-    document.querySelector('#stat-checkouts-icon').src = bagUrl;
-    document.querySelector('#stat-caught-icon').src = caughtUrl;
-    document.querySelector('#stat-escaped-icon').src = escapedUrl;
-    document.querySelector('#stat-coins-icon').src = coinsUrl;
-    document.querySelector('#results-continue-icon').src = arrowUrl;
+    this.setIcon('#results-moon', moonUrl);
+    this.setIcon('#stat-customers-icon', usersUrl);
+    this.setIcon('#stat-checkouts-icon', clipboardUrl);
+    this.setIcon('#stat-caught-icon', caughtUrl);
+    this.setIcon('#stat-escaped-icon', escapedUrl);
     this.nextDayButton.addEventListener('click', () => {
       this.controller.startNextDay();
       this.render();
@@ -180,12 +177,31 @@ export class DayNightHUD {
         this.controller.debugToggle();
         this.render();
       });
-      app.append(this.debugButton);
+      this.shopButton = document.createElement('button');
+      this.shopButton.id = 'debug-shop';
+      this.shopButton.type = 'button';
+      this.shopButton.setAttribute('data-no-joystick', '');
+      const shopIcon = document.createElement('img');
+      shopIcon.src = bugUrl;
+      shopIcon.alt = '';
+      shopIcon.width = 14;
+      shopIcon.height = 14;
+      this.shopLabel = document.createTextNode('DEBUG: SHOP HUD');
+      this.shopButton.append(shopIcon, this.shopLabel);
+      this.shopButton.addEventListener('click', () => this.toggleShopPreview());
+      app.append(this.debugButton, this.shopButton);
     }
 
     window.addEventListener('pointerdown', () => this.audio.ensure(), { once: true });
     this.paintClock(0);
     this.render();
+  }
+
+  setIcon(selector, url) {
+    const icon = document.querySelector(selector);
+    if (icon) {
+      icon.src = url;
+    }
   }
 
   preloadClockArt() {
@@ -330,7 +346,31 @@ export class DayNightHUD {
     }
   }
 
+  toggleShopPreview() {
+    this.debugPreview = !this.debugPreview;
+    this.resultsShown = false;
+    this.countDone = false;
+    this.render();
+  }
+
+  previewSnapshot() {
+    return {
+      dayNumber: this.controller.dayNumber,
+      customers: 16,
+      checkouts: 6,
+      thievesCaught: 1,
+      thievesEscaped: 5,
+      checkoutIncome: 60,
+      moneyStolen: 55,
+      net: 5
+    };
+  }
+
   onContinue() {
+    if (this.debugPreview) {
+      this.toggleShopPreview();
+      return;
+    }
     if (this.controller.phase !== DayPhase.RESULTS) {
       return;
     }
@@ -343,7 +383,7 @@ export class DayNightHUD {
     this.render();
   }
 
-  showResults(snapshot) {
+  showResults(snapshot, immediate = false) {
     this.resultsShown = true;
     this.countDone = false;
     this.countTimer = 0;
@@ -354,6 +394,9 @@ export class DayNightHUD {
     this.panel.classList.remove('is-playing');
     void this.panel.offsetWidth;
     this.panel.classList.add('is-playing');
+    if (immediate) {
+      this.finishCount();
+    }
   }
 
   paintCount(progress) {
@@ -368,11 +411,16 @@ export class DayNightHUD {
     document.querySelector('#stat-customers').textContent = String(customers);
     document.querySelector('#stat-checkouts').textContent = String(checkouts);
     document.querySelector('#stat-caught').textContent = String(caught);
-    document.querySelector('#stat-income').textContent = signedG(snapshot.checkoutIncome * ease);
+    this.paintSigned(document.querySelector('#stat-income'), snapshot.checkoutIncome * ease);
     document.querySelector('#stat-escaped').textContent = String(Math.round(snapshot.thievesEscaped * ease));
-    document.querySelector('#stat-stolen').textContent = signedG(-snapshot.moneyStolen * ease);
-    document.querySelector('#stat-net').textContent = signedG(snapshot.net * ease);
-    document.querySelector('#stat-available').textContent = `${Math.round(snapshot.available * ease)}G`;
+    this.paintSigned(document.querySelector('#stat-stolen'), -snapshot.moneyStolen * ease);
+    this.paintSigned(document.querySelector('#stat-net'), snapshot.net * ease);
+  }
+
+  paintSigned(element, amount) {
+    element.textContent = signedG(amount);
+    element.classList.toggle('is-plus', amount > 0.5);
+    element.classList.toggle('is-minus', amount < -0.5);
   }
 
   finishCount() {
@@ -400,13 +448,24 @@ export class DayNightHUD {
     }
 
     const closing = this.controller.phase === DayPhase.CLOSING;
-    const results = this.controller.phase === DayPhase.RESULTS;
+    if (this.debugPreview && (closing || this.controller.phase === DayPhase.RESULTS)) {
+      this.debugPreview = false;
+      this.resultsShown = false;
+    }
+    const preview = this.debugPreview;
+    const results = this.controller.phase === DayPhase.RESULTS || preview;
+    if (this.shopLabel) {
+      this.shopLabel.data = preview ? 'DEBUG: HIDE SHOP HUD' : 'DEBUG: SHOP HUD';
+    }
     this.announcement.hidden = !closing;
     this.scrim.hidden = !closing && !results;
     this.scrim.classList.toggle('is-results', results);
     this.panel.hidden = !results;
-    if (results && !this.resultsShown && this.controller.results) {
-      this.showResults(this.controller.results);
+    if (results && !this.resultsShown) {
+      const snapshot = preview ? this.previewSnapshot() : this.controller.results;
+      if (snapshot) {
+        this.showResults(snapshot, preview);
+      }
     }
     if (!results && !closing) {
       this.resultsShown = false;

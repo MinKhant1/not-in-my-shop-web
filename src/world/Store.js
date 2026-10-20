@@ -123,7 +123,9 @@ export class Store {
   playLimits() {
     return {
       minX: STORE_WEST - 2.5,
-      maxX: sectionEast(this.maxUnlocked) + 0.45
+      maxX: sectionEast(this.maxUnlocked) + 0.45,
+      floorWest: -3,
+      floorEast: sectionEast(this.maxUnlocked) - 0.5
     };
   }
 
@@ -346,6 +348,9 @@ export class Store {
     const group = new THREE.Group();
     group.name = name;
     const meshes = this.floorTemplate ?? [];
+    if (tiles.length === 0 || meshes.length === 0) {
+      return group;
+    }
     for (let m = 0; m < meshes.length; m += 1) {
       const source = meshes[m];
       const instanced = new THREE.InstancedMesh(source.geometry, source.material, tiles.length);

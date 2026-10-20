@@ -1,6 +1,5 @@
 import {
-  FLOOR_Z_MAX,
-  FLOOR_Z_MIN,
+  CORNER_FLUSH,
   INTERIOR_Z_MAX,
   INTERIOR_Z_MIN,
   SECTION_WIDTH,
@@ -30,10 +29,10 @@ function entry(id, model, position, rotation, collision, group, extra = {}) {
 export function expansionFloorTiles(index) {
   const west = sectionEast(index) - SECTION_WIDTH;
   const east = sectionEast(index);
-  const first = index === 1 ? west + 1.5 : west + 0.5;
+  const first = west + 0.5;
   const last = east - 0.5;
   const tiles = [];
-  for (let z = FLOOR_Z_MIN; z <= FLOOR_Z_MAX; z += 1) {
+  for (let z = INTERIOR_Z_MIN; z <= INTERIOR_Z_MAX; z += 1) {
     for (let x = first; x <= last + 0.001; x += 1) {
       tiles.push([x, z]);
     }
@@ -41,13 +40,8 @@ export function expansionFloorTiles(index) {
   return tiles;
 }
 
-export function apronTiles(index) {
-  const x = sectionEast(index) + 0.5;
-  const tiles = [];
-  for (let z = FLOOR_Z_MIN; z <= FLOOR_Z_MAX; z += 1) {
-    tiles.push([x, z]);
-  }
-  return tiles;
+export function apronTiles() {
+  return [];
 }
 
 function decor(id, kind, position, section, extra = {}) {
@@ -110,8 +104,8 @@ export function buildExpansionShell(section) {
     );
   }
   entries.push(
-    entry(`corner-se-${section.id}`, WALL_CORNER, [east, 0, STORE_SOUTH], [0, 0, 0], true, boundaryGroup),
-    entry(`corner-ne-${section.id}`, WALL_CORNER, [east, 0, STORE_NORTH], [0, Math.PI / 2, 0], true, boundaryGroup)
+    entry(`corner-se-${section.id}`, WALL_CORNER, [east, 0, STORE_SOUTH - CORNER_FLUSH], [0, 0, 0], true, boundaryGroup),
+    entry(`corner-ne-${section.id}`, WALL_CORNER, [east - CORNER_FLUSH, 0, STORE_NORTH], [0, Math.PI / 2, 0], true, boundaryGroup)
   );
 
   entries.push(

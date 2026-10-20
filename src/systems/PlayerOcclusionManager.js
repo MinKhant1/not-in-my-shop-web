@@ -129,6 +129,10 @@ export class PlayerOcclusionManager {
     }
   }
 
+  forgetPrefix(prefix) {
+    this.occluders = this.occluders.filter((item) => !String(item.id).startsWith(prefix));
+  }
+
   track(object, id) {
     if (!object || !id || this.occluders.some((item) => item.id === id)) {
       return;

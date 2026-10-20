@@ -60,6 +60,11 @@ export class CollisionSystem {
     return false;
   }
 
+  removeGroup(group) {
+    this.boxes = this.boxes.filter((box) => box.group !== group);
+    this.rebuildDebug();
+  }
+
   setGroupEnabled(group, enabled) {
     const boxes = this.boxes;
     for (let i = 0; i < boxes.length; i += 1) {

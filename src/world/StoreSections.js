@@ -8,6 +8,7 @@ export const FLOOR_Z_MIN = -6;
 export const FLOOR_Z_MAX = 7;
 export const FLOOR_MIN_X = -3;
 export const FLOOR_MAX_X = 3;
+export const CORNER_FLUSH = 0.2;
 
 export const SECTION_ORDER = ['grocery', 'electronics', 'sports', 'clothing', 'jewellery'];
 

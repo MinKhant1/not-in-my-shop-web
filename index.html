@@ -51,38 +51,43 @@
         <p>SHOP CLOSED</p>
       </div>
       <section id="results-panel" data-no-joystick hidden>
-        <img id="results-moon" alt="" width="28" height="28" />
-        <h2 id="results-day">DAY 1 COMPLETE</h2>
-        <p class="results-kicker">SHOP CLOSED</p>
-        <div class="results-stats">
-          <div>
-            <img id="stat-customers-icon" alt="" width="16" height="16" />
-            <strong id="stat-customers">0</strong>
-            <span>CUSTOMERS</span>
+        <div class="results-sheet">
+          <header class="results-head">
+            <img id="results-moon" class="results-ink" alt="" width="32" height="32" />
+            <h2 id="results-day">DAY 1 COMPLETE</h2>
+            <p class="results-kicker">SHOP CLOSED</p>
+          </header>
+          <div class="results-dash"></div>
+          <div class="results-stats">
+            <div>
+              <img id="stat-customers-icon" class="results-ink" alt="" width="28" height="28" />
+              <strong id="stat-customers">0</strong>
+              <span>CUSTOMERS</span>
+            </div>
+            <div>
+              <img id="stat-checkouts-icon" class="results-ink" alt="" width="28" height="28" />
+              <strong id="stat-checkouts">0</strong>
+              <span>CHECKOUTS</span>
+            </div>
+            <div>
+              <img id="stat-caught-icon" class="results-ink" alt="" width="28" height="28" />
+              <strong id="stat-caught">0</strong>
+              <span>CAUGHT</span>
+            </div>
           </div>
-          <div>
-            <img id="stat-checkouts-icon" alt="" width="16" height="16" />
-            <strong id="stat-checkouts">0</strong>
-            <span>CHECKOUTS</span>
+          <div class="results-dash"></div>
+          <div class="results-money">
+            <p><span>Checkout Income</span><b id="stat-income">0G</b></p>
+            <p><span>Thieves Escaped</span><b id="stat-escaped">0</b></p>
+            <p><span>Money Stolen</span><b id="stat-stolen">0G</b></p>
+            <p class="is-net"><span>Net Earnings</span><b id="stat-net">0G</b></p>
           </div>
-          <div>
-            <img id="stat-caught-icon" alt="" width="16" height="16" />
-            <strong id="stat-caught">0</strong>
-            <span>CAUGHT</span>
-          </div>
+          <div class="results-dash"></div>
+          <button id="results-continue" type="button" data-no-joystick>
+            <span>CONTINUE</span>
+            <span class="results-continue-arrow" aria-hidden="true">→</span>
+          </button>
         </div>
-        <div class="results-money">
-          <p><span>Checkout Income</span><b id="stat-income">0G</b></p>
-          <p><span><img id="stat-escaped-icon" alt="" width="14" height="14" /> Thieves Escaped</span><b id="stat-escaped">0</b></p>
-          <p class="is-loss"><span>Money Stolen</span><b id="stat-stolen">0G</b></p>
-          <p class="is-net"><span>Net Earnings</span><b id="stat-net">0G</b></p>
-        </div>
-        <p class="results-wallet-label"><img id="stat-coins-icon" alt="" width="16" height="16" /> Available for upgrades</p>
-        <p id="stat-available" class="results-wallet">0G</p>
-        <button id="results-continue" type="button" data-no-joystick>
-          <span>CONTINUE</span>
-          <img id="results-continue-icon" alt="" width="16" height="16" />
-        </button>
       </section>
       <div id="money-hud" aria-live="polite">
         <span class="money-coin" aria-hidden="true"></span>

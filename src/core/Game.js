@@ -201,6 +201,7 @@ export class Game {
   }
 
   applyPlayLimits(limits) {
+    this.outside?.setShopSpan(limits.floorWest, limits.floorEast);
     const streetMin = this.outside?.cameraMinX;
     this.followCamera.setLimits({
       minX: streetMin == null ? limits.minX : Math.min(limits.minX, streetMin),
