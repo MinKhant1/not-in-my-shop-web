@@ -338,15 +338,16 @@ body {
 
 .results-sheet {
   position: absolute;
-  top: 8%;
-  right: 12%;
-  bottom: 7.5%;
-  left: 12%;
+  top: 8.5%;
+  right: 13%;
+  bottom: 8%;
+  left: 13%;
   container-type: inline-size;
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  justify-content: space-between;
+  justify-content: center;
+  row-gap: 3.2%;
   color: #171717;
   font-family: "Segoe UI", system-ui, sans-serif;
   text-align: center;
@@ -364,9 +365,9 @@ body {
 }
 
 #results-moon {
-  width: 9cqi;
-  height: 9cqi;
-  margin-bottom: 1.4cqi;
+  width: 10cqi;
+  height: 10cqi;
+  margin-bottom: 2cqi;
 }
 
 .results-ink {
@@ -376,32 +377,34 @@ body {
 #results-day {
   color: #111;
   font-family: "Arial Black", "Segoe UI", sans-serif;
-  font-size: clamp(22px, 11.2cqi, 30px);
+  font-size: clamp(20px, 10.4cqi, 36px);
   font-weight: 900;
-  letter-spacing: -0.03em;
-  line-height: 0.95;
+  letter-spacing: -0.04em;
+  line-height: 0.92;
   white-space: nowrap;
 }
 
 .results-kicker {
-  margin-top: 1.8cqi;
-  color: #1c1c1c;
-  font-size: clamp(11px, 3.6cqi, 14px);
-  font-weight: 700;
-  letter-spacing: 0.24em;
+  margin-top: 2cqi;
+  color: #222;
+  font-size: clamp(10px, 3.3cqi, 13px);
+  font-weight: 650;
+  letter-spacing: 0.28em;
   line-height: 1;
   white-space: nowrap;
 }
 
 .results-dash {
-  height: 2px;
-  margin: 0 0.5cqi;
-  background: repeating-linear-gradient(90deg, #c3c3c3 0 6px, transparent 6px 11px);
+  flex: 0 0 auto;
+  height: 1px;
+  margin: 0;
+  background: repeating-linear-gradient(90deg, #c6c6c6 0 5px, transparent 5px 9px);
 }
 
 .results-stats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
+  align-items: stretch;
 }
 
 .results-stats div {
@@ -409,41 +412,42 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.7cqi;
-  padding: 0.4cqi 0;
+  justify-content: flex-start;
+  gap: 1.1cqi;
+  padding: 1.2cqi 0.6cqi 0.6cqi;
 }
 
 .results-stats div + div {
-  border-left: 1.5px solid #bdbdbd;
+  border-left: 1px solid #bdbdbd;
 }
 
 .results-stats img {
-  width: 8.4cqi;
-  height: 8.4cqi;
+  width: 8.8cqi;
+  height: 8.8cqi;
 }
 
 .results-stats strong {
   color: #111;
-  font-size: clamp(22px, 10.6cqi, 36px);
+  font-size: clamp(22px, 10cqi, 34px);
   font-weight: 800;
   letter-spacing: -0.04em;
-  line-height: 0.9;
+  line-height: 0.85;
 }
 
 .results-stats span {
   color: #1a1a1a;
-  font-size: clamp(8px, 2.9cqi, 11px);
+  font-size: clamp(8px, 2.55cqi, 11px);
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.07em;
   line-height: 1;
 }
 
 .results-money {
   display: flex;
   flex-direction: column;
-  gap: 1.5cqi;
+  gap: 0.62em;
   color: #1a1a1a;
-  font-size: clamp(13px, 4.6cqi, 17px);
+  font-size: clamp(13px, 4.5cqi, 16px);
   font-weight: 600;
   line-height: 1.2;
   text-align: left;
@@ -482,9 +486,9 @@ body {
 }
 
 .results-money .is-net {
-  margin-top: 0.6cqi;
-  padding-top: 1.8cqi;
-  border-top: 1.5px solid #c4c4c4;
+  margin-top: 0.4cqi;
+  padding-top: 2.3cqi;
+  border-top: 1.5px solid #c8c8c8;
   font-weight: 800;
 }
 
@@ -497,17 +501,18 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.7em;
-  width: 80%;
+  gap: 0.65em;
+  width: 100%;
+  min-height: 46px;
   margin: 0;
-  padding: 3.1cqi 2cqi;
+  padding: 12px 16px;
   border: 0;
-  border-radius: 2.2cqi;
+  border-radius: 10px;
   opacity: 0;
   pointer-events: none;
-  background: #f3b52a;
+  background: #f2b42a;
   color: #141414;
-  font: 800 clamp(13px, 3.6cqi, 16px)/1 "Segoe UI", system-ui, sans-serif;
+  font: 800 clamp(14px, 3.8cqi, 16px)/1 "Segoe UI", system-ui, sans-serif;
   letter-spacing: 0.14em;
   cursor: pointer;
 }
