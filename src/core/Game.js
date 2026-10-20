@@ -7,6 +7,7 @@ import { InputSystem } from '../systems/InputSystem.js';
 import { VirtualJoystick } from '../ui/VirtualJoystick.js';
 import { FollowCamera } from '../camera/FollowCamera.js';
 import { Store } from '../world/Store.js';
+import { OutsideEnvironment } from '../world/OutsideEnvironment.js';
 import { Player } from '../entities/Player.js';
 import { ShopperManager } from '../shoppers/ShopperManager.js';
 import { PlayerOcclusionManager } from '../systems/PlayerOcclusionManager.js';
@@ -90,9 +91,15 @@ export class Game {
     const unlocked = this.save.unlockedSections();
     const ownedFixtures = this.save.purchasedFixtures(unlocked);
     const store = new Store(this.scene, this.loader, this.collision, this.config);
-    store.onBoundsChanged = (limits) => this.followCamera.setLimits(limits);
-    await store.load(unlocked, ownedFixtures);
+    store.onBoundsChanged = (limits) => this.applyPlayLimits(limits);
+    this.outside = new OutsideEnvironment(this.scene, this.loader, this.collision, this.config);
+    await Promise.all([
+      store.load(unlocked, ownedFixtures),
+      this.outside.load()
+    ]);
     this.occlusion.collect(store);
+    this.outside.trackOccluders(this.occlusion);
+    this.applyPlayLimits(store.playLimits());
     store.onFixtureSpawned = (object, id) => this.occlusion.track(object, id);
     this.store = store;
 
@@ -175,6 +182,7 @@ export class Game {
       window.__dayNight = this.dayNight;
       window.__upgrades = this.upgrades;
       window.__store = this.store;
+      window.__outside = this.outside;
       window.__upgradeManager = this.upgradeManager;
       window.__purchases = this.purchases;
       window.__save = this.save;
@@ -190,6 +198,14 @@ export class Game {
 
     this.clock.start();
     this.loop();
+  }
+
+  applyPlayLimits(limits) {
+    const streetMin = this.outside?.cameraMinX;
+    this.followCamera.setLimits({
+      minX: streetMin == null ? limits.minX : Math.min(limits.minX, streetMin),
+      maxX: limits.maxX
+    });
   }
 
   resize() {
