@@ -112,6 +112,7 @@ export class Game {
     store.onFixtureSpawned = (object, id) => {
       this.occlusion.track(object, id);
       this.sceneOverrides.noteSpawned(object);
+      this.cashiers?.syncLayout();
     };
 
     this.player = new Player(this.loader, this.input, this.collision, this.config);
@@ -203,6 +204,7 @@ export class Game {
       halfSize: guardConfig.halfSize,
       circular: true,
       retainWhenOwned: true,
+      showFloorTitle: true,
       onPurchase: () => {
         this.security.hire();
         if (!guardAlreadyOwned) {

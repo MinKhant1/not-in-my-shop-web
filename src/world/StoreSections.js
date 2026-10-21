@@ -68,25 +68,29 @@ const FIXTURE_SPECS = {
     { id: 'electronics_phone_rack', name: 'Phone Rack', asset: '/models/store/phone_rack.glb', price: 40, local: [2.2, 0, -1.5], scale: [1.3, 1.3, 1.3], footprint: [1, 0.65] },
     { id: 'electronics_laptop_shelf', name: 'Laptop Shelf', procedural: 'laptop-shelf', price: 40, local: [4.85, 0, -1.5], footprint: [1.1, 0.62] },
     { id: 'electronics_camera_rack', name: 'Camera Rack', asset: '/models/store/camera_rack.glb', price: 35, local: [3.5, 0, 0.15], scale: [1.3, 1.3, 1.3], footprint: [0.95, 0.65] },
-    { id: 'electronics_speaker_display', name: 'Speaker Display', procedural: 'speaker-display', price: 30, local: [3.5, 0, 1.8], footprint: [1, 0.58] }
+    { id: 'electronics_speaker_display', name: 'Speaker Display', procedural: 'speaker-display', price: 30, local: [3.5, 0, 1.8], footprint: [1, 0.58] },
+    { id: 'electronics_cash_register', name: 'Cash Register', asset: '/models/store/cash-register.glb', price: 40, local: [3.5, 0, 3.45], rotation: [0, Math.PI, 0], footprint: [0.8, 0.55], keepColor: false }
   ],
   sports: [
     { id: 'sports_bike_wall_rack', name: 'Bike Wall Rack', asset: '/models/store/bike_wall_rack.glb', price: 50, local: [3.5, 0, -3.98], scale: [2.2, 1.2, 1.15], footprint: [2.1, 0.36] },
     { id: 'sports_shoe_rack', name: 'Shoe Rack', asset: '/models/store/shoe_rack.glb', price: 35, local: [3.5, 0, -1.45], scale: [1.35, 1.35, 1.35], footprint: [1.05, 0.8] },
-    { id: 'sports_ball_rack', name: 'Ball Rack', asset: '/models/store/ball_rack.glb', price: 25, local: [3.5, 0, 0.25], scale: [1.35, 1.35, 1.35], footprint: [1.1, 0.6] }
+    { id: 'sports_ball_rack', name: 'Ball Rack', asset: '/models/store/ball_rack.glb', price: 25, local: [3.5, 0, 0.25], scale: [1.35, 1.35, 1.35], footprint: [1.1, 0.6] },
+    { id: 'sports_cash_register', name: 'Cash Register', asset: '/models/store/cash-register.glb', price: 40, local: [3.5, 0, 3.45], rotation: [0, Math.PI, 0], footprint: [0.8, 0.55], keepColor: false }
   ],
   clothing: [
     { id: 'clothing_wall_rack', name: 'Clothes Wall Rack', asset: '/models/store/clothes_wall_rack.glb', price: 40, local: [3.5, 0, -3.95], scale: [2.4, 1.25, 1.15], footprint: [2, 0.4] },
     { id: 'clothing_rack_1', name: 'Clothes Rack', asset: '/models/store/clothes_rack1.glb', price: 30, local: [2.25, 0, -1.45], scale: [1.35, 1.35, 1.35], footprint: [1.2, 0.65] },
     { id: 'clothing_rack_2', name: 'Clothes Rack', asset: '/models/store/clothes_rack2.glb', price: 30, local: [4.75, 0, -1.45], scale: [1.35, 1.35, 1.35], footprint: [1.15, 0.7] },
-    { id: 'clothing_folded_rack', name: 'Folded Clothes Rack', asset: '/models/store/clothes_rack_folded.glb', price: 35, local: [3.5, 0, 0.25], scale: [1.35, 1.35, 1.35], footprint: [1.1, 0.7] }
+    { id: 'clothing_folded_rack', name: 'Folded Clothes Rack', asset: '/models/store/clothes_rack_folded.glb', price: 35, local: [3.5, 0, 0.25], scale: [1.35, 1.35, 1.35], footprint: [1.1, 0.7] },
+    { id: 'clothing_cash_register', name: 'Cash Register', asset: '/models/store/cash-register.glb', price: 40, local: [3.5, 0, 3.45], rotation: [0, Math.PI, 0], footprint: [0.8, 0.55], keepColor: false }
   ],
   jewellery: [
     { id: 'jewellery_luxury_case', name: 'Luxury Glass Case', procedural: 'glass-case', price: 60, local: [3.5, 0, -3.82], footprint: [2.3, 0.5], caseSize: [2.25, 0.86, 0.46], caseAccent: ACCENT.jewellery, caseInterior: 0x6b1d32 },
     { id: 'jewellery_ring_display', name: 'Ring Display', asset: '/models/store/ring_display.glb', price: 45, local: [2.15, 0, -1.45], scale: [1.5, 1.5, 1.5], footprint: [0.95, 0.58] },
     { id: 'jewellery_watch_display', name: 'Watch Display', asset: '/models/store/watch_display.glb', price: 45, local: [4.85, 0, -1.45], scale: [1.5, 1.5, 1.5], footprint: [1.05, 0.58] },
     { id: 'jewellery_necklace_display', name: 'Necklace Display', asset: '/models/store/necklace_display.glb', price: 45, local: [3.5, 0, 0.2], scale: [1.5, 1.5, 1.5], footprint: [1.2, 0.62] },
-    { id: 'jewellery_glass_showcase', name: 'Glass Showcase', procedural: 'glass-case', price: 50, local: [3.5, 0, 1.75], footprint: [1.2, 0.62], caseSize: [1.15, 0.66, 0.58], caseAccent: ACCENT.jewellery, caseInterior: 0x1d3a4a }
+    { id: 'jewellery_glass_showcase', name: 'Glass Showcase', procedural: 'glass-case', price: 50, local: [3.5, 0, 1.75], footprint: [1.2, 0.62], caseSize: [1.15, 0.66, 0.58], caseAccent: ACCENT.jewellery, caseInterior: 0x1d3a4a },
+    { id: 'jewellery_cash_register', name: 'Cash Register', asset: '/models/store/cash-register.glb', price: 40, local: [3.5, 0, 3.45], rotation: [0, Math.PI, 0], footprint: [0.8, 0.55], keepColor: false }
   ]
 };
 

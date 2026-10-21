@@ -38,8 +38,12 @@ function findCheckoutCounters(scene) {
   return counters;
 }
 
-function padId(index) {
-  return `cashier_upgrade_${String(index).padStart(2, '0')}`;
+function padId(register) {
+  const editorId = register.userData?.editorId || register.name || 'register';
+  if (editorId === 'cash-register') {
+    return 'cashier_upgrade_01';
+  }
+  return `cashier_${editorId}`;
 }
 
 export class CashierHire {
@@ -102,8 +106,7 @@ export class CashierHire {
   }
 
   createStation(register) {
-    const index = this.stations.length + 1;
-    const id = padId(index);
+    const id = padId(register);
     const station = {
       id,
       register,

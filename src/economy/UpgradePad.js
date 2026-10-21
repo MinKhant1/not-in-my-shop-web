@@ -3,7 +3,7 @@ import { UpgradeInvestment } from './UpgradeInvestment.js';
 
 function titleLines(name) {
   const words = String(name || 'UPGRADE').split(' ').filter(Boolean);
-  if (words.length <= 2) {
+  if (words.length <= 3) {
     return words.length > 0 ? words : ['UPGRADE'];
   }
   const mid = Math.ceil(words.length / 2);
@@ -259,10 +259,13 @@ export class UpgradePad {
     ctx.textBaseline = 'middle';
     if (!this.circular || this.showFloorTitle) {
       const lines = titleLines(this.name);
-      ctx.font = this.circular ? '800 58px system-ui, sans-serif' : '800 78px system-ui, sans-serif';
-      const titleTop = lines.length > 1 ? 0.28 : 0.34;
+      const stacked = lines.length > 2;
+      const fontSize = this.circular ? (stacked ? 52 : 58) : 78;
+      ctx.font = `800 ${fontSize}px system-ui, sans-serif`;
+      const titleTop = stacked ? 0.22 : lines.length > 1 ? 0.28 : 0.34;
+      const step = stacked ? 0.12 : 0.14;
       for (let i = 0; i < lines.length; i += 1) {
-        ctx.fillText(lines[i], width / 2, height * (titleTop + i * 0.14));
+        ctx.fillText(lines[i], width / 2, height * (titleTop + i * step));
       }
     }
 

@@ -77,8 +77,7 @@ export function groceryDecor(section) {
 }
 
 const SHARED_RESERVED = [
-  { label: 'WEAPON', local: [6.05, 2.15] },
-  { label: 'REGISTER', local: [5.2, 3.3] }
+  { label: 'WEAPON', local: [6.05, 2.15] }
 ];
 
 export function buildExpansionShell(section) {
