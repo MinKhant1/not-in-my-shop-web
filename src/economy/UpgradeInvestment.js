@@ -17,13 +17,17 @@ export class UpgradeInvestment {
     return amount;
   }
 
-  tick(money, dt, active, interval) {
+  tick(money, dt, active, interval, hold = false) {
     if (this.purchased) {
       return 'idle';
     }
     if (!active) {
       this.refund(money);
       return 'idle';
+    }
+    if (hold) {
+      this.elapsed = 0;
+      return 'held';
     }
 
     const step = interval > 0 ? interval : 0.15;

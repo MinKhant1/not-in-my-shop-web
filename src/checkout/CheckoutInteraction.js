@@ -14,6 +14,7 @@ export class CheckoutInteraction {
     this.elapsed = 0;
     this.progress = 0;
     this.isCheckoutCompleting = false;
+    this.automated = false;
     this.time = 0;
     this.zone = this.createZone();
     scene.add(this.zone);
@@ -65,7 +66,8 @@ export class CheckoutInteraction {
     this.ring.scale.set(pulse, pulse, 1);
 
     const front = this.queue.frontCustomer;
-    let active = this.playerInside() && this.isServing(front) && !this.isCheckoutCompleting;
+    const attended = this.playerInside() || this.automated === true;
+    let active = attended && this.isServing(front) && !this.isCheckoutCompleting;
     if (active) {
       if (front.state !== 'CHECKING_OUT') {
         front.startCheckoutService();
@@ -127,6 +129,10 @@ export class CheckoutInteraction {
     const customer = front ? `Shopper_${front.id}` : 'none';
     const active = this.progress > 0 && this.isServing(front);
     return `Checkout active: ${active} Customer: ${customer} Progress: ${this.progress.toFixed(2)} Player in zone: ${this.playerInside()}`;
+  }
+
+  setAutomated(automated) {
+    this.automated = automated === true;
   }
 
   setZone(x, z) {

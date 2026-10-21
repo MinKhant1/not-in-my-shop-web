@@ -771,6 +771,7 @@ export class SceneOverrides {
       const base = this.game.config.checkout.zonePosition;
       this.game.checkout.setZone(base[0] + register.dx, base[1] + register.dz);
     }
+    this.game.cashiers?.syncLayout();
     if (this.game.weaponStation) {
       const weapon = this.worldDelta('weapon-station');
       const base = this.game.config.weapons.zonePosition;

@@ -108,7 +108,9 @@ export class PurchaseManager {
     }
     const west = sectionEast(this.store.maxUnlocked) - 7;
     const east = sectionEast(this.store.maxUnlocked);
-    const placed = clampToInterior(east - 1.05, 2.55, EXPANSION_HALF_X, EXPANSION_HALF_Z, west, east);
+    const placed = section.id === 'electronics'
+      ? { x: 2.237, z: 0 }
+      : clampToInterior(east - 1.05, 2.55, EXPANSION_HALF_X, EXPANSION_HALF_Z, west, east);
     this.addOffer({
       id,
       type: 'store_expansion',

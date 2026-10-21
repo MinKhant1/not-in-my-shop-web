@@ -46,7 +46,7 @@ export const GameConfig = {
     securityGuard: {
       id: 'security-guard',
       cost: 80,
-      position: [2.967, -3.582],
+      position: [2.55, -3.15],
       halfSize: 0.72,
       model: '/models/characters/BlueSoldier_Male.gltf',
       modelScale: 0.36,
@@ -61,6 +61,14 @@ export const GameConfig = {
       detectRange: 6.5,
       moveSpeed: 1.7,
       radius: 0.22
+    },
+    cashier: {
+      cost: 60,
+      halfSize: 0.72,
+      padGap: 1.2,
+      model: '/models/characters/Casual2_Female.gltf',
+      modelScale: 0.36,
+      modelYOffset: 0.03
     }
   },
   purchases: {

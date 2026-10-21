@@ -71,15 +71,12 @@ function buildLayout() {
 
     {
       id: 'weapon-station',
-      model: null,
+      model: '/models/objects/broom_with_stand.glb',
       position: [2.92, 0, 1.2],
       rotation: [0, 0, 0],
-      scale: 1,
+      scale: 0.4,
       collision: true,
-      placeholder: {
-        size: [0.5, 0.9, 0.7],
-        color: 0x4d5968
-      }
+      keepColor: true
     }
   );
 

@@ -23,7 +23,13 @@ export class UpgradePad {
     this.onPurchase = spec.onPurchase;
     this.circular = spec.circular === true;
     this.retainWhenOwned = spec.retainWhenOwned === true;
-    this.hiredText = spec.hiredText || 'HIRED';
+    this.hiredText = spec.hiredText === undefined ? 'HIRED' : spec.hiredText;
+    this.brokeText = spec.brokeText || '';
+    this.hiredLines = Array.isArray(spec.hiredLines) ? spec.hiredLines : null;
+    this.showFloorTitle = spec.showFloorTitle === true;
+    this.showCostLabel = spec.showCostLabel !== false;
+    this.requireFull = spec.requireFull === true;
+    this.banner = spec.banner === true;
     this.investment = new UpgradeInvestment(spec.cost);
     this.signature = '';
     this.labelSignature = '';
@@ -67,12 +73,40 @@ export class UpgradePad {
 
     this.outline = this.createOutline();
     this.root.add(this.outline, this.sign);
+    if (this.banner) {
+      this.label = this.createBanner();
+      this.root.add(this.label);
+    }
     scene.add(this.root);
     if (this.hired) {
       this.paintHired();
     } else {
       this.redraw();
     }
+  }
+
+  setPosition(x, z) {
+    this.x = x;
+    this.z = z;
+    this.root.position.set(x, 0, z);
+  }
+
+  createBanner() {
+    this.labelCanvas = document.createElement('canvas');
+    this.labelCanvas.width = 1024;
+    this.labelCanvas.height = 160;
+    this.labelTexture = new THREE.CanvasTexture(this.labelCanvas);
+    this.labelTexture.colorSpace = THREE.SRGBColorSpace;
+    const material = new THREE.SpriteMaterial({
+      map: this.labelTexture,
+      transparent: true,
+      depthWrite: false
+    });
+    const sprite = new THREE.Sprite(material);
+    sprite.name = 'upgrade-banner';
+    sprite.position.set(0, 1.35, 0);
+    sprite.scale.set(2.7, 0.42, 1);
+    return sprite;
   }
 
   createOutline() {
@@ -149,7 +183,9 @@ export class UpgradePad {
     this.triggerEnabled = shown;
     this.root.visible = shown;
     const inside = this.contains(x, z);
-    const result = this.investment.tick(this.money, dt, inside, this.interval);
+    const remaining = this.investment.cost - this.investment.invested;
+    const broke = this.requireFull && inside && this.money.getMoney() < remaining;
+    const result = this.investment.tick(this.money, dt, inside, this.interval, broke);
     if (result === 'purchased') {
       this.shopUpgrades.markPurchased(this.id);
       this.onPurchase?.();
@@ -165,6 +201,7 @@ export class UpgradePad {
       this.finishTimer = 0.35;
     }
     if (shown) {
+      this.paintBanner(broke ? this.brokeText : `${this.name} — $${this.investment.cost}`);
       this.redraw();
       this.time += dt;
       const depositing = inside && this.investment.invested > 0;
@@ -220,9 +257,9 @@ export class UpgradePad {
     ctx.fillStyle = '#fff6e4';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    if (!this.circular) {
+    if (!this.circular || this.showFloorTitle) {
       const lines = titleLines(this.name);
-      ctx.font = '800 78px system-ui, sans-serif';
+      ctx.font = this.circular ? '800 58px system-ui, sans-serif' : '800 78px system-ui, sans-serif';
       const titleTop = lines.length > 1 ? 0.28 : 0.34;
       for (let i = 0; i < lines.length; i += 1) {
         ctx.fillText(lines[i], width / 2, height * (titleTop + i * 0.14));
@@ -239,10 +276,12 @@ export class UpgradePad {
     ctx.fillStyle = '#f0b429';
     ctx.fillRect(barX, barY, Math.max(0, barW * progress), barH);
 
-    const label = invested > 0 ? `${invested} / ${cost}` : `$${cost}`;
-    ctx.font = '800 84px system-ui, sans-serif';
-    ctx.fillStyle = '#f0b429';
-    ctx.fillText(label, width / 2, height * 0.82);
+    if (this.showCostLabel) {
+      const label = invested > 0 ? `${invested} / ${cost}` : `$${cost}`;
+      ctx.font = '800 84px system-ui, sans-serif';
+      ctx.fillStyle = '#f0b429';
+      ctx.fillText(label, width / 2, height * 0.82);
+    }
     this.texture.needsUpdate = true;
   }
 
@@ -270,12 +309,50 @@ export class UpgradePad {
     ctx.fillStyle = '#7dcea0';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.font = '800 180px system-ui, sans-serif';
-    ctx.fillText('✓', width / 2, height / 2);
+    if (this.hiredLines?.length) {
+      ctx.fillStyle = '#fff6e4';
+      ctx.font = '800 64px system-ui, sans-serif';
+      const top = this.hiredLines.length > 1 ? 0.4 : 0.5;
+      for (let i = 0; i < this.hiredLines.length; i += 1) {
+        if (i === this.hiredLines.length - 1) {
+          ctx.fillStyle = '#7dcea0';
+          ctx.font = '800 72px system-ui, sans-serif';
+        }
+        ctx.fillText(this.hiredLines[i], width / 2, height * (top + i * 0.22));
+      }
+    } else {
+      ctx.font = '800 180px system-ui, sans-serif';
+      ctx.fillText('✓', width / 2, height / 2);
+    }
     this.texture.needsUpdate = true;
+    if (this.label) {
+      if (this.hiredText) {
+        this.label.visible = true;
+        this.paintBanner(this.hiredText);
+      } else {
+        this.label.visible = false;
+      }
+    }
     if (this.outline?.material?.color) {
       this.outline.material.color.setHex(0x7dcea0);
       this.outline.material.opacity = 0.8;
     }
+  }
+
+  paintBanner(text) {
+    if (!this.labelCanvas || !text || text === this.labelSignature) {
+      return;
+    }
+    this.labelSignature = text;
+    const ctx = this.labelCanvas.getContext('2d');
+    ctx.clearRect(0, 0, this.labelCanvas.width, this.labelCanvas.height);
+    ctx.fillStyle = 'rgba(23, 32, 43, 0.92)';
+    ctx.fillRect(0, 0, this.labelCanvas.width, this.labelCanvas.height);
+    ctx.fillStyle = '#fff6e4';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = '800 52px system-ui, sans-serif';
+    ctx.fillText(text, this.labelCanvas.width / 2, this.labelCanvas.height / 2);
+    this.labelTexture.needsUpdate = true;
   }
 }

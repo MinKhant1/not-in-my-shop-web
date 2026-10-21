@@ -24,6 +24,7 @@ import { DayStats } from '../daynight/DayStats.js';
 import { ShopAudio } from '../daynight/ShopAudio.js';
 import { DayNightHUD } from '../ui/DayNightHUD.js';
 import { CheckoutInteraction } from '../checkout/CheckoutInteraction.js';
+import { CashierHire } from '../checkout/CashierHire.js';
 import { PlayerActivityManager } from '../player/PlayerActivity.js';
 import { WeaponStation } from '../weapons/WeaponStation.js';
 import { PlayerWeaponController } from '../weapons/PlayerWeaponController.js';
@@ -212,6 +213,18 @@ export class Game {
         }
       }
     });
+    this.cashiers = new CashierHire({
+      scene: this.scene,
+      loader: this.loader,
+      money: this.money,
+      upgrades: this.upgrades,
+      save: this.save,
+      upgradeManager: this.upgradeManager,
+      checkout: this.checkout,
+      shoppers: this.shoppers,
+      toonFactory: this.config.graphics.toonShading ? this.player.toonFactory : null,
+      config: upgradeConfig.cashier ?? {}
+    });
     this.weapons = new PlayerWeaponController(
       this.player,
       this.shoppers,
@@ -236,6 +249,7 @@ export class Game {
       window.__purchases = this.purchases;
       window.__save = this.save;
       window.__security = this.security;
+      window.__cashiers = this.cashiers;
     }
     this.sceneOverrides.syncGameplay();
     const editorRequested = import.meta.env.DEV || new URLSearchParams(window.location.search).has('editor');
@@ -303,6 +317,9 @@ export class Game {
     this.shoppers.update(dt);
     this.security?.setShift(playing && this.dayNight.displayPhase() === 'DAY');
     this.security?.update(dt);
+    const dayShift = playing && this.dayNight.displayPhase() === 'DAY';
+    this.cashiers?.setShift(dayShift);
+    this.cashiers?.update(dt);
     if (playing) {
       this.activity.updateZones({
         checkout: this.checkout.playerInside(),

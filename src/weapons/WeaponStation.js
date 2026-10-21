@@ -64,8 +64,18 @@ export class WeaponStation {
       this.mount.position.set(2.92, 0, 1.2);
       this.scene.add(this.mount);
     }
+    this.standBroom = station?.getObjectByName('Broom') ?? null;
     await this.broom.load(loader, toonFactory);
     this.broom.unequip(this.mount);
+    this.syncRack();
+  }
+
+  syncRack() {
+    const stored = !this.broom.equipped;
+    if (this.standBroom) {
+      this.standBroom.visible = stored;
+      this.broom.holder.visible = !stored;
+    }
   }
 
   bind(activity) {
@@ -85,6 +95,7 @@ export class WeaponStation {
       return;
     }
     this.broom.equip(this.player.weaponSocket);
+    this.syncRack();
     this.player.currentWeapon = WeaponId.BROOM;
     this.player.hasBroomEquipped = true;
   }
@@ -94,6 +105,7 @@ export class WeaponStation {
       return;
     }
     this.broom.unequip(this.mount);
+    this.syncRack();
     this.player.endAttack();
     this.player.currentWeapon = WeaponId.NONE;
     this.player.hasBroomEquipped = false;

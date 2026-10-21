@@ -69,6 +69,9 @@ export class SecurityGuard {
     this.mode = 'idle';
     this.patrolIndex = 0;
     this.pause = 0;
+    this.path = null;
+    this.stuckTime = 0;
+    this.detour = null;
     this.target = null;
     this.attackTime = 0;
     this.hitDone = false;
@@ -103,6 +106,9 @@ export class SecurityGuard {
     if (!next && this.shift) {
       this.target = null;
       this.mode = 'idle';
+      this.path = null;
+      this.detour = null;
+      this.stuckTime = 0;
       this.broom?.resetSwing();
     }
     this.shift = next;
@@ -125,6 +131,9 @@ export class SecurityGuard {
     } else {
       const thief = this.nearestThief();
       if (thief) {
+        this.path = null;
+        this.detour = null;
+        this.stuckTime = 0;
         this.chase(thief, dt);
       } else {
         this.target = null;
@@ -270,14 +279,196 @@ export class SecurityGuard {
       this.play('idle');
       return;
     }
-    const point = this.patrol[this.patrolIndex];
+    const hereX = this.group.position.x;
+    const hereZ = this.group.position.z;
+    if (this.inSection(hereX, hereZ) && this.collision.blocksMovement(hereX, hereZ, this.radius)) {
+      const open = this.nearestOpen(hereX, hereZ);
+      if (open) {
+        this.group.position.set(open.x, 0, open.z);
+        this.path = null;
+        this.detour = null;
+        this.stuckTime = 0;
+      }
+      return;
+    }
+    if (!this.inSection(hereX, hereZ)) {
+      this.walkToward(0, 0.4, dt);
+      return;
+    }
+    if (this.detour) {
+      this.followDetour(dt);
+      return;
+    }
+    if (!this.path || this.path.length === 0) {
+      this.path = this.pathToPatrol();
+    }
+    const point = this.path[0];
     const dx = point.x - this.group.position.x;
     const dz = point.z - this.group.position.z;
     const distance = Math.hypot(dx, dz);
-    if (distance <= 0.28) {
+    if (distance <= 0.34) {
+      this.path.shift();
+      this.stuckTime = 0;
+      if (this.path.length === 0) {
+        this.patrolIndex = (this.patrolIndex + 1) % this.patrol.length;
+        this.pause = 0.55;
+        this.play('idle');
+      }
+      return;
+    }
+    const beforeX = this.group.position.x;
+    const beforeZ = this.group.position.z;
+    this.mode = 'patrol';
+    this.play('walk');
+    this.step(dx / distance, dz / distance, dt);
+    const moved = Math.hypot(this.group.position.x - beforeX, this.group.position.z - beforeZ);
+    const after = Math.hypot(point.x - this.group.position.x, point.z - this.group.position.z);
+    if (moved < 0.012 || after > distance - 0.004) {
+      this.stuckTime += dt;
+    } else {
+      this.stuckTime = 0;
+    }
+    if (this.stuckTime >= 0.4) {
+      this.unstick(dx, dz);
+    }
+  }
+
+  pathToPatrol() {
+    const goal = this.patrol[this.patrolIndex];
+    const navigation = this.shoppers?.navigation;
+    const direct = [{ x: goal.x, z: goal.z }];
+    if (!navigation) {
+      return direct;
+    }
+    const lanes = [];
+    navigation.nodes.forEach((node) => {
+      if (!this.inSection(node.x, node.z)) {
+        return;
+      }
+      if (node.kind === 'queue' || node.kind === 'vanish' || node.kind === 'exit' || node.kind === 'spawn') {
+        return;
+      }
+      lanes.push(node);
+    });
+    if (lanes.length === 0) {
+      return direct;
+    }
+    const here = this.group.position;
+    let start = lanes[0];
+    let end = lanes[0];
+    let startDistance = Infinity;
+    let endDistance = Infinity;
+    for (let i = 0; i < lanes.length; i += 1) {
+      const node = lanes[i];
+      const fromHere = (node.x - here.x) ** 2 + (node.z - here.z) ** 2;
+      const fromGoal = (node.x - goal.x) ** 2 + (node.z - goal.z) ** 2;
+      if (fromHere < startDistance) {
+        start = node;
+        startDistance = fromHere;
+      }
+      if (fromGoal < endDistance) {
+        end = node;
+        endDistance = fromGoal;
+      }
+    }
+    const ids = navigation.findPath(start.id, end.id, true);
+    const path = [];
+    if (ids) {
+      for (let i = 0; i < ids.length; i += 1) {
+        const node = navigation.nodes.get(ids[i]);
+        if (node && this.inSection(node.x, node.z)) {
+          path.push({ x: node.x, z: node.z });
+        }
+      }
+    }
+    path.push({ x: goal.x, z: goal.z });
+    while (path.length > 1) {
+      const dx = path[0].x - here.x;
+      const dz = path[0].z - here.z;
+      if (dx * dx + dz * dz > 0.16) {
+        break;
+      }
+      path.shift();
+    }
+    return path;
+  }
+
+  followDetour(dt) {
+    const dx = this.detour.x - this.group.position.x;
+    const dz = this.detour.z - this.group.position.z;
+    const distance = Math.hypot(dx, dz);
+    this.detour.time -= dt;
+    if (distance <= 0.2 || this.detour.time <= 0) {
+      this.detour = null;
+      this.path = null;
+      this.stuckTime = 0;
+      return;
+    }
+    this.mode = 'patrol';
+    this.play('walk');
+    this.step(dx / distance, dz / distance, dt);
+  }
+
+  unstick(dx, dz) {
+    const x = this.group.position.x;
+    const z = this.group.position.z;
+    const length = Math.hypot(dx, dz) || 1;
+    const nx = dx / length;
+    const nz = dz / length;
+    const sides = [
+      { x: -nz, z: nx },
+      { x: nz, z: -nx }
+    ];
+    for (let i = 0; i < sides.length; i += 1) {
+      const side = sides[i];
+      const nextX = x + side.x * 0.7;
+      const nextZ = z + side.z * 0.7;
+      if (this.canStep(nextX, nextZ)) {
+        this.detour = { x: nextX, z: nextZ, time: 0.55 };
+        this.path = null;
+        this.stuckTime = 0;
+        return;
+      }
+    }
+    const open = this.nearestOpen(x, z);
+    if (open) {
+      this.group.position.x = open.x;
+      this.group.position.z = open.z;
+      this.path = null;
+      this.detour = null;
+      this.stuckTime = 0;
+      return;
+    }
+    if (this.path && this.path.length > 1) {
+      this.path.shift();
+    } else {
       this.patrolIndex = (this.patrolIndex + 1) % this.patrol.length;
-      this.pause = 0.7;
-      this.play('idle');
+      this.path = null;
+    }
+    this.stuckTime = 0;
+  }
+
+  nearestOpen(x, z) {
+    const radii = [0.45, 0.85, 1.25, 1.7];
+    for (let ring = 0; ring < radii.length; ring += 1) {
+      const radius = radii[ring];
+      for (let i = 0; i < 8; i += 1) {
+        const angle = (i / 8) * Math.PI * 2;
+        const nextX = x + Math.cos(angle) * radius;
+        const nextZ = z + Math.sin(angle) * radius;
+        if (this.canStep(nextX, nextZ)) {
+          return { x: nextX, z: nextZ };
+        }
+      }
+    }
+    return null;
+  }
+
+  walkToward(x, z, dt) {
+    const dx = x - this.group.position.x;
+    const dz = z - this.group.position.z;
+    const distance = Math.hypot(dx, dz);
+    if (distance < 0.05) {
       return;
     }
     this.mode = 'patrol';

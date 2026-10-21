@@ -12,7 +12,7 @@ const RUNTIME_NAMES = new Set([
   'RightHandWeaponSocket'
 ]);
 
-const RUNTIME_PREFIXES = ['shopper-', 'purchase-', 'upgrade-', 'marker-', 'dropped-', 'hit-', 'security-'];
+const RUNTIME_PREFIXES = ['shopper-', 'purchase-', 'upgrade-', 'marker-', 'dropped-', 'hit-', 'security-', 'cashier-'];
 
 export const PROTECTED_IDS = new Set(['store', 'outside-environment']);
 
