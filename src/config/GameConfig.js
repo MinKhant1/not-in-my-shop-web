@@ -69,8 +69,8 @@ export const GameConfig = {
       halfSize: 0.72,
       baseModel: '/models/objects/cctv_wall_base.glb',
       headModel: '/models/objects/cctv_rotating_camera.glb',
-      mountHeight: 0.68,
-      modelScale: 1,
+      mountHeight: 0.84,
+      modelScale: 0.5,
       sweepRadians: 0.48,
       sweepPeriod: 7.5
     },

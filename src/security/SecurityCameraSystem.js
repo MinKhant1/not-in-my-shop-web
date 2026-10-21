@@ -8,6 +8,15 @@ import { CctvAlertUI } from './CctvAlertUI.js';
 // Local Z where the rotating head meets the end of the wall arm.
 const HEAD_PIVOT_Z = 0.5;
 
+// Each camera sweeps at its own speed and starting angle so the row never turns together.
+const SWEEP_BY_ID = {
+  1: { period: 6.2, phase: 0.4 },
+  2: { period: 8.8, phase: 2.5 },
+  3: { period: 7.1, phase: 4.3 },
+  4: { period: 9.6, phase: 1.2 },
+  5: { period: 5.7, phase: 3.4 }
+};
+
 // Purchased CCTV cameras for unlocked shop sections, plus thief spotting.
 // Cameras only inform the player. They never stop or damage a thief.
 export class SecurityCameraSystem {
@@ -20,8 +29,8 @@ export class SecurityCameraSystem {
     const config = options.config ?? {};
     this.baseUrl = config.baseModel;
     this.headUrl = config.headModel;
-    this.mountHeight = config.mountHeight ?? 0.68;
-    this.modelScale = config.modelScale ?? 1;
+    this.mountHeight = config.mountHeight ?? 0.84;
+    this.modelScale = config.modelScale ?? 0.5;
     this.sweepRadians = config.sweepRadians ?? 0.48;
     this.sweepPeriod = config.sweepPeriod > 0 ? config.sweepPeriod : 7.5;
     this.purchased = false;
@@ -114,10 +123,12 @@ export class SecurityCameraSystem {
     head.add(SkeletonUtils.clone(this.headTemplate));
     root.add(base, head);
     this.scene.add(root);
+    const sweep = SWEEP_BY_ID[spot.id] ?? { period: this.sweepPeriod, phase: spot.id * 1.7 };
     return {
       id: spot.id,
       head,
-      phase: spot.id * 0.9
+      period: sweep.period,
+      phase: sweep.phase
     };
   }
 
@@ -126,9 +137,9 @@ export class SecurityCameraSystem {
       return;
     }
     this.time += dt;
-    const cycle = (this.time / this.sweepPeriod) * Math.PI * 2;
     for (let i = 0; i < this.rigs.length; i += 1) {
       const rig = this.rigs[i];
+      const cycle = (this.time / rig.period) * Math.PI * 2;
       rig.head.rotation.y = Math.sin(cycle + rig.phase) * this.sweepRadians;
     }
   }
