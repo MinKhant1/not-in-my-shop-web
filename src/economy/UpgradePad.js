@@ -21,12 +21,17 @@ export class UpgradePad {
     this.half = spec.halfSize ?? 0.75;
     this.interval = interval;
     this.onPurchase = spec.onPurchase;
+    this.circular = spec.circular === true;
+    this.retainWhenOwned = spec.retainWhenOwned === true;
+    this.hiredText = spec.hiredText || 'HIRED';
     this.investment = new UpgradeInvestment(spec.cost);
     this.signature = '';
+    this.labelSignature = '';
     this.finishTimer = 0;
     this.time = 0;
     this.triggerEnabled = false;
-    this.removed = this.shopUpgrades.owns(this.id);
+    this.hired = this.retainWhenOwned && this.shopUpgrades.owns(this.id);
+    this.removed = this.shopUpgrades.owns(this.id) && !this.retainWhenOwned;
     if (this.removed) {
       this.investment.purchased = true;
       this.investment.invested = this.investment.cost;
@@ -52,7 +57,10 @@ export class UpgradePad {
       polygonOffsetUnits: -4
     });
     const size = this.half * 2;
-    this.sign = new THREE.Mesh(new THREE.PlaneGeometry(size, size), this.signMaterial);
+    const geometry = this.circular
+      ? new THREE.CircleGeometry(this.half, 32)
+      : new THREE.PlaneGeometry(size, size);
+    this.sign = new THREE.Mesh(geometry, this.signMaterial);
     this.sign.name = 'groundVisual';
     this.sign.rotation.x = -Math.PI / 2;
     this.sign.position.set(0, 0.04, 0);
@@ -60,22 +68,33 @@ export class UpgradePad {
     this.outline = this.createOutline();
     this.root.add(this.outline, this.sign);
     scene.add(this.root);
-    this.redraw();
+    if (this.hired) {
+      this.paintHired();
+    } else {
+      this.redraw();
+    }
   }
 
   createOutline() {
     const half = this.half;
     const y = 0.045;
     const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute(
-      'position',
-      new THREE.Float32BufferAttribute([
+    const positions = [];
+    if (this.circular) {
+      const segments = 28;
+      for (let i = 0; i < segments; i += 1) {
+        const angle = (i / segments) * Math.PI * 2;
+        positions.push(Math.cos(angle) * half, y, Math.sin(angle) * half);
+      }
+    } else {
+      positions.push(
         -half, y, -half,
         half, y, -half,
         half, y, half,
         -half, y, half
-      ], 3)
-    );
+      );
+    }
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
     const material = new THREE.LineBasicMaterial({
       color: 0xf0b429,
       transparent: true,
@@ -87,19 +106,41 @@ export class UpgradePad {
   }
 
   contains(x, z) {
-    if (!this.triggerEnabled || this.removed) {
+    if (!this.triggerEnabled || this.removed || this.hired) {
       return false;
     }
-    return Math.abs(x - this.x) <= this.half && Math.abs(z - this.z) <= this.half;
+    const dx = x - this.x;
+    const dz = z - this.z;
+    if (this.circular) {
+      return dx * dx + dz * dz <= this.half * this.half;
+    }
+    return Math.abs(dx) <= this.half && Math.abs(dz) <= this.half;
   }
 
   update(dt, accepting, x, z) {
+    if (this.hired) {
+      this.triggerEnabled = false;
+      this.root.visible = accepting === true;
+      if (this.root.visible) {
+        this.paintHired();
+      }
+      return;
+    }
     if (this.removed) {
       this.root.visible = false;
       this.triggerEnabled = false;
       return;
     }
     if (this.investment.purchased) {
+      if (this.retainWhenOwned) {
+        this.hired = true;
+        this.triggerEnabled = false;
+        this.root.visible = accepting === true;
+        if (this.root.visible) {
+          this.paintHired();
+        }
+        return;
+      }
       this.playFinish(dt);
       return;
     }
@@ -112,8 +153,16 @@ export class UpgradePad {
     if (result === 'purchased') {
       this.shopUpgrades.markPurchased(this.id);
       this.onPurchase?.();
-      this.finishTimer = 0.35;
       this.triggerEnabled = false;
+      if (this.retainWhenOwned) {
+        this.hired = true;
+        this.root.visible = accepting === true;
+        if (this.root.visible) {
+          this.paintHired();
+        }
+        return;
+      }
+      this.finishTimer = 0.35;
     }
     if (shown) {
       this.redraw();
@@ -160,16 +209,24 @@ export class UpgradePad {
     ctx.fillRect(0, 0, width, height);
     ctx.strokeStyle = '#f0b429';
     ctx.lineWidth = 28;
-    ctx.strokeRect(18, 18, width - 36, height - 36);
+    if (this.circular) {
+      ctx.beginPath();
+      ctx.arc(width / 2, height / 2, width / 2 - 20, 0, Math.PI * 2);
+      ctx.stroke();
+    } else {
+      ctx.strokeRect(18, 18, width - 36, height - 36);
+    }
 
-    const lines = titleLines(this.name);
     ctx.fillStyle = '#fff6e4';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.font = '800 78px system-ui, sans-serif';
-    const titleTop = lines.length > 1 ? 0.28 : 0.34;
-    for (let i = 0; i < lines.length; i += 1) {
-      ctx.fillText(lines[i], width / 2, height * (titleTop + i * 0.14));
+    if (!this.circular) {
+      const lines = titleLines(this.name);
+      ctx.font = '800 78px system-ui, sans-serif';
+      const titleTop = lines.length > 1 ? 0.28 : 0.34;
+      for (let i = 0; i < lines.length; i += 1) {
+        ctx.fillText(lines[i], width / 2, height * (titleTop + i * 0.14));
+      }
     }
 
     const barX = 64;
@@ -182,10 +239,43 @@ export class UpgradePad {
     ctx.fillStyle = '#f0b429';
     ctx.fillRect(barX, barY, Math.max(0, barW * progress), barH);
 
-    const label = invested > 0 ? `${invested} / ${cost}` : `${cost} COINS`;
+    const label = invested > 0 ? `${invested} / ${cost}` : `$${cost}`;
     ctx.font = '800 84px system-ui, sans-serif';
     ctx.fillStyle = '#f0b429';
     ctx.fillText(label, width / 2, height * 0.82);
     this.texture.needsUpdate = true;
+  }
+
+  paintHired() {
+    const signature = 'hired';
+    if (signature === this.signature) {
+      return;
+    }
+    this.signature = signature;
+    const ctx = this.canvas.getContext('2d');
+    const width = this.canvas.width;
+    const height = this.canvas.height;
+    ctx.clearRect(0, 0, width, height);
+    ctx.fillStyle = '#17202b';
+    ctx.fillRect(0, 0, width, height);
+    ctx.strokeStyle = '#7dcea0';
+    ctx.lineWidth = 28;
+    if (this.circular) {
+      ctx.beginPath();
+      ctx.arc(width / 2, height / 2, width / 2 - 20, 0, Math.PI * 2);
+      ctx.stroke();
+    } else {
+      ctx.strokeRect(18, 18, width - 36, height - 36);
+    }
+    ctx.fillStyle = '#7dcea0';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = '800 180px system-ui, sans-serif';
+    ctx.fillText('✓', width / 2, height / 2);
+    this.texture.needsUpdate = true;
+    if (this.outline?.material?.color) {
+      this.outline.material.color.setHex(0x7dcea0);
+      this.outline.material.opacity = 0.8;
+    }
   }
 }

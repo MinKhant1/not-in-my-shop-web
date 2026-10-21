@@ -25,6 +25,25 @@ function sanitizeBoneName(name) {
   return name.replace(/\s/g, '_').replace(/\./g, '');
 }
 
+export function findRightHandBone(model) {
+  const bonesByName = new Map();
+  model.traverse((child) => {
+    if (!child.isBone) {
+      return;
+    }
+    bonesByName.set(child.name, child);
+    bonesByName.set(sanitizeBoneName(child.name), child);
+  });
+  for (let i = 0; i < RIGHT_HAND_BONE_NAMES.length; i += 1) {
+    const name = RIGHT_HAND_BONE_NAMES[i];
+    const found = bonesByName.get(name) ?? bonesByName.get(sanitizeBoneName(name));
+    if (found) {
+      return found;
+    }
+  }
+  return null;
+}
+
 function findClip(clips, name) {
   const needle = name.toLowerCase();
   return clips.find((clip) => clip.name.toLowerCase() === needle) ?? null;
@@ -273,22 +292,7 @@ export class Player {
     });
     console.log('Player skeleton bones:', boneNames.join(', '));
 
-    const bonesByName = new Map();
-    this.model.traverse((child) => {
-      if (child.isBone) {
-        bonesByName.set(child.name, child);
-        bonesByName.set(sanitizeBoneName(child.name), child);
-      }
-    });
-
-    let hand = null;
-    for (const name of RIGHT_HAND_BONE_NAMES) {
-      const found = bonesByName.get(name) ?? bonesByName.get(sanitizeBoneName(name));
-      if (found) {
-        hand = found;
-        break;
-      }
-    }
+    const hand = findRightHandBone(this.model);
 
     const socket = new THREE.Group();
     socket.name = 'RightHandWeaponSocket';

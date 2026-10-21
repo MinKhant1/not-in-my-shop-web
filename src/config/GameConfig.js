@@ -42,7 +42,26 @@ export const GameConfig = {
     debugMoney: true
   },
   upgrades: {
-    coinInterval: 0.15
+    coinInterval: 0.15,
+    securityGuard: {
+      id: 'security-guard',
+      cost: 80,
+      position: [2.967, -3.582],
+      halfSize: 0.72,
+      model: '/models/characters/BlueSoldier_Male.gltf',
+      modelScale: 0.36,
+      modelYOffset: 0.03,
+      home: [2.45, -2.55],
+      patrol: [
+        [2.45, -2.55],
+        [-2.15, -2.55],
+        [2.45, -2.55],
+        [2.45, -0.85]
+      ],
+      detectRange: 6.5,
+      moveSpeed: 1.7,
+      radius: 0.22
+    }
   },
   purchases: {
     paymentInterval: 0.04,

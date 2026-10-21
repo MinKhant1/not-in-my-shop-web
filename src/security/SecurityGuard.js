@@ -1,0 +1,405 @@
+import * as THREE from 'three';
+import { applyToonOutfit } from '../shoppers/ShopperVisuals.js';
+import { findRightHandBone } from '../entities/Player.js';
+import { BroomWeapon } from '../weapons/BroomWeapon.js';
+import { INTERIOR_Z_MAX, INTERIOR_Z_MIN, STORE_WEST, sectionEast } from '../world/StoreSections.js';
+
+const ROOT_POSITION_TRACKS = new Set([
+  'Bone.position',
+  'CharacterArmature.position'
+]);
+
+function withoutRootMotion(clip) {
+  const copy = clip.clone();
+  copy.tracks = copy.tracks.filter((track) => !ROOT_POSITION_TRACKS.has(track.name));
+  return copy;
+}
+
+function findClip(clips, names) {
+  for (let i = 0; i < names.length; i += 1) {
+    const exact = clips.find((clip) => clip.name.toLowerCase() === names[i]);
+    if (exact) {
+      return exact;
+    }
+  }
+  return clips.find((clip) => names.some((name) => clip.name.toLowerCase().includes(name))) ?? null;
+}
+
+export class SecurityGuard {
+  constructor(options) {
+    this.scene = options.scene;
+    this.loader = options.loader;
+    this.collision = options.collision;
+    this.shoppers = options.shoppers;
+    this.drops = options.drops;
+    this.feedback = options.feedback;
+    this.toonFactory = options.toonFactory;
+    const weapons = options.weapons ?? {};
+    this.weaponsConfig = { ...weapons, debugBroomGrip: false };
+    const config = options.config ?? {};
+    this.modelUrl = config.model;
+    this.modelScale = config.modelScale ?? 0.36;
+    this.modelYOffset = config.modelYOffset ?? 0.03;
+    this.home = config.home ?? [2.45, -2.55];
+    this.patrol = (config.patrol?.length ? config.patrol : [this.home]).map((point) => ({
+      x: point[0],
+      z: point[1]
+    }));
+    this.detectRange = config.detectRange ?? 5.5;
+    this.attackRange = weapons.attackRange ?? 1.5;
+    this.damage = weapons.broomDamage ?? 20;
+    this.attackCooldownTime = weapons.attackCooldown ?? 0.6;
+    this.moveSpeed = config.moveSpeed ?? 1.7;
+    this.radius = config.radius ?? 0.22;
+    this.fleeSpeed = weapons.defeatedThiefRunSpeed ?? 2.4;
+    this.section = {
+      minX: STORE_WEST + 0.35,
+      maxX: sectionEast(0) - 0.35,
+      minZ: INTERIOR_Z_MIN + 0.2,
+      maxZ: INTERIOR_Z_MAX - 0.15
+    };
+    this.hired = false;
+    this.loading = false;
+    this.ready = false;
+    this.shift = false;
+    this.group = null;
+    this.mixer = null;
+    this.actions = {};
+    this.current = null;
+    this.mode = 'idle';
+    this.patrolIndex = 0;
+    this.pause = 0;
+    this.target = null;
+    this.attackTime = 0;
+    this.hitDone = false;
+    this.attackDuration = 0.55;
+    this.cooldown = 0;
+    this.broom = null;
+  }
+
+  hire() {
+    if (this.hired && (this.ready || this.loading)) {
+      return;
+    }
+    this.hired = true;
+    if (!this.modelUrl || this.loading) {
+      return;
+    }
+    this.loading = true;
+    this.loader.load(this.modelUrl).then((asset) => {
+      this.loading = false;
+      if (this.group) {
+        return;
+      }
+      this.spawn(asset);
+    }).catch((error) => {
+      this.loading = false;
+      console.error('Failed to load security guard', error);
+    });
+  }
+
+  setShift(active) {
+    const next = active === true;
+    if (!next && this.shift) {
+      this.target = null;
+      this.mode = 'idle';
+      this.broom?.resetSwing();
+    }
+    this.shift = next;
+  }
+
+  update(dt) {
+    if (!this.ready) {
+      return;
+    }
+    if (this.cooldown > 0) {
+      this.cooldown = Math.max(0, this.cooldown - dt);
+    }
+    if (!this.shift) {
+      this.play('idle');
+      this.mixer.update(dt);
+      return;
+    }
+    if (this.mode === 'attack') {
+      this.updateAttack(dt);
+    } else {
+      const thief = this.nearestThief();
+      if (thief) {
+        this.chase(thief, dt);
+      } else {
+        this.target = null;
+        this.patrolStep(dt);
+      }
+    }
+    this.mixer.update(dt);
+  }
+
+  spawn(asset) {
+    const group = new THREE.Group();
+    group.name = 'security-guard';
+    group.userData.editorIgnore = true;
+    const visual = new THREE.Group();
+    visual.name = 'security-guard-visual';
+    visual.scale.setScalar(this.modelScale);
+    visual.position.y = this.modelYOffset;
+    applyToonOutfit(asset.scene, this.toonFactory);
+    visual.add(asset.scene);
+    group.add(visual);
+    group.position.set(this.home[0], 0, this.home[1]);
+    this.scene.add(group);
+    this.group = group;
+    this.mixer = new THREE.AnimationMixer(asset.scene);
+    const clips = asset.animations ?? [];
+    this.actions.idle = this.makeLoop(findClip(clips, ['idle']));
+    this.actions.walk = this.makeLoop(findClip(clips, ['walk']));
+    this.actions.run = this.makeLoop(findClip(clips, ['run']));
+    this.actions.punch = this.makeOnce(findClip(clips, ['punch', 'swordslash']));
+    if (this.actions.punch) {
+      this.attackDuration = Math.max(0.35, this.actions.punch.getClip().duration);
+    }
+    this.ready = true;
+    this.play('idle');
+    this.equipBroom(asset.scene);
+  }
+
+  equipBroom(model) {
+    const hand = findRightHandBone(model);
+    if (!hand) {
+      return;
+    }
+    const socket = new THREE.Group();
+    socket.name = 'RightHandWeaponSocket';
+    hand.add(socket);
+    this.broom = new BroomWeapon(this.weaponsConfig);
+    this.broom.load(this.loader, this.toonFactory).then(() => {
+      if (this.broom?.model) {
+        this.broom.equip(socket);
+      }
+    }).catch((error) => {
+      console.error('Failed to equip security broom', error);
+    });
+  }
+
+  inSection(x, z) {
+    const area = this.section;
+    return x >= area.minX && x <= area.maxX && z >= area.minZ && z <= area.maxZ;
+  }
+
+  makeLoop(clip) {
+    if (!clip) {
+      return null;
+    }
+    const action = this.mixer.clipAction(withoutRootMotion(clip));
+    action.setLoop(THREE.LoopRepeat, Infinity);
+    return action;
+  }
+
+  makeOnce(clip) {
+    if (!clip) {
+      return null;
+    }
+    const action = this.mixer.clipAction(withoutRootMotion(clip));
+    action.setLoop(THREE.LoopOnce, 1);
+    action.clampWhenFinished = true;
+    return action;
+  }
+
+  play(name) {
+    const next = this.actions[name] ?? this.actions.idle;
+    if (!next || this.current === next) {
+      return;
+    }
+    next.reset().fadeIn(0.16).play();
+    if (this.current) {
+      this.current.fadeOut(0.16);
+    }
+    this.current = next;
+  }
+
+  nearestThief() {
+    const list = this.shoppers?.getShoppers?.() ?? [];
+    const origin = this.group.position;
+    const limit = this.detectRange * this.detectRange;
+    let best = null;
+    let bestDistance = limit;
+    for (let i = 0; i < list.length; i += 1) {
+      const shopper = list[i];
+      if (!shopper.isAttackable?.()) {
+        continue;
+      }
+      const sx = shopper.group.position.x;
+      const sz = shopper.group.position.z;
+      if (!this.inSection(sx, sz)) {
+        continue;
+      }
+      const dx = sx - origin.x;
+      const dz = shopper.group.position.z - origin.z;
+      const distance = dx * dx + dz * dz;
+      if (distance <= bestDistance) {
+        best = shopper;
+        bestDistance = distance;
+      }
+    }
+    return best;
+  }
+
+  chase(thief, dt) {
+    this.target = thief;
+    const dx = thief.group.position.x - this.group.position.x;
+    const dz = thief.group.position.z - this.group.position.z;
+    const distance = Math.hypot(dx, dz);
+    if (distance <= this.attackRange) {
+      if (this.cooldown <= 0) {
+        this.beginAttack();
+      } else {
+        this.play('idle');
+        this.face(dx, dz, dt);
+      }
+      return;
+    }
+    this.mode = 'chase';
+    this.play('walk');
+    if (distance > 0.001) {
+      this.step(dx / distance, dz / distance, dt);
+    }
+  }
+
+  patrolStep(dt) {
+    if (this.pause > 0) {
+      this.pause -= dt;
+      this.play('idle');
+      return;
+    }
+    const point = this.patrol[this.patrolIndex];
+    const dx = point.x - this.group.position.x;
+    const dz = point.z - this.group.position.z;
+    const distance = Math.hypot(dx, dz);
+    if (distance <= 0.28) {
+      this.patrolIndex = (this.patrolIndex + 1) % this.patrol.length;
+      this.pause = 0.7;
+      this.play('idle');
+      return;
+    }
+    this.mode = 'patrol';
+    this.play('walk');
+    this.step(dx / distance, dz / distance, dt);
+  }
+
+  beginAttack() {
+    this.mode = 'attack';
+    this.attackTime = 0;
+    this.hitDone = false;
+    this.broom?.startSwing();
+    const action = this.actions.punch;
+    if (!action) {
+      return;
+    }
+    action.reset();
+    action.fadeIn(0.08).play();
+    if (this.current && this.current !== action) {
+      this.current.fadeOut(0.08);
+    }
+    this.current = action;
+  }
+
+  updateAttack(dt) {
+    const target = this.target;
+    const stillHere = target?.group
+      && target.isAttackable?.()
+      && this.inSection(target.group.position.x, target.group.position.z);
+    if (!stillHere) {
+      this.target = null;
+    } else {
+      const dx = target.group.position.x - this.group.position.x;
+      const dz = target.group.position.z - this.group.position.z;
+      const distance = Math.hypot(dx, dz);
+      if (distance > this.attackRange * 0.72) {
+        this.step(dx / distance, dz / distance, dt);
+      } else if (distance > 0.001) {
+        this.face(dx, dz, dt);
+      }
+    }
+    const swing = this.broom?.updateSwing(dt) ?? null;
+    if (!this.broom) {
+      this.attackTime += dt;
+      if (!this.hitDone && this.attackTime >= (this.weaponsConfig.attackHitDelay ?? 0.16)) {
+        this.hitDone = true;
+        this.resolveHit();
+      }
+      if (this.attackTime >= (this.weaponsConfig.attackSwingDuration ?? 0.45)) {
+        this.finishSwing();
+      }
+      return;
+    }
+    if (swing === 'hit') {
+      this.resolveHit();
+    }
+    if (swing === 'done') {
+      this.finishSwing();
+    }
+  }
+
+  finishSwing() {
+    this.mode = 'idle';
+    this.cooldown = this.attackCooldownTime;
+    if (!this.target?.isAttackable?.()) {
+      this.target = null;
+    }
+    this.play('idle');
+  }
+
+  resolveHit() {
+    const target = this.target;
+    if (!target?.isAttackable?.() || !this.inSection(target.group.position.x, target.group.position.z)) {
+      return;
+    }
+    const dx = target.group.position.x - this.group.position.x;
+    const dz = target.group.position.z - this.group.position.z;
+    if (dx * dx + dz * dz > (this.attackRange + 0.35) * (this.attackRange + 0.35)) {
+      return;
+    }
+    const position = target.group.position;
+    this.feedback?.spawn(position.x, 1.55, position.z);
+    const defeated = target.takeDamage(this.damage);
+    if (!defeated) {
+      return;
+    }
+    const drops = target.dieOrFlee(this.fleeSpeed);
+    this.drops?.spawn(drops);
+    this.target = null;
+  }
+
+  canStep(x, z) {
+    return this.inSection(x, z) && !this.collision.blocksMovement(x, z, this.radius);
+  }
+
+  step(nx, nz, dt) {
+    const distance = Math.min(this.moveSpeed * dt, 0.35);
+    const dx = nx * distance;
+    const dz = nz * distance;
+    const x = this.group.position.x;
+    const z = this.group.position.z;
+    if (this.canStep(x + dx, z + dz)) {
+      this.group.position.x = x + dx;
+      this.group.position.z = z + dz;
+    } else if (this.canStep(x + dx, z)) {
+      this.group.position.x = x + dx;
+    } else if (this.canStep(x, z + dz)) {
+      this.group.position.z = z + dz;
+    }
+    this.face(nx, nz, dt);
+  }
+
+  face(nx, nz, dt) {
+    const target = Math.atan2(nx, nz);
+    let delta = target - this.group.rotation.y;
+    while (delta > Math.PI) {
+      delta -= Math.PI * 2;
+    }
+    while (delta < -Math.PI) {
+      delta += Math.PI * 2;
+    }
+    const maxTurn = 10 * dt;
+    this.group.rotation.y += Math.max(-maxTurn, Math.min(maxTurn, delta));
+  }
+}

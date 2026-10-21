@@ -30,6 +30,7 @@ import { PlayerWeaponController } from '../weapons/PlayerWeaponController.js';
 import { DroppedItemManager } from '../combat/DroppedItemManager.js';
 import { HitFeedback } from '../combat/HitFeedback.js';
 import { SceneOverrides } from '../editor/SceneOverrides.js';
+import { SecurityGuard } from '../security/SecurityGuard.js';
 
 export class Game {
   constructor(canvas, app) {
@@ -180,6 +181,37 @@ export class Game {
     );
     this.drops = new DroppedItemManager(this.scene, this.config.weapons);
     this.hitFeedback = new HitFeedback(this.scene, this.config.weapons);
+    const guardConfig = upgradeConfig.securityGuard ?? {};
+    const guardAlreadyOwned = this.upgrades.owns(guardConfig.id);
+    this.security = new SecurityGuard({
+      scene: this.scene,
+      loader: this.loader,
+      collision: this.collision,
+      shoppers: this.shoppers,
+      drops: this.drops,
+      feedback: this.hitFeedback,
+      toonFactory: this.config.graphics.toonShading ? this.player.toonFactory : null,
+      weapons: this.config.weapons,
+      config: guardConfig
+    });
+    this.upgradeManager.add({
+      id: guardConfig.id,
+      name: 'HIRE SECURITY GUARD',
+      cost: guardConfig.cost,
+      position: guardConfig.position,
+      halfSize: guardConfig.halfSize,
+      circular: true,
+      retainWhenOwned: true,
+      onPurchase: () => {
+        this.security.hire();
+        if (!guardAlreadyOwned) {
+          this.save.write({
+            purchasedUpgrades: [...this.upgrades.purchased],
+            money: this.money.getMoney()
+          });
+        }
+      }
+    });
     this.weapons = new PlayerWeaponController(
       this.player,
       this.shoppers,
@@ -203,6 +235,7 @@ export class Game {
       window.__upgradeManager = this.upgradeManager;
       window.__purchases = this.purchases;
       window.__save = this.save;
+      window.__security = this.security;
     }
     this.sceneOverrides.syncGameplay();
     const editorRequested = import.meta.env.DEV || new URLSearchParams(window.location.search).has('editor');
@@ -268,6 +301,8 @@ export class Game {
     const position = this.player.group.position;
     this.purchases?.update(dt, playing, position.x, position.z);
     this.shoppers.update(dt);
+    this.security?.setShift(playing && this.dayNight.displayPhase() === 'DAY');
+    this.security?.update(dt);
     if (playing) {
       this.activity.updateZones({
         checkout: this.checkout.playerInside(),
