@@ -32,6 +32,7 @@ import { DroppedItemManager } from '../combat/DroppedItemManager.js';
 import { HitFeedback } from '../combat/HitFeedback.js';
 import { SceneOverrides } from '../editor/SceneOverrides.js';
 import { SecurityGuard } from '../security/SecurityGuard.js';
+import { SecurityCameraSystem } from '../security/SecurityCameraSystem.js';
 
 export class Game {
   constructor(canvas, app) {
@@ -105,7 +106,10 @@ export class Game {
     this.applyPlayLimits(store.playLimits());
     this.store = store;
     this.shoppers.syncSections(store.maxUnlocked);
-    store.onSectionUnlocked = (count) => this.shoppers.syncSections(count);
+    store.onSectionUnlocked = (count) => {
+      this.shoppers.syncSections(count);
+      this.cameras?.syncCameras();
+    };
     this.sceneOverrides = new SceneOverrides(this);
     await this.sceneOverrides.loadAndApply();
     store.onVisibilitySynced = () => this.sceneOverrides.reapplyVisibility();
@@ -215,6 +219,36 @@ export class Game {
         }
       }
     });
+    const cameraConfig = upgradeConfig.securityCamera ?? {};
+    const camerasAlreadyOwned = this.upgrades.owns(cameraConfig.id);
+    this.cameras = new SecurityCameraSystem({
+      scene: this.scene,
+      loader: this.loader,
+      shoppers: this.shoppers,
+      app: this.app,
+      toonFactory: this.config.graphics.toonShading ? this.player.toonFactory : null,
+      getUnlockedIndex: () => this.store.maxUnlocked,
+      config: cameraConfig
+    });
+    this.upgradeManager.add({
+      id: cameraConfig.id,
+      name: 'SECURITY CAMERA',
+      cost: cameraConfig.cost,
+      position: cameraConfig.position,
+      halfSize: cameraConfig.halfSize,
+      circular: true,
+      retainWhenOwned: true,
+      showFloorTitle: true,
+      onPurchase: () => {
+        this.cameras.activate();
+        if (!camerasAlreadyOwned) {
+          this.save.write({
+            purchasedUpgrades: [...this.upgrades.purchased],
+            money: this.money.getMoney()
+          });
+        }
+      }
+    });
     this.cashiers = new CashierHire({
       scene: this.scene,
       loader: this.loader,
@@ -251,6 +285,7 @@ export class Game {
       window.__purchases = this.purchases;
       window.__save = this.save;
       window.__security = this.security;
+      window.__cameras = this.cameras;
       window.__cashiers = this.cashiers;
     }
     this.sceneOverrides.syncGameplay();
@@ -334,6 +369,9 @@ export class Game {
     }
     this.hitFeedback.update(dt);
     this.followCamera.update(dt);
+    const viewWidth = this.app.clientWidth || window.innerWidth;
+    const viewHeight = this.app.clientHeight || window.innerHeight;
+    this.cameras?.update(dt, this.followCamera.camera, viewWidth, viewHeight);
     this.occlusion.update(dt);
     this.updateDebug(dt);
     this.renderer.render(this.scene, this.followCamera.camera);

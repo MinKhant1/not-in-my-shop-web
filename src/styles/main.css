@@ -729,6 +729,27 @@ body {
   cursor: default;
 }
 
+#cctv-alerts {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.cctv-alert {
+  position: absolute;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: #c0392b;
+  color: #fff6f4;
+  font: 800 22px/34px system-ui, sans-serif;
+  text-align: center;
+  box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.4);
+}
+
 #load-error {
   position: absolute;
   left: 16px;

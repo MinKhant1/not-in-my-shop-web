@@ -68,6 +68,8 @@ export class ShopperAI {
 
     this.state = ShopperState.ENTERING;
     this.isThief = false;
+    // Kept by SecurityCameraSystem while a stealing thief is spotted. Cleared when they are caught or leave.
+    this.trackedByCCTV = false;
     this.isDefeated = false;
     this.shopClosed = false;
     this.health = null;

@@ -62,6 +62,18 @@ export const GameConfig = {
       moveSpeed: 1.7,
       radius: 0.22
     },
+    securityCamera: {
+      id: 'security-camera',
+      cost: 100,
+      position: [5.054, 1.230],
+      halfSize: 0.72,
+      baseModel: '/models/objects/cctv_wall_base.glb',
+      headModel: '/models/objects/cctv_rotating_camera.glb',
+      mountHeight: 0.68,
+      modelScale: 1,
+      sweepRadians: 0.48,
+      sweepPeriod: 7.5
+    },
     cashier: {
       cost: 60,
       halfSize: 0.72,
