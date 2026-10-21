@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { SECTION_WIDTH, sectionEast } from '../world/StoreSections.js';
 
 function node(id, x, z, kind, look = null) {
   return { id, x, z, kind, look };
@@ -12,6 +13,8 @@ const NODES = [
   node('door', -3.55, -3, 'door'),
   node('entranceInside', -2.55, -3, 'door'),
   node('despawn', -4.95, -3.15, 'exit'),
+  node('thiefVanishWest', -7.621, 0.02, 'vanish'),
+  node('thiefVanishFar', -11.072, 2.451, 'vanish'),
 
   node('westBack', -2.45, -2.55, 'lane'),
   node('shelfLeftBack', -2.45, -1.75, 'pick', [-1.2, -1.75]),
@@ -142,13 +145,111 @@ export class ShopperNavigation {
       this.addLink(links[i][0], links[i][1], false);
       this.addLink(links[i][1], links[i][0], false);
     }
+    this.addLink('despawn', 'thiefVanishWest', false);
+    this.addLink('despawn', 'thiefVanishFar', false);
     for (let i = 0; i < leave.length; i += 1) {
       this.addLink(leave[i][0], leave[i][1], true);
     }
+    this.openSections = 0;
+  }
+
+  syncUnlocked(maxUnlocked) {
+    const count = Math.max(0, Math.floor(maxUnlocked));
+    while (this.openSections < count) {
+      this.openSections += 1;
+      this.addShopSection(this.openSections);
+    }
+  }
+
+  addShopSection(index) {
+    const west = sectionEast(index) - SECTION_WIDTH;
+    const left = west + 0.95;
+    const right = west + 6.05;
+    const backZ = -2.7;
+    const frontZ = 3.15;
+    const backWest = `section${index}-west-back`;
+    const backEast = `section${index}-east-back`;
+    const frontWest = `section${index}-west-front`;
+    const frontEast = `section${index}-east-front`;
+    this.addNode(node(backWest, left, backZ, 'lane'));
+    this.addNode(node(frontWest, left, frontZ, 'lane'));
+    this.addNode(node(backEast, right, backZ, 'lane'));
+    this.addNode(node(frontEast, right, frontZ, 'lane'));
+    this.linkBoth(backWest, frontWest);
+    this.linkBoth(backEast, frontEast);
+    this.linkBoth(backWest, backEast);
+    this.linkBoth(frontWest, frontEast);
+    if (index === 1) {
+      this.addNode(node('grocery-east-back', 3.15, backZ, 'lane'));
+      this.linkBoth('backRight', 'grocery-east-back');
+      this.linkBoth('grocery-east-back', backWest);
+      return;
+    }
+    const previous = index - 1;
+    this.linkBoth(`section${previous}-east-back`, backWest);
+    this.linkBoth(`section${previous}-east-front`, frontWest);
+  }
+
+  addNode(entry) {
+    this.nodeList.push(entry);
+    this.nodes.set(entry.id, entry);
+    this.links.set(entry.id, []);
+    if (entry.kind === 'pick') {
+      this.pickIds.push(entry.id);
+    }
+    return entry;
+  }
+
+  linkBoth(fromId, toId) {
+    this.addLink(fromId, toId, false);
+    this.addLink(toId, fromId, false);
   }
 
   addLink(fromId, toId, leave) {
     this.links.get(fromId).push({ id: toId, leave });
+  }
+
+  shiftCheckout(dx, dz) {
+    for (let i = 0; i < this.nodeList.length; i += 1) {
+      const node = this.nodeList[i];
+      if (!node.id.startsWith('queue') && node.id !== 'checkoutApproach') {
+        continue;
+      }
+      if (node.homeX == null) {
+        node.homeX = node.x;
+        node.homeZ = node.z;
+        node.homeLook = node.look ? [node.look[0], node.look[1]] : null;
+      }
+      node.x = node.homeX + dx;
+      node.z = node.homeZ + dz;
+      if (node.homeLook) {
+        node.look[0] = node.homeLook[0] + dx;
+        node.look[1] = node.homeLook[1] + dz;
+      }
+    }
+  }
+
+  retargetLooks(moves) {
+    for (let i = 0; i < this.nodeList.length; i += 1) {
+      const node = this.nodeList[i];
+      if (!node.look || node.id.startsWith('queue')) {
+        continue;
+      }
+      if (!node.lookHome) {
+        node.lookHome = [node.look[0], node.look[1]];
+      }
+      let nextX = node.lookHome[0];
+      let nextZ = node.lookHome[1];
+      for (let m = 0; m < moves.length; m += 1) {
+        const move = moves[m];
+        if (Math.abs(node.lookHome[0] - move.fromX) < 0.02 && Math.abs(node.lookHome[1] - move.fromZ) < 0.02) {
+          nextX = move.toX;
+          nextZ = move.toZ;
+        }
+      }
+      node.look[0] = nextX;
+      node.look[1] = nextZ;
+    }
   }
 
   nearest(x, z, avoidQueue) {
@@ -330,7 +431,7 @@ function colorForKind(kind) {
   if (kind === 'approach') {
     return 0xf2d24b;
   }
-  if (kind === 'door' || kind === 'spawn' || kind === 'exit') {
+  if (kind === 'door' || kind === 'spawn' || kind === 'exit' || kind === 'vanish') {
     return 0x6cb6ff;
   }
   return 0xffffff;
@@ -398,7 +499,7 @@ export class ShopperRoute {
     const nz = dz / distance;
     const nextX = position.x + nx * step;
     const nextZ = position.z + nz * step;
-    if (!collision.blocksMovement(nextX, nextZ, radius)) {
+    if (point.kind === 'vanish' || !collision.blocksMovement(nextX, nextZ, radius)) {
       position.x = nextX;
       position.z = nextZ;
       position.y = 0;

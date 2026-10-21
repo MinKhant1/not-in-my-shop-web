@@ -34,6 +34,10 @@ export class ShopperManager {
     }
   }
 
+  syncSections(maxUnlocked) {
+    this.navigation.syncUnlocked(maxUnlocked);
+  }
+
   async load() {
     const models = this.config.models;
     try {

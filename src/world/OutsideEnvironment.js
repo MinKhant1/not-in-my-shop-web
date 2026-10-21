@@ -54,6 +54,10 @@ export class OutsideEnvironment {
     this.useToon = config?.graphics?.toonShading === true;
     this.group = new THREE.Group();
     this.group.name = 'outside-environment';
+    this.group.userData.editorId = 'outside-environment';
+    this.group.userData.editorRoot = true;
+    this.group.userData.editorPersistent = true;
+    this.group.userData.editorCollision = false;
     this.anchors = [];
     this.buildings = [];
     this.cameraMinX = -6;
@@ -66,6 +70,10 @@ export class OutsideEnvironment {
     this.shopFloorEast = null;
     this.shopNorth = new THREE.Group();
     this.shopNorth.name = 'outside-shop-north';
+    this.shopNorth.userData.editorId = 'outside-shop-north';
+    this.shopNorth.userData.editorRoot = true;
+    this.shopNorth.userData.editorPersistent = true;
+    this.shopNorth.userData.editorCollision = false;
     this.ownedGeometries = [];
     this.ownedMaterials = [];
     this.ready = false;

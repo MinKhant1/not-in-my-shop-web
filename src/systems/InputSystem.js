@@ -14,9 +14,10 @@ export class InputSystem {
     this.joystick = joystick;
     this.keys = new Set();
     this.movement = { x: 0, y: 0 };
+    this.suspended = false;
 
     this.onKeyDown = (event) => {
-      if (!MOVE_KEYS.has(event.code)) {
+      if (this.suspended || !MOVE_KEYS.has(event.code)) {
         return;
       }
       this.keys.add(event.code);

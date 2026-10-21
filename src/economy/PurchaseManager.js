@@ -38,6 +38,7 @@ export class PurchaseManager {
     this.upgrades = upgrades;
     this.save = save;
     this.interval = config?.paymentInterval > 0 ? config.paymentInterval : 0.04;
+    this.openShop = config?.openShop ?? null;
     this.offers = [];
     this.fading = [];
     this.heldShelves = [];
@@ -48,6 +49,9 @@ export class PurchaseManager {
     this.coins = this.createCoins();
     this._from = new THREE.Vector3();
     this._to = new THREE.Vector3();
+    this.openHold = 0;
+    this.openPad = null;
+    this.createOpenPad();
   }
 
   restoreOwned(ids) {
@@ -170,6 +174,57 @@ export class PurchaseManager {
     return this.upgrades?.canPurchase() === true;
   }
 
+  createOpenPad() {
+    const spot = this.openShop;
+    if (!spot) {
+      return;
+    }
+    this.openHalf = EXPANSION_HALF_X;
+    this.openHoldSeconds = spot.holdSeconds > 0 ? spot.holdSeconds : 1;
+    this.openPad = new PurchaseSquare({
+      id: 'open-shop',
+      label: 'OPEN SHOP',
+      x: spot.x,
+      z: spot.z,
+      halfX: this.openHalf,
+      halfZ: this.openHalf,
+      half: this.openHalf,
+      accent: 0xf0b429,
+      meter: 'hold'
+    });
+    this.openPad.root.visible = false;
+    this.scene.add(this.openPad.root);
+  }
+
+  updateOpenPad(dt, playing, x, z) {
+    const pad = this.openPad;
+    if (!pad) {
+      return;
+    }
+    const show = playing && this.upgradesOpen() && this.openShop?.canOpen?.() === true;
+    pad.root.visible = show;
+    if (!show) {
+      this.openHold = 0;
+      pad.setState(0, 1, 'idle');
+      return;
+    }
+    const inside = Math.abs(x - this.openShop.x) <= this.openHalf
+      && Math.abs(z - this.openShop.z) <= this.openHalf;
+    if (!inside) {
+      this.openHold = 0;
+    } else {
+      this.openHold = Math.min(1, this.openHold + dt / this.openHoldSeconds);
+    }
+    const shown = Math.round(this.openHold * 100) / 100;
+    pad.setState(shown, 1, this.openHold > 0 ? 'paying' : 'idle');
+    pad.update(dt);
+    if (this.openHold >= 1) {
+      this.openHold = 0;
+      pad.setState(0, 1, 'idle');
+      this.openShop.onOpen?.();
+    }
+  }
+
   setNightVisible(open) {
     for (let i = 0; i < this.offers.length; i += 1) {
       this.offers[i].view.root.visible = open;
@@ -216,6 +271,7 @@ export class PurchaseManager {
     }
     const open = this.upgradesOpen();
     this.setNightVisible(open);
+    this.updateOpenPad(dt, playing, x, z);
     if (!open) {
       if (playing && this.active && !this.active.investment.purchased) {
         this.cancel(this.active);

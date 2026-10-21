@@ -16,6 +16,7 @@ export class PurchaseSquare {
     this.half = offer.half;
     this.lines = titleLines(offer.label);
     this.accent = offer.accent;
+    this.meter = offer.meter === 'hold' ? 'hold' : 'price';
     this.signature = '';
     this.time = 0;
     this.mode = 'idle';
@@ -118,6 +119,20 @@ export class PurchaseSquare {
     ctx.fillStyle = '#fff6e4';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
+    if (this.meter === 'hold') {
+      ctx.font = '800 68px system-ui, sans-serif';
+      const titleTop = this.lines.length > 1 ? 0.3 : 0.36;
+      for (let i = 0; i < this.lines.length; i += 1) {
+        ctx.fillText(this.lines[i], width / 2, height * (titleTop + i * 0.14));
+      }
+      if (progress <= 0) {
+        ctx.font = '800 48px system-ui, sans-serif';
+        ctx.fillStyle = '#ffe7a3';
+        ctx.fillText('STAND', width / 2, height * 0.74);
+      }
+      this.texture.needsUpdate = true;
+      return;
+    }
     if (this.wide) {
       ctx.font = '800 92px system-ui, sans-serif';
       ctx.fillText(this.lines.join(' '), width / 2, height * 0.38);

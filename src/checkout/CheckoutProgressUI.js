@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { findSceneObject } from '../core/findSceneObject.js';
 
 const CANVAS_W = 256;
 const CANVAS_H = 128;
@@ -79,7 +80,7 @@ export class CheckoutProgressUI {
   }
 
   attach(scene) {
-    const register = scene.getObjectByName('cash-register');
+    const register = findSceneObject(scene, 'cash-register');
     if (!register) {
       this.root.position.set(2.15, 1.2, 2.55);
       scene.add(this.root);

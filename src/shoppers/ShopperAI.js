@@ -338,7 +338,7 @@ export class ShopperAI {
     this.hasReachedQueueSlot = false;
     this.route.config.moveSpeed *= 1.45;
     this.state = ShopperState.THIEF;
-    this.goTo('despawn', true);
+    this.goTo(this.thiefExitId(), true);
   }
 
   becomeThief() {
@@ -421,14 +421,22 @@ export class ShopperAI {
     this.hasReachedQueueSlot = false;
     this.state = ShopperState.DEFEATED_FLEEING;
     this.route.config.moveSpeed = runSpeed;
-    this.goTo('despawn', true);
+    this.goTo(this.thiefExitId(), true);
     this.refreshDebug();
     return drops;
   }
 
   leaveAsThief() {
     this.state = ShopperState.THIEF;
-    this.goTo('despawn', true);
+    this.goTo(this.thiefExitId(), true);
+  }
+
+  thiefExitId() {
+    return Math.random() < 0.5 ? 'thiefVanishWest' : 'thiefVanishFar';
+  }
+
+  isThiefExit(id) {
+    return id === 'thiefVanishWest' || id === 'thiefVanishFar';
   }
 
   setQueueIndex(index) {
@@ -560,7 +568,7 @@ export class ShopperAI {
     if (
       this.state === ShopperState.EXITING
       || this.state === ShopperState.DEFEATED_FLEEING
-      || (this.state === ShopperState.THIEF && this.destinationId === 'despawn')
+      || (this.state === ShopperState.THIEF && this.isThiefExit(this.destinationId))
     ) {
       this.refreshDebug();
       return;
@@ -714,7 +722,7 @@ export class ShopperAI {
       lines.push(`Reached Slot: ${this.hasReachedQueueSlot}`);
       lines.push(`Timer Active: ${this.impatient}`);
       lines.push(`Timer: ${this.angerTimer.toFixed(1)}`);
-    } else if (this.isThief || this.state === ShopperState.DEFEATED_FLEEING || this.destinationId === 'despawn') {
+    } else if (this.isThief || this.state === ShopperState.DEFEATED_FLEEING || this.isThiefExit(this.destinationId) || this.destinationId === 'despawn') {
       lines.push(`State: ${this.state}`);
       lines.push('Target: Exit');
     } else {

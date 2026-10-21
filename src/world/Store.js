@@ -46,6 +46,28 @@ function applyScale(object, scale) {
   object.scale.setScalar(scale ?? 1);
 }
 
+function tagEditorObject(object, entry) {
+  object.userData.editorId = entry.id;
+  object.userData.editorRoot = true;
+  object.userData.editorPersistent = true;
+  object.userData.editorModel = entry.model || null;
+  object.userData.editorProcedural = entry.procedural || null;
+  object.userData.editorDecor = entry.decor || null;
+  object.userData.editorKeepColor = entry.keepColor === true;
+  object.userData.editorCollision = entry.collision === true;
+  object.userData.editorGroup = entry.group || '';
+  object.userData.editorPlaceholder = entry.placeholder || null;
+  object.userData.editorAccent = entry.accent ?? null;
+  object.userData.editorExtra = {
+    title: entry.title ?? null,
+    label: entry.label ?? null,
+    size: entry.size ?? null,
+    caseSize: entry.caseSize ?? null,
+    caseAccent: entry.caseAccent ?? null,
+    caseInterior: entry.caseInterior ?? null
+  };
+}
+
 export class Store {
   constructor(scene, loader, collision, config) {
     this.scene = scene;
@@ -56,6 +78,11 @@ export class Store {
     this.debug = config.debug;
     this.group = new THREE.Group();
     this.group.name = 'store';
+    this.group.userData.editorId = 'store';
+    this.group.userData.editorRoot = true;
+    this.group.userData.editorPersistent = true;
+    this.group.userData.editorCollision = false;
+    this.onVisibilitySynced = null;
     this.records = [];
     this.shells = new Map();
     this.markers = [];
@@ -143,6 +170,7 @@ export class Store {
     this.maxUnlocked = section.index;
     this.syncUnlock();
     this.collision.rebuildDebug();
+    this.onSectionUnlocked?.(this.maxUnlocked);
     return true;
   }
 
@@ -243,6 +271,7 @@ export class Store {
       this.setCollisionGroup(`boundary-${section.id}`, shown && edge);
     }
     this.onBoundsChanged?.(this.playLimits());
+    this.onVisibilitySynced?.();
   }
 
   addInitialCollision() {
@@ -300,6 +329,7 @@ export class Store {
 
   addMarker(fixture, section) {
     const marker = createPurchaseMarker(fixture, section.accent);
+    marker.object.userData.editorIgnore = true;
     this.group.add(marker.object);
     this.markers.push({ fixture, object: marker.object, ring: marker.ring });
   }
@@ -347,6 +377,10 @@ export class Store {
   makeFloors(name, tiles) {
     const group = new THREE.Group();
     group.name = name;
+    group.userData.editorId = name;
+    group.userData.editorRoot = true;
+    group.userData.editorPersistent = true;
+    group.userData.editorCollision = false;
     const meshes = this.floorTemplate ?? [];
     if (tiles.length === 0 || meshes.length === 0) {
       return group;
@@ -401,6 +435,7 @@ export class Store {
       object.add(asset.scene);
     }
 
+    tagEditorObject(object, entry);
     this.group.add(object);
     this.records.push({ entry, object });
     return object;

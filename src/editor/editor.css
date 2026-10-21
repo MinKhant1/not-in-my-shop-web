@@ -1,0 +1,302 @@
+#editor-launch {
+  position: absolute;
+  top: max(10px, env(safe-area-inset-top));
+  left: max(10px, env(safe-area-inset-left));
+  z-index: 8;
+  height: 28px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 8px;
+  background: #1d242c;
+  color: #f4f7fb;
+  font: 700 12px/1 system-ui, sans-serif;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+body.editor-mode #editor-launch,
+body.editor-mode #joystick-zone,
+body.editor-mode #shop-clock,
+body.editor-mode #money-hud,
+body.editor-mode #debug-overlay,
+body.editor-mode #debug-money,
+body.editor-mode #closing-announcement,
+body.editor-mode #results-panel {
+  display: none !important;
+}
+
+#editor-root {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  pointer-events: none;
+  color: #d8d8d8;
+  font: 12px/1.35 "Segoe UI", system-ui, sans-serif;
+}
+
+#editor-root[hidden] {
+  display: none !important;
+}
+
+#editor-root .panel,
+#editor-root .toolbar,
+#editor-root button,
+#editor-root input,
+#editor-root textarea {
+  pointer-events: auto;
+}
+
+#editor-root input,
+#editor-root textarea {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.editor-toolbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px;
+  background: #1b1b1b;
+  border-bottom: 1px solid #111;
+  box-sizing: border-box;
+}
+
+.editor-toolbar button,
+.editor-assets button,
+.editor-inspector button,
+.editor-row button {
+  height: 24px;
+  border: 0;
+  border-radius: 3px;
+  background: #2d2d2d;
+  color: #ddd;
+  font: 12px/1 system-ui, sans-serif;
+  cursor: pointer;
+}
+
+.editor-toolbar button.is-active,
+.editor-assets button.is-active {
+  background: #0e639c;
+  color: white;
+}
+
+.editor-toolbar .editor-status {
+  margin-left: auto;
+  color: #9cdcfe;
+  white-space: nowrap;
+}
+
+.editor-hierarchy,
+.editor-inspector {
+  position: absolute;
+  top: 36px;
+  bottom: 196px;
+  display: flex;
+  flex-direction: column;
+  background: #252526;
+  box-sizing: border-box;
+}
+
+.editor-hierarchy {
+  left: 0;
+  width: 270px;
+  border-right: 1px solid #111;
+}
+
+.editor-inspector {
+  right: 0;
+  width: 290px;
+  border-left: 1px solid #111;
+}
+
+.editor-panel-head,
+.editor-assets-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 28px;
+  padding: 0 8px;
+  background: #2d2d2d;
+  color: #ccc;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.editor-panel-head input,
+.editor-assets-head input,
+.editor-inspector input[type="text"],
+.editor-inspector input[type="number"],
+.editor-inspector textarea {
+  width: 100%;
+  box-sizing: border-box;
+  height: 22px;
+  border: 1px solid #3c3c3c;
+  border-radius: 2px;
+  background: #1e1e1e;
+  color: #eee;
+  font: 12px/1.2 system-ui, sans-serif;
+  padding: 0 6px;
+}
+
+.editor-list,
+.editor-inspector-body,
+.editor-asset-list {
+  overflow: auto;
+  min-height: 0;
+}
+
+.editor-list,
+.editor-inspector-body {
+  flex: 1;
+}
+
+.editor-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  cursor: pointer;
+}
+
+.editor-row:hover,
+.editor-asset:hover {
+  background: #2a2d2e;
+}
+
+.editor-row.is-selected,
+.editor-asset.is-selected {
+  background: #094771;
+}
+
+.editor-row.is-drop {
+  outline: 1px solid #0e639c;
+}
+
+.editor-row.is-hidden .editor-label {
+  opacity: 0.45;
+}
+
+.editor-row .twist,
+.editor-row .eye {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  background: transparent;
+  color: #bbb;
+}
+
+.editor-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.editor-assets {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 196px;
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  background: #1e1e1e;
+  border-top: 1px solid #111;
+  box-sizing: border-box;
+}
+
+.editor-preview {
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #111;
+}
+
+.editor-preview canvas {
+  width: 240px;
+  height: 140px;
+  display: block;
+  background: #141414;
+}
+
+.editor-preview p {
+  margin: 0;
+  padding: 6px 8px;
+  color: #bbb;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.editor-asset-pane {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.editor-asset-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 4px;
+  padding: 6px;
+}
+
+.editor-asset {
+  max-width: 180px;
+  height: 24px;
+  padding: 0 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: grab;
+}
+
+.editor-inspector-body {
+  padding: 8px;
+}
+
+.editor-inspector h3 {
+  margin: 10px 0 6px;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #9cdcfe;
+}
+
+.editor-inspector .meta {
+  margin: 0 0 8px;
+  color: #aaa;
+  word-break: break-word;
+}
+
+.editor-inspector label.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0;
+}
+
+.editor-vec {
+  display: grid;
+  grid-template-columns: 18px 1fr 1fr 1fr;
+  gap: 4px;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.editor-inspector textarea {
+  height: 72px;
+  resize: vertical;
+  padding: 4px 6px;
+}
+
+.editor-note {
+  margin: 8px 0 0;
+  color: #888;
+}

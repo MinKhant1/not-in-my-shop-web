@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { findSceneObject } from '../core/findSceneObject.js';
 import { CheckoutProgressUI } from './CheckoutProgressUI.js';
 
 export class CheckoutInteraction {
@@ -126,6 +127,12 @@ export class CheckoutInteraction {
     const customer = front ? `Shopper_${front.id}` : 'none';
     const active = this.progress > 0 && this.isServing(front);
     return `Checkout active: ${active} Customer: ${customer} Progress: ${this.progress.toFixed(2)} Player in zone: ${this.playerInside()}`;
+  }
+
+  setZone(x, z) {
+    this.zoneX = x;
+    this.zoneZ = z;
+    this.zone.position.set(x, 0.035, z);
   }
 
   playerInside() {

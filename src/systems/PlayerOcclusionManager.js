@@ -289,4 +289,49 @@ export class PlayerOcclusionManager {
   describe() {
     return this.blockerNames.join(', ');
   }
+
+  has(id) {
+    return this.occluders.some((item) => item.id === id);
+  }
+
+  refresh(id) {
+    for (let i = 0; i < this.occluders.length; i += 1) {
+      const item = this.occluders[i];
+      if (item.id !== id || !item.object) {
+        continue;
+      }
+      item.object.updateWorldMatrix(true, true);
+      this._box.setFromObject(item.object);
+      if (this._box.isEmpty()) {
+        continue;
+      }
+      item.minX = this._box.min.x;
+      item.maxX = this._box.max.x;
+      item.minY = this._box.min.y;
+      item.maxY = this._box.max.y;
+      item.minZ = this._box.min.z;
+      item.maxZ = this._box.max.z;
+    }
+  }
+
+  forget(id) {
+    this.occluders = this.occluders.filter((item) => item.id !== id);
+    this.active = this.active.filter((item) => item.id !== id);
+  }
+
+  restoreAll() {
+    for (let i = 0; i < this.occluders.length; i += 1) {
+      const item = this.occluders[i];
+      item.blocking = false;
+      if (item.slots) {
+        for (let s = 0; s < item.slots.length; s += 1) {
+          const slot = item.slots[s];
+          slot.current = slot.opacity;
+          applySlot(slot, false);
+        }
+      }
+      item.tracked = false;
+    }
+    this.active.length = 0;
+  }
 }

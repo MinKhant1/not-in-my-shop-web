@@ -118,7 +118,8 @@ export class DayNightController {
 
   startNextDay() {
     const opening = this.phase === DayPhase.TRANSITIONING && this.transitionTarget === DayPhase.DAY;
-    if (!this.closedForNight || opening || this.blocksPlay()) {
+    const night = this.displayPhase() === DayPhase.NIGHT;
+    if ((!this.closedForNight && !night) || opening || this.blocksPlay()) {
       return false;
     }
     this.closedForNight = false;

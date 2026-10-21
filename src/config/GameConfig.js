@@ -53,6 +53,11 @@ export const GameConfig = {
     transitionSeconds: 1.5,
     closingSeconds: 2.6,
     closingSoonSeconds: 10,
+    openShop: {
+      x: -2.5,
+      z: -2,
+      holdSeconds: 1
+    },
     day: {
       background: 0xc5ced6,
       hemisphereSky: 0xfff6ea,

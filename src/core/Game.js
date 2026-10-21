@@ -29,6 +29,7 @@ import { WeaponStation } from '../weapons/WeaponStation.js';
 import { PlayerWeaponController } from '../weapons/PlayerWeaponController.js';
 import { DroppedItemManager } from '../combat/DroppedItemManager.js';
 import { HitFeedback } from '../combat/HitFeedback.js';
+import { SceneOverrides } from '../editor/SceneOverrides.js';
 
 export class Game {
   constructor(canvas, app) {
@@ -100,8 +101,16 @@ export class Game {
     this.occlusion.collect(store);
     this.outside.trackOccluders(this.occlusion);
     this.applyPlayLimits(store.playLimits());
-    store.onFixtureSpawned = (object, id) => this.occlusion.track(object, id);
     this.store = store;
+    this.shoppers.syncSections(store.maxUnlocked);
+    store.onSectionUnlocked = (count) => this.shoppers.syncSections(count);
+    this.sceneOverrides = new SceneOverrides(this);
+    await this.sceneOverrides.loadAndApply();
+    store.onVisibilitySynced = () => this.sceneOverrides.reapplyVisibility();
+    store.onFixtureSpawned = (object, id) => {
+      this.occlusion.track(object, id);
+      this.sceneOverrides.noteSpawned(object);
+    };
 
     this.player = new Player(this.loader, this.input, this.collision, this.config);
     await this.player.load();
@@ -144,13 +153,21 @@ export class Game {
       () => this.player.group.position,
       upgradeConfig.coinInterval ?? 0.15
     );
+    const openShop = this.config.dayNight?.openShop ?? { x: -2.5, z: -2, holdSeconds: 1 };
     this.purchases = new PurchaseManager(
       this.scene,
       store,
       this.money,
       this.upgrades,
       this.save,
-      this.config.purchases
+      {
+        ...this.config.purchases,
+        openShop: {
+          ...openShop,
+          canOpen: () => this.dayNight.displayPhase() === 'NIGHT' && !this.dayNight.blocksPlay(),
+          onOpen: () => this.dayNight.startNextDay()
+        }
+      }
     );
     this.purchases.restoreOwned(ownedFixtures);
     this.purchases.syncOffers();
@@ -187,6 +204,18 @@ export class Game {
       window.__purchases = this.purchases;
       window.__save = this.save;
     }
+    this.sceneOverrides.syncGameplay();
+    const editorRequested = import.meta.env.DEV || new URLSearchParams(window.location.search).has('editor');
+    if (editorRequested) {
+      const { EditorSession } = await import('../editor/EditorSession.js');
+      this.editor = new EditorSession(this);
+      if (new URLSearchParams(window.location.search).has('editor')) {
+        this.editor.enter();
+      }
+    }
+    if (this.config.debug) {
+      window.__sceneOverrides = this.sceneOverrides;
+    }
     this.resize();
     this.followCamera.snap();
 
@@ -217,13 +246,20 @@ export class Game {
     }
     this.renderer.resize(width, height);
     this.followCamera.resize(width, height);
+    this.editor?.resize(width, height);
   }
 
   loop() {
     requestAnimationFrame(this.loop);
     const dt = Math.min(this.clock.getDelta(), 0.05);
+    if (this.editor?.active) {
+      this.editor.update(dt);
+      this.renderer.render(this.scene, this.editor.camera);
+      return;
+    }
     this.dayNight.update(dt);
     this.lighting.update(dt);
+    this.sceneOverrides?.applyLightLocks();
     this.phaseHud.update(dt);
     const playing = !this.dayNight.blocksPlay();
     this.player.movementLocked = !playing;

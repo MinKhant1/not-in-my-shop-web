@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { findSceneObject } from '../core/findSceneObject.js';
 import { PlayerActivity, WeaponId } from '../player/PlayerActivity.js';
 import { BroomWeapon } from './BroomWeapon.js';
 
@@ -56,7 +57,7 @@ export class WeaponStation {
   }
 
   async load(loader, toonFactory) {
-    const station = this.scene.getObjectByName('weapon-station');
+    const station = findSceneObject(this.scene, 'weapon-station');
     if (station) {
       station.add(this.mount);
     } else {
@@ -96,6 +97,12 @@ export class WeaponStation {
     this.player.endAttack();
     this.player.currentWeapon = WeaponId.NONE;
     this.player.hasBroomEquipped = false;
+  }
+
+  setZone(x, z) {
+    this.zoneX = x;
+    this.zoneZ = z;
+    this.zone.position.set(x, 0.035, z);
   }
 
   playerInside() {

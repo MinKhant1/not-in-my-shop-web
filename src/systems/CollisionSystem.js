@@ -107,6 +107,20 @@ export class CollisionSystem {
     return this.debugRoot;
   }
 
+  replaceObject(id, object, meta = {}) {
+    const previous = this.boxes.find((box) => box.id === id);
+    this.boxes = this.boxes.filter((box) => box.id !== id);
+    this.addObject(object, {
+      id,
+      group: meta.group ?? previous?.group ?? '',
+      enabled: meta.enabled ?? previous?.enabled !== false
+    });
+  }
+
+  removeId(id) {
+    this.boxes = this.boxes.filter((box) => box.id !== id);
+  }
+
   rebuildDebug() {
     if (!this.debugRoot) {
       return;
