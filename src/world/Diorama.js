@@ -27,6 +27,11 @@ function snapEdgeMax(value) {
   return Math.ceil(value - 0.5) + 0.5;
 }
 
+export function dioramaSouth(streetSouth, shopSouth, cfg) {
+  const outerSouth = snapEdgeMax(Math.max(streetSouth, shopSouth) + cfg.marginSouth);
+  return { outerSouth, south: outerSouth - cfg.lip };
+}
+
 function tileCenters(min, max) {
   const start = Math.ceil(min + 0.5 - 1e-3);
   const end = Math.floor(max - 0.5 + 1e-3);
@@ -171,7 +176,8 @@ export class Diorama {
     const cfg = this.cfg;
     const yardNorth = edges.backNorth - cfg.marginNorth;
     const outerNorth = snapEdgeMin(Math.min(edges.contentNorth, yardNorth));
-    const outerSouth = snapEdgeMax(Math.max(edges.streetSouth, edges.shopSouth) + cfg.marginSouth);
+    const southEdge = dioramaSouth(edges.streetSouth, edges.shopSouth, cfg);
+    const outerSouth = southEdge.outerSouth;
     const outerEast = snapEdgeMax(edges.shopEast + cfg.marginEast);
     const outerWest = snapEdgeMin(edges.contentWest - cfg.marginWest);
     const lip = cfg.lip;
@@ -184,7 +190,7 @@ export class Diorama {
       west: outerWest + lip,
       east: outerEast - lip,
       north: outerNorth + lip,
-      south: outerSouth - lip,
+      south: southEdge.south,
       lip,
       sidewalk: cfg.sidewalk,
       southWalk: cfg.southWalk
@@ -287,7 +293,9 @@ export class Diorama {
     }
     this.addTileMesh(bounds.tile, bounds.pavementMaterial, pavement);
 
-    this.addSlab(bounds.west, bounds.shopWest, bounds.streetSouth, southWalkEnd, this.materials.filler, 0.06, 0.03);
+    const streetWest = bounds.streetWest ?? bounds.shopWest;
+    const streetEast = bounds.streetEast ?? bounds.shopWest;
+    this.addSlab(bounds.west, streetWest, bounds.streetSouth, southWalkEnd, this.materials.filler, 0.06, 0.03);
     this.addSlab(bounds.shopEast, bounds.east, bounds.north, bounds.south, this.materials.filler, 0.04, -0.01);
     this.addSlab(bounds.shopWest, bounds.shopEast, bounds.north, northWalk, this.materials.filler, 0.04, -0.01);
     this.addSlab(bounds.west, bounds.east, southWalkEnd, bounds.south, this.materials.filler, 0.04, -0.01);
@@ -305,17 +313,18 @@ export class Diorama {
       this.addSlab(bounds.west, bounds.shopWest, bounds.north, contentNorth, this.materials.grass, 0.08, 0.045);
     }
     if (bounds.south - southWalkEnd > 0.15) {
-      this.addSlab(bounds.west, eastWalk, southWalkEnd, bounds.south, this.materials.grass, 0.08, 0.045);
+      this.addSlab(bounds.west, streetWest, southWalkEnd, bounds.south, this.materials.grass, 0.08, 0.045);
+      this.addSlab(streetEast, eastWalk, southWalkEnd, bounds.south, this.materials.grass, 0.08, 0.045);
     }
     if (bounds.contentWest - bounds.west > 0.25) {
       const westNorth = Math.max(bounds.north, contentNorth);
       const westSouth = Math.min(bounds.south, southWalkEnd);
       this.addSlab(bounds.west, bounds.contentWest, westNorth, westSouth, this.materials.grass, 0.08, 0.045);
     }
-    this.addCurb(bounds, eastWalk, southWalkEnd);
+    this.addCurb(bounds, eastWalk, southWalkEnd, streetWest, streetEast);
   }
 
-  addCurb(bounds, eastWalk, southWalkEnd) {
+  addCurb(bounds, eastWalk, southWalkEnd, streetWest, streetEast) {
     const curb = this.materials.curb;
     const height = 0.08;
     const y = 0.05;
@@ -331,16 +340,16 @@ export class Diorama {
       );
     }
     if (bounds.south - southWalkEnd > 0.2) {
-      this.addBox(
-        curb,
-        eastWalk - bounds.west,
-        height,
-        0.14,
-        (bounds.west + eastWalk) * 0.5,
-        y,
-        southWalkEnd
-      );
+      this.addCurbRun(curb, bounds.west, streetWest, southWalkEnd, height, y);
+      this.addCurbRun(curb, streetEast, eastWalk, southWalkEnd, height, y);
     }
+  }
+
+  addCurbRun(material, minX, maxX, z, height, y) {
+    if (maxX - minX < 0.2) {
+      return;
+    }
+    this.addBox(material, maxX - minX, height, 0.14, (minX + maxX) * 0.5, y, z);
   }
 
   collectTiles(list, minX, maxX, minZ, maxZ) {
@@ -433,6 +442,9 @@ export class Diorama {
     const bushZ = (southWalkEnd + bounds.south) * 0.5;
     if (bounds.south - southWalkEnd > 0.35) {
       for (let x = bounds.west + 0.7; x <= bounds.east - 0.55; x += 1.7) {
+        if (x > bounds.streetWest - 0.35 && x < bounds.streetEast + 0.35) {
+          continue;
+        }
         bushes.push({ x, z: bushZ, scale: 0.72 + (bushes.length % 3) * 0.12 });
       }
     }
@@ -532,6 +544,9 @@ export class Diorama {
     if (bounds.south - southWalkEnd > 0.3) {
       const southZ = bounds.south - 0.2;
       for (let x = bounds.west + 0.45; x <= bounds.east - 0.4; x += 0.72) {
+        if (x > bounds.streetWest - 0.4 && x < bounds.streetEast + 0.4) {
+          continue;
+        }
         posts.push(x, southZ, 0.3);
       }
     }

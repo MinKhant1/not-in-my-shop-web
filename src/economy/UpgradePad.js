@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { UpgradeInvestment } from './UpgradeInvestment.js';
 
+const PAY_SECONDS = 3;
+
 function titleLines(name) {
   const words = String(name || 'UPGRADE').split(' ').filter(Boolean);
   if (words.length <= 3) {
@@ -31,7 +33,7 @@ export class UpgradePad {
     this.requireFull = spec.requireFull === true;
     this.banner = spec.banner === true;
     this.manual = spec.manual === true;
-    this.investment = new UpgradeInvestment(spec.cost);
+    this.investment = new UpgradeInvestment(spec.cost, PAY_SECONDS);
     this.signature = '';
     this.labelSignature = '';
     this.finishTimer = 0;
@@ -240,7 +242,7 @@ export class UpgradePad {
     if (name) {
       this.name = name;
     }
-    this.investment = new UpgradeInvestment(cost ?? this.investment.cost);
+    this.investment = new UpgradeInvestment(cost ?? this.investment.cost, PAY_SECONDS);
     this.hired = hired === true;
     this.removed = false;
     this.signature = '';

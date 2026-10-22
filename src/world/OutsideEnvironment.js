@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { createToonMaterial, createToonMaterialFromImported, getSharedToonGradientMap } from '../rendering/ToonMaterial.js';
 import { STORE_SOUTH } from './StoreSections.js';
-import { Diorama } from './Diorama.js';
+import { Diorama, dioramaSouth } from './Diorama.js';
 
 const BUILDING_TEXTURE = '/models/textures/colormap-building.png';
 const ROAD_TEXTURE = '/models/textures/colormap-road.png';
@@ -112,6 +112,7 @@ export class OutsideEnvironment {
       this.placeSidewalks(tile, roadMaterial, layout);
       this.placeShopSideGap(layout);
       this.placeRoad(road.scene, layout);
+      this.extendStreetSouth(road.scene, layout);
       this.layout = layout;
       this.placeNorthBuildings(buildings, buildingMaterial, layout);
       this.placeTopLeftFill();
@@ -196,7 +197,9 @@ export class OutsideEnvironment {
       centerX: (roadEast + roadWest) * 0.5,
       centerZ: OUTSIDE_CONFIG.originZ,
       minZ: OUTSIDE_CONFIG.originZ - length * 0.5,
-      maxZ: OUTSIDE_CONFIG.originZ + length * 0.5
+      maxZ: OUTSIDE_CONFIG.originZ + length * 0.5,
+      streetWest: roadWest - OUTSIDE_CONFIG.buildingSidewalk.width,
+      streetEast: -3.5
     };
   }
 
@@ -212,11 +215,7 @@ export class OutsideEnvironment {
     layout.centerZ = (ground.minZ + ground.maxZ) * 0.5;
   }
 
-  placeSidewalks(tile, material, layout) {
-    if (!tile) {
-      return;
-    }
-    const zs = this.centersCovering(layout.minZ, layout.maxZ);
+  sidewalkColumns(layout) {
     const columns = [];
     const shopStart = OUTSIDE_CONFIG.shopSidewalk.firstX;
     for (let i = 0; i < OUTSIDE_CONFIG.shopSidewalk.width; i += 1) {
@@ -225,6 +224,15 @@ export class OutsideEnvironment {
     for (let i = 0; i < OUTSIDE_CONFIG.buildingSidewalk.width; i += 1) {
       columns.push(layout.roadWest - 0.5 - i);
     }
+    return columns;
+  }
+
+  placeSidewalks(tile, material, layout) {
+    if (!tile) {
+      return;
+    }
+    const zs = this.centersCovering(layout.minZ, layout.maxZ);
+    const columns = this.sidewalkColumns(layout);
     const mesh = new THREE.InstancedMesh(tile.geometry, material, zs.length * columns.length);
     mesh.name = 'floor-outside-sidewalk';
     const dummy = new THREE.Object3D();
@@ -394,6 +402,90 @@ export class OutsideEnvironment {
     this.placeTileGrid('floor-outside-shop-side', xs, zs);
   }
 
+  extendStreetSouth(scene, layout) {
+    const target = dioramaSouth(STREET_SOUTH, STORE_SOUTH, this.diorama.cfg).south;
+    const extra = target - layout.maxZ;
+    if (extra <= 0.05 || !(layout.lengthScale > 0)) {
+      return;
+    }
+    const localExtra = extra / layout.lengthScale;
+    const meshes = [];
+    let roadEnd = -Infinity;
+    scene.traverse((child) => {
+      if (!child.isMesh || !child.geometry?.attributes?.position) {
+        return;
+      }
+      const source = child.geometry.attributes.position;
+      let maxZ = -Infinity;
+      for (let i = 0; i < source.count; i += 1) {
+        maxZ = Math.max(maxZ, source.getZ(i));
+      }
+      roadEnd = Math.max(roadEnd, maxZ);
+      meshes.push(child);
+    });
+    for (let m = 0; m < meshes.length; m += 1) {
+      const child = meshes[m];
+      const geometry = child.geometry.clone();
+      this.ownedGeometries.push(geometry);
+      const position = geometry.attributes.position;
+      for (let i = 0; i < position.count; i += 1) {
+        if (position.getZ(i) >= roadEnd - 0.02) {
+          position.setZ(i, roadEnd + localExtra);
+        }
+      }
+      position.needsUpdate = true;
+      geometry.computeBoundingBox();
+      geometry.computeBoundingSphere();
+      child.geometry = geometry;
+    }
+    const fromZ = layout.maxZ;
+    layout.maxZ = target;
+    layout.length = target - layout.minZ;
+    this.placeContinuedTiles(
+      'floor-outside-street-south',
+      [...this.sidewalkColumns(layout), -4],
+      fromZ,
+      target
+    );
+    for (let i = 0; i < this.anchors.length; i += 1) {
+      const anchor = this.anchors[i];
+      if (anchor.id === 'road' || anchor.id === 'sidewalks') {
+        anchor.maxZ = target;
+      }
+    }
+  }
+
+  placeContinuedTiles(name, xs, fromZ, toZ) {
+    const pieces = [];
+    let cursor = fromZ;
+    while (toZ - cursor > 0.02) {
+      const size = Math.min(1, toZ - cursor);
+      pieces.push({ z: cursor + size * 0.5, scaleZ: size });
+      cursor += size;
+    }
+    if (!this.tile || xs.length === 0 || pieces.length === 0) {
+      return;
+    }
+    const mesh = new THREE.InstancedMesh(this.tile.geometry, this.roadMaterial, xs.length * pieces.length);
+    mesh.name = name;
+    const dummy = new THREE.Object3D();
+    let index = 0;
+    for (let c = 0; c < xs.length; c += 1) {
+      for (let i = 0; i < pieces.length; i += 1) {
+        dummy.position.set(xs[c], 0, pieces[i].z);
+        dummy.rotation.set(0, 0, 0);
+        dummy.scale.set(1, 1, pieces[i].scaleZ);
+        dummy.updateMatrix();
+        mesh.setMatrixAt(index, dummy.matrix);
+        index += 1;
+      }
+    }
+    mesh.instanceMatrix.needsUpdate = true;
+    mesh.computeBoundingBox();
+    mesh.computeBoundingSphere();
+    this.group.add(mesh);
+  }
+
   placeTopLeftFill() {
     if (!this.leftPad || !this.northPad) {
       return;
@@ -472,6 +564,8 @@ export class OutsideEnvironment {
       backNorth: -6.5,
       streetSouth: STREET_SOUTH,
       streetNorth: this.layout?.minZ ?? -6.2,
+      streetWest: this.layout?.streetWest,
+      streetEast: this.layout?.streetEast,
       street: this.layout,
       contentWest,
       contentNorth,
