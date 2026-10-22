@@ -330,6 +330,10 @@ export class FlamingBroomVFX {
     this.hitBurst(this.head.x, this.head.y, this.head.z);
   }
 
+  burst() {
+    this.burstAtHead();
+  }
+
   emitIdle(dt) {
     const emberTarget = Math.max(1, Math.round(this.preset.emberTarget * this.particleScale));
     const sparkTarget = Math.max(0, Math.round(this.preset.idleSparks * this.particleScale));

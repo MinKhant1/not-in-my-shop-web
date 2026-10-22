@@ -1,11 +1,12 @@
 import { UpgradePad } from './UpgradePad.js';
 
 export class UpgradeManager {
-  constructor(scene, money, shopUpgrades, getPosition, interval) {
+  constructor(scene, money, shopUpgrades, getPosition, interval, sectionOpen) {
     this.money = money;
     this.shopUpgrades = shopUpgrades;
     this.getPosition = getPosition;
     this.interval = interval;
+    this.sectionOpen = sectionOpen;
     this.scene = scene;
     this.pads = [];
   }
@@ -23,7 +24,9 @@ export class UpgradeManager {
     const accepting = this.shopUpgrades.canPurchase();
     const position = this.getPosition();
     for (let i = 0; i < this.pads.length; i += 1) {
-      this.pads[i].update(dt, accepting, position.x, position.z);
+      const pad = this.pads[i];
+      const open = this.sectionOpen ? this.sectionOpen(pad.x, pad.z) : true;
+      pad.update(dt, accepting && open, position.x, position.z);
     }
   }
 }

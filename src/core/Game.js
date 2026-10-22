@@ -7,6 +7,7 @@ import { InputSystem } from '../systems/InputSystem.js';
 import { VirtualJoystick } from '../ui/VirtualJoystick.js';
 import { FollowCamera } from '../camera/FollowCamera.js';
 import { Store } from '../world/Store.js';
+import { sectionIndexAt } from '../world/StoreSections.js';
 import { OutsideEnvironment } from '../world/OutsideEnvironment.js';
 import { STREETLIGHT_MODEL } from '../world/Diorama.js';
 import { PrefabLibrary } from '../editor/PrefabLibrary.js';
@@ -167,7 +168,11 @@ export class Game {
       this.money,
       this.upgrades,
       () => this.player.group.position,
-      upgradeConfig.coinInterval ?? 0.15
+      upgradeConfig.coinInterval ?? 0.15,
+      (x) => {
+        const index = sectionIndexAt(x);
+        return index >= 0 && index <= this.store.maxUnlocked;
+      }
     );
     const openShop = this.config.dayNight?.openShop ?? { x: -2.5, z: -2, holdSeconds: 1 };
     this.purchases = new PurchaseManager(

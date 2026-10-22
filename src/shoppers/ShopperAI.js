@@ -4,7 +4,7 @@ import { ThiefHealth } from '../combat/ThiefHealth.js';
 import { ShopperInventory } from './ShopperInventory.js';
 import { ShopperRoute } from './ShopperNavigation.js';
 import { ShopperVisuals, applyToonOutfit } from './ShopperVisuals.js';
-import { FlameParticles } from '../weapons/FlameParticles.js';
+import { FlamingBroomVFX } from '../weapons/FlamingBroomVFX.js';
 
 const ROOT_POSITION_TRACKS = new Set([
   'Bone.position',
@@ -408,16 +408,18 @@ export class ShopperAI {
     if (!this.burnFlames) {
       this.burnAnchor = new THREE.Object3D();
       this.burnAnchor.name = 'thief-flame-anchor';
-      this.burnAnchor.position.y = 1.05;
+      this.burnAnchor.position.y = 1.02;
+      this.burnAnchor.userData.bristleRadius = 0.24;
       this.group.add(this.burnAnchor);
       const scene = this.group.parent ?? this.burnAnchor;
-      this.burnFlames = new FlameParticles(scene, this.burnAnchor, {
-        count: 20,
-        height: 0.62,
-        spread: 0.16
+      this.burnFlames = new FlamingBroomVFX(scene, this.burnAnchor, {
+        quality: this.weaponsConfig?.flameQuality,
+        seed: this.id * 0.37,
+        enableTrail: false,
+        enableAttack: false
       });
     }
-    this.burnFlames.enabled = true;
+    this.burnFlames.setActive(true);
   }
 
   updateBurn(dt) {
@@ -454,7 +456,7 @@ export class ShopperAI {
       this.burnAnchor = null;
       return;
     }
-    this.burnFlames.enabled = false;
+    this.burnFlames.setActive(false);
   }
 
   dieOrFlee(runSpeed) {

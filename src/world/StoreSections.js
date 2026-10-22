@@ -28,6 +28,14 @@ export function sectionEast(index) {
   return sectionWest(index) + SECTION_WIDTH;
 }
 
+export function sectionIndexAt(x) {
+  const index = Math.floor((x - STORE_WEST) / SECTION_WIDTH);
+  if (index < 0 || index >= storeSections.length) {
+    return -1;
+  }
+  return index;
+}
+
 function toFixture(section, spec) {
   const local = spec.local;
   return {
