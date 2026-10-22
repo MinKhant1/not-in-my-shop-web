@@ -42,7 +42,6 @@ export class PlayerWeaponController {
     if (this.broom.equipped) {
       this.broom.syncEquipPose();
     }
-    this.broom.updateFlames(dt);
     this.cooldown = Math.max(0, this.cooldown - dt);
     const armed = this.player.hasBroomEquipped && this.activity.activity === PlayerActivity.WEAPON;
     if (!armed) {
@@ -51,6 +50,7 @@ export class PlayerWeaponController {
         this.broom.resetSwing();
         this.player.endAttack();
       }
+      this.broom.updateFlames(dt);
       this.syncRangeRing();
       return;
     }
@@ -71,6 +71,7 @@ export class PlayerWeaponController {
     if (swing === 'done') {
       this.player.endAttack();
     }
+    this.broom.updateFlames(dt);
     this.syncRangeRing();
   }
 
@@ -129,10 +130,12 @@ export class PlayerWeaponController {
     const defeated = target.takeDamage(stats.damage);
     const position = target.group.position;
     this.feedback.spawn(position.x, 1.55, position.z, stats.damage);
-    if (!defeated && stats.burnDps > 0 && stats.burnDuration > 0) {
-      target.applyBurn?.(stats.burnDps, stats.burnDuration);
-      this.broom.burstFlames();
-      target.burnFlames?.burst();
+    if (stats.burnDps > 0) {
+      this.broom.burstFlames(position.x, position.y + 1.05, position.z);
+      if (!defeated && stats.burnDuration > 0) {
+        target.applyBurn?.(stats.burnDps, stats.burnDuration);
+        target.burnFlames?.burst();
+      }
     }
     if (!defeated) {
       return;

@@ -2,7 +2,8 @@ import * as THREE from 'three';
 import { findSceneObject } from '../core/findSceneObject.js';
 import { PlayerActivity, WeaponId } from '../player/PlayerActivity.js';
 import { applyBroomMaterials, BroomWeapon } from './BroomWeapon.js';
-import { FlameParticles } from './FlameParticles.js';
+import { placeBristleAnchor } from './bristleAnchor.js';
+import { FlamingBroomVFX } from './FlamingBroomVFX.js';
 
 // Local to the stand's original broom node, so the upgraded mesh sits in the same hooks.
 const STAND_BROOM = {
@@ -98,7 +99,7 @@ export class WeaponStation {
   async setBroomLevel(def) {
     this.level = def.level;
     await this.broom.useModel(def.model);
-    this.broom.setFlames(def.level >= 3);
+    this.broom.setFlames(def.level >= 3, def);
     await this.syncStand(def);
     this.syncRack();
   }
@@ -110,19 +111,23 @@ export class WeaponStation {
         this.standUpgrade.visible = false;
       }
       if (this.standFlames) {
-        this.standFlames.enabled = false;
+        this.standFlames.setActive(false);
       }
       return;
     }
     if (!this.standUpgrade) {
       await this.createStandUpgrade(def.model);
+    } else if (this.standFlameAnchor) {
+      placeBristleAnchor(this.standUpgrade, this.standFlameAnchor);
+      this.standFlames?.syncAnchor();
     }
     this.standUpgrade.visible = true;
     if (def.level >= 3) {
       this.ensureStandFlames();
-      this.standFlames.enabled = true;
+      this.standFlames.setPower(def.flameIntensity, def.flameScale, def.flameParticles);
+      this.standFlames.setActive(true);
     } else if (this.standFlames) {
-      this.standFlames.enabled = false;
+      this.standFlames.setActive(false);
     }
   }
 
@@ -136,8 +141,8 @@ export class WeaponStation {
     model.scale.setScalar(STAND_BROOM.scale);
     this.standFlameAnchor = new THREE.Object3D();
     this.standFlameAnchor.name = 'stand-flame-anchor';
-    this.standFlameAnchor.position.set(0, 0.42, 0);
     model.add(this.standFlameAnchor);
+    placeBristleAnchor(model, this.standFlameAnchor);
     this.standUpgrade = model;
     if (this.standBroom) {
       this.standBroom.add(model);
@@ -150,11 +155,12 @@ export class WeaponStation {
     if (this.standFlames || !this.standFlameAnchor) {
       return;
     }
-    this.standFlames = new FlameParticles(this.scene, this.standFlameAnchor, {
-      count: 14,
-      height: 1.05,
-      spread: 0.14,
-      size: 20
+    this.standFlames = new FlamingBroomVFX(this.scene, this.standFlameAnchor, {
+      quality: this.config.flameQuality,
+      seed: 0.64,
+      enableTrail: false,
+      enableAttack: false,
+      enableLight: false
     });
   }
 
@@ -231,8 +237,8 @@ export class WeaponStation {
     this.ring.material.color.setHex(this.playerInside() ? 0xffd15c : 0xe08a2c);
     if (this.standFlames) {
       const show = this.level >= 3 && this.standUpgrade?.visible === true;
-      this.standFlames.enabled = show;
-      this.standFlames.update(dt);
+      this.standFlames.setActive(show);
+      this.standFlames.update(dt, false);
     }
   }
 }

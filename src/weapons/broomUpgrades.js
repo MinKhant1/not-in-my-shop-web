@@ -28,7 +28,10 @@ export const BROOM_UPGRADES = [
     damage: 30,
     cost: 350,
     burnDps: 5,
-    burnDuration: 3
+    burnDuration: 3,
+    flameScale: 1,
+    flameIntensity: 1,
+    flameParticles: 1
   }
 ];
 

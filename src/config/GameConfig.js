@@ -175,6 +175,8 @@ export const GameConfig = {
     attackHitDelay: 0.16,
     attackSwingDuration: 0.45,
     swingAngle: 1.15,
+    // auto, low, medium, or high. Mobile uses medium unless the device is very small.
+    flameQuality: 'auto',
     pickupRadius: 1,
     itemRecoveryValue: 5,
     defeatedThiefRunSpeed: 2.4,

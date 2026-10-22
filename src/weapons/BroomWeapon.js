@@ -1,8 +1,7 @@
 import * as THREE from 'three';
 import { createToonMaterialFromImported } from '../rendering/ToonMaterial.js';
-import { FlameParticles } from './FlameParticles.js';
-
-const FLAME_HEAD = new THREE.Vector3(0, 0.42, 0);
+import { placeBristleAnchor } from './bristleAnchor.js';
+import { FlamingBroomVFX } from './FlamingBroomVFX.js';
 
 function applyStationPose(object, offset, rotation, scale) {
   object.position.set(offset[0], offset[1], offset[2]);
@@ -92,35 +91,48 @@ export class BroomWeapon {
       this.flameAnchor = new THREE.Object3D();
       this.flameAnchor.name = 'broom-flame-anchor';
     }
-    this.flameAnchor.position.copy(FLAME_HEAD);
+    placeBristleAnchor(this.model, this.flameAnchor);
     this.model.add(this.flameAnchor);
+    this.flames?.syncAnchor();
   }
 
-  setFlames(active) {
+  setFlames(active, visuals) {
     this.flamesOn = active === true;
-    if (!this.flamesOn || !this.scene || !this.flameAnchor) {
+    if (!this.flamesOn) {
+      this.flames?.setActive(false);
+      return;
+    }
+    if (!this.scene || !this.flameAnchor) {
       return;
     }
     if (!this.flames) {
-      this.flames = new FlameParticles(this.scene, this.flameAnchor, {
-        count: 14,
-        height: 1.05,
-        spread: 0.14,
-        size: 20
+      this.flames = new FlamingBroomVFX(this.scene, this.flameAnchor, {
+        quality: this.config.flameQuality,
+        seed: 0.17
       });
     }
+    this.flames.setPower(visuals?.flameIntensity, visuals?.flameScale, visuals?.flameParticles);
+    this.flames.setActive(this.holder.visible);
   }
 
   updateFlames(dt) {
     if (!this.flames) {
       return;
     }
-    this.flames.enabled = this.flamesOn && this.holder.visible;
-    this.flames.update(dt);
+    const show = this.flamesOn && this.holder.visible;
+    this.flames.setActive(show);
+    this.flames.update(dt, show && this.equipped && this.swingTime >= 0);
   }
 
-  burstFlames() {
-    this.flames?.burst();
+  burstFlames(x, y, z) {
+    if (!this.flamesOn || !this.flames) {
+      return;
+    }
+    if (typeof x === 'number') {
+      this.flames.hitBurst(x, y, z);
+      return;
+    }
+    this.flames.burstAtHead();
   }
 
   equip(socket) {
