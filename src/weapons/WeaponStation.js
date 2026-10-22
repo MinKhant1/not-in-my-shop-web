@@ -165,12 +165,16 @@ export class WeaponStation {
   }
 
   syncRack() {
+    const onStand = !this.broom.equipped;
     const upgraded = this.level > 1;
     for (let i = 0; i < this.builtInMeshes.length; i += 1) {
-      this.builtInMeshes[i].visible = !upgraded;
+      this.builtInMeshes[i].visible = onStand && !upgraded;
     }
     if (this.standUpgrade) {
-      this.standUpgrade.visible = upgraded;
+      this.standUpgrade.visible = onStand && upgraded;
+    }
+    if (this.standFlames) {
+      this.standFlames.setActive(onStand && this.level >= 3 && this.standUpgrade?.visible === true);
     }
     this.broom.holder.visible = this.broom.equipped;
   }
