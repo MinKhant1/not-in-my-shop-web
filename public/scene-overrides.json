@@ -6,6 +6,231 @@
   "objects": {},
   "added": [
     {
+      "id": "placed-mvj327fa-c8t3i6",
+      "name": "outside-wall-0 Copy",
+      "position": [
+        -16.0294,
+        0,
+        4.3066
+      ],
+      "rotation": [
+        0,
+        1.5708,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "visible": true,
+      "parentId": "outside-shop-north",
+      "collision": true,
+      "cloneOf": "outside-wall-0",
+      "castShadow": false,
+      "receiveShadow": false
+    },
+    {
+      "id": "placed-mvj33jkc-r40th6",
+      "name": "outside-wall-0 Copy Copy",
+      "position": [
+        -16.029,
+        0,
+        1.3176
+      ],
+      "rotation": [
+        0,
+        1.5708,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "visible": true,
+      "parentId": "outside-shop-north",
+      "collision": true,
+      "cloneOf": "outside-wall-0",
+      "castShadow": false,
+      "receiveShadow": false
+    },
+    {
+      "id": "placed-mvj35m8w-rq5bue",
+      "name": "outside-wall-0 Copy Copy Copy",
+      "position": [
+        -16.029,
+        0,
+        -1.6745
+      ],
+      "rotation": [
+        0,
+        1.5708,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "visible": true,
+      "parentId": "outside-shop-north",
+      "collision": true,
+      "cloneOf": "outside-wall-0",
+      "castShadow": false,
+      "receiveShadow": false
+    },
+    {
+      "id": "placed-mvj36qlh-r9o096",
+      "name": "outside-wall-0 Copy Copy Copy Copy",
+      "position": [
+        -16.029,
+        0,
+        -4.6709
+      ],
+      "rotation": [
+        0,
+        1.5708,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "visible": true,
+      "parentId": "outside-shop-north",
+      "collision": true,
+      "cloneOf": "outside-wall-0",
+      "castShadow": false,
+      "receiveShadow": false
+    },
+    {
+      "id": "placed-mvj3787q-t8szlr",
+      "name": "outside-wall-0 Copy Copy Copy Copy Copy",
+      "position": [
+        -16.029,
+        0,
+        -7.672
+      ],
+      "rotation": [
+        0,
+        1.5708,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "visible": true,
+      "parentId": "outside-shop-north",
+      "collision": true,
+      "cloneOf": "outside-wall-0",
+      "castShadow": false,
+      "receiveShadow": false
+    },
+    {
+      "id": "placed-mvj37r5l-vit0l9",
+      "name": "outside-wall-0 Copy Copy Copy Copy Copy Copy",
+      "position": [
+        -16.029,
+        0,
+        -10.1445
+      ],
+      "rotation": [
+        0,
+        1.5708,
+        0
+      ],
+      "scale": [
+        0.706,
+        1,
+        1
+      ],
+      "visible": true,
+      "parentId": "outside-shop-north",
+      "collision": true,
+      "cloneOf": "outside-wall-0",
+      "castShadow": false,
+      "receiveShadow": false
+    },
+    {
+      "id": "placed-mvj3vdwq-wsa0ll",
+      "name": "outside-wall-0 Copy Copy Copy Copy Copy Copy",
+      "position": [
+        -14.4067,
+        0,
+        -11.0782
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "visible": true,
+      "parentId": "outside-shop-north",
+      "collision": true,
+      "cloneOf": "outside-wall-0",
+      "castShadow": false,
+      "receiveShadow": false
+    },
+    {
+      "id": "placed-mvj3wrqj-rm3nqq",
+      "name": "outside-wall-0 Copy Copy Copy Copy Copy Copy Copy",
+      "position": [
+        -11.0622,
+        0,
+        -11.0782
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1.221,
+        1,
+        1
+      ],
+      "visible": true,
+      "parentId": "outside-shop-north",
+      "collision": true,
+      "cloneOf": "outside-wall-0",
+      "castShadow": false,
+      "receiveShadow": false
+    },
+    {
+      "id": "placed-mvj3xal5-eo72ol",
+      "name": "outside-wall-0 Copy Copy Copy Copy Copy Copy Copy Copy Copy",
+      "position": [
+        -9.307,
+        0,
+        -10.1836
+      ],
+      "rotation": [
+        0,
+        -1.5203,
+        0
+      ],
+      "scale": [
+        0.5683,
+        1,
+        1
+      ],
+      "visible": true,
+      "parentId": "outside-shop-north",
+      "collision": true,
+      "cloneOf": "outside-wall-0",
+      "castShadow": false,
+      "receiveShadow": false
+    },
+    {
       "id": "placed-mvi4ebio-jk6en8",
       "name": "floor-outside-top-left Copy",
       "position": [
