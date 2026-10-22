@@ -113,6 +113,8 @@ export class Game {
     };
     this.sceneOverrides = new SceneOverrides(this);
     await this.sceneOverrides.loadAndApply();
+    this.applyPlayLimits(store.playLimits());
+    this.outside.diorama?.attachPlacedStreetlights(this.scene);
     store.onVisibilitySynced = () => this.sceneOverrides.reapplyVisibility();
     store.onFixtureSpawned = (object, id) => {
       this.occlusion.track(object, id);
@@ -360,6 +362,7 @@ export class Game {
     }
     this.dayNight.update(dt);
     this.lighting.update(dt);
+    this.outside?.diorama?.setNight(this.lighting.night);
     this.sceneOverrides?.applyLightLocks();
     this.phaseHud.update(dt);
     const playing = !this.dayNight.blocksPlay();

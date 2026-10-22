@@ -7,7 +7,9 @@ export class FollowCamera {
     this.distance = camera.distance;
     this.lookAhead = camera.lookAhead;
     this.smoothness = camera.smoothness;
-    this.camera = new THREE.PerspectiveCamera(camera.fov, 1, 0.1, 80);
+    this.baseFov = camera.fov;
+    this.portraitFov = camera.portraitFov ?? camera.fov;
+    this.camera = new THREE.PerspectiveCamera(this.baseFov, 1, 0.1, 58);
     this.player = null;
     this.hasSnapped = false;
     this.desiredPosition = new THREE.Vector3();
@@ -30,7 +32,12 @@ export class FollowCamera {
   }
 
   resize(width, height) {
-    this.camera.aspect = width / Math.max(height, 1);
+    const aspect = width / Math.max(height, 1);
+    this.camera.aspect = aspect;
+    const fov = aspect < 0.8 ? this.portraitFov : this.baseFov;
+    if (this.camera.fov !== fov) {
+      this.camera.fov = fov;
+    }
     this.camera.updateProjectionMatrix();
   }
 
@@ -41,7 +48,11 @@ export class FollowCamera {
 
   update(dt) {
     const position = this.player.group.position;
-    this.desiredPosition.set(position.x, this.height, position.z + this.distance);
+    const aspect = this.camera.aspect || 1;
+    const portrait = aspect < 0.8 ? Math.min(1, (0.8 - aspect) / 0.38) : 0;
+    const height = this.height * (1 - portrait * 0.05);
+    const distance = this.distance * (1 - portrait * 0.07);
+    this.desiredPosition.set(position.x, height, position.z + distance);
     this.desiredTarget.set(position.x, 0, position.z - this.lookAhead);
     this.clampDesiredX();
 

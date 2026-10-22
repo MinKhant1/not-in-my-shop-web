@@ -28,22 +28,28 @@ export class DayNightLighting {
     this.sunIntensity = 0;
     this.fillIntensity = 0;
     this.target = readLook(config, 'day');
+    this.night = 0;
+    this.nightTarget = 0;
 
     this.hemisphere = new THREE.HemisphereLight(0xffffff, 0x888888, 1);
     this.hemisphere.name = 'sky-light';
     this.sun = new THREE.DirectionalLight(0xffffff, 1);
     this.sun.name = 'sun-light';
-    this.sun.position.set(8, 6, 5);
+    this.sun.position.set(7, 9, 4.5);
     this.fill = new THREE.DirectionalLight(0xffc27a, 0);
     this.fill.name = 'shop-fill';
     this.fill.position.set(0.2, 4.5, 1.2);
     scene.add(this.hemisphere, this.sun, this.fill);
     scene.background = this.background;
+    this.fog = new THREE.Fog(this.background, config.fogNear ?? 20, config.fogFar ?? 42);
+    scene.fog = this.fog;
     this.apply(1);
   }
 
   setPhase(phase) {
-    this.target = readLook(this.config, phase === 'night' ? 'night' : 'day');
+    const night = phase === 'night';
+    this.target = readLook(this.config, night ? 'night' : 'day');
+    this.nightTarget = night ? 1 : 0;
   }
 
   update(dt) {
@@ -61,6 +67,7 @@ export class DayNightLighting {
     this.hemisphereIntensity += (this.target.hemisphereIntensity - this.hemisphereIntensity) * blend;
     this.sunIntensity += (this.target.sunIntensity - this.sunIntensity) * blend;
     this.fillIntensity += (this.target.fillIntensity - this.fillIntensity) * blend;
+    this.night += (this.nightTarget - this.night) * blend;
 
     this.hemisphere.color.copy(this.hemisphereSky);
     this.hemisphere.groundColor.copy(this.hemisphereGround);
@@ -69,6 +76,7 @@ export class DayNightLighting {
     this.sun.intensity = this.sunIntensity;
     this.fill.color.copy(this.fillColor);
     this.fill.intensity = this.fillIntensity;
+    this.fog.color.copy(this.background);
     document.body.style.backgroundColor = `#${this.background.getHexString()}`;
   }
 }

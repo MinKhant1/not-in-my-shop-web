@@ -1,6 +1,6 @@
 export const GameConfig = {
   debug: true,
-  background: 0xc5ced6,
+  background: 0xb4c0ca,
   graphics: {
     shadows: false,
     toonShading: true,
@@ -16,11 +16,34 @@ export const GameConfig = {
     startPosition: [-2.2, 0, 2.25]
   },
   camera: {
-    height: 6.5,
-    distance: 5.4,
-    lookAhead: 2.7,
+    height: 7.05,
+    distance: 4.5,
+    lookAhead: 1.7,
     smoothness: 8,
-    fov: 48
+    fov: 42,
+    portraitFov: 39
+  },
+  diorama: {
+    marginNorth: 5.4,
+    marginSouth: 2.9,
+    marginEast: 4,
+    marginWest: 1.35,
+    sidewalk: 2,
+    southWalk: 2
+  },
+  streetlight: {
+    color: 0xffd58a,
+    intensity: 8,
+    angle: Math.PI / 5.5,
+    penumbra: 1,
+    distance: 12,
+    decay: 0,
+    castShadow: false,
+    emissiveIntensity: 1.5,
+    height: 2.35,
+    headLocal: null,
+    headNudge: [0, 0, 0],
+    lightForward: 0.05
   },
   occlusion: {
     debugOcclusion: false,
@@ -97,8 +120,10 @@ export const GameConfig = {
       z: -2,
       holdSeconds: 1
     },
+    fogNear: 20,
+    fogFar: 42,
     day: {
-      background: 0xc5ced6,
+      background: 0xb4c0ca,
       hemisphereSky: 0xfff6ea,
       hemisphereGround: 0x8e99a3,
       hemisphereIntensity: 0.45,
@@ -108,7 +133,7 @@ export const GameConfig = {
       fillIntensity: 0
     },
     night: {
-      background: 0x2a3548,
+      background: 0x1d2838,
       hemisphereSky: 0x8ea6d8,
       hemisphereGround: 0x3d3428,
       hemisphereIntensity: 0.42,

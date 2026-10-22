@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { createToonMaterial, createToonMaterialFromImported, getSharedToonGradientMap } from '../rendering/ToonMaterial.js';
 import { STORE_SOUTH } from './StoreSections.js';
+import { Diorama } from './Diorama.js';
 
 const BUILDING_TEXTURE = '/models/textures/colormap-building.png';
 const ROAD_TEXTURE = '/models/textures/colormap-road.png';
@@ -77,6 +78,7 @@ export class OutsideEnvironment {
     this.ownedGeometries = [];
     this.ownedMaterials = [];
     this.ready = false;
+    this.diorama = new Diorama(this.group, collision, loader, config);
   }
 
   async load() {
@@ -91,7 +93,8 @@ export class OutsideEnvironment {
         Promise.all(BUILDING_URLS.map((url) => this.loadTemplate(url))),
         this.loader.load(STRAIGHT_ROAD),
         this.loadTemplate(TILE_LOW),
-        this.loader.load(BRICK_WALL)
+        this.loader.load(BRICK_WALL),
+        this.diorama.prepare()
       ]);
       const buildingMaterial = this.materialFor(buildingTexture);
       const roadMaterial = this.materialFor(roadTexture);
@@ -303,6 +306,7 @@ export class OutsideEnvironment {
       this.buildings.push({ object: mesh, x, z });
       this.addBuildingCollision(mesh, depth, height, along, x, z);
     }
+    this.contentWestEdge = westEdge;
     this.cameraMinX = westEdge - 2.5;
     this.anchors.push({ id: 'buildings', count: placed, frontX });
     return {
@@ -433,12 +437,49 @@ export class OutsideEnvironment {
     }
     this.shopFloorWest = floorWest;
     this.shopFloorEast = floorEast;
-    if (!this.ready || (this.builtShopWest === floorWest && this.builtShopEast === floorEast)) {
+    if (!this.ready) {
       return;
     }
-    this.builtShopWest = floorWest;
-    this.builtShopEast = floorEast;
-    this.rebuildShopNorth(floorWest, floorEast);
+    if (this.builtShopWest !== floorWest || this.builtShopEast !== floorEast) {
+      this.builtShopWest = floorWest;
+      this.builtShopEast = floorEast;
+      this.rebuildShopNorth(floorWest, floorEast);
+    }
+    const fitted = this.diorama.fit(this.dioramaEdges(floorWest, floorEast));
+    if (fitted) {
+      this.cameraMinX = fitted.outerWest + 2.2;
+    }
+  }
+
+  dioramaEdges(floorWest, floorEast) {
+    let contentWest = this.contentWestEdge ?? this.cameraMinX + 2.5;
+    let contentNorth = this.layout?.minZ ?? -6.2;
+    if (this.leftPad) {
+      contentWest = Math.min(contentWest, this.leftPad.minX);
+      contentNorth = Math.min(contentNorth, this.leftPad.minZ);
+    }
+    if (this.northPad) {
+      contentNorth = Math.min(contentNorth, this.northPad.minZ);
+      contentWest = Math.min(contentWest, this.northPad.minX);
+    }
+    return {
+      floorWest,
+      floorEast,
+      shopWest: -3.5,
+      shopEast: floorEast + 0.5,
+      shopNorth: -4.5,
+      shopSouth: 5.5,
+      backNorth: -6.5,
+      streetSouth: STREET_SOUTH,
+      streetNorth: this.layout?.minZ ?? -6.2,
+      street: this.layout,
+      contentWest,
+      contentNorth,
+      tile: this.tile?.geometry ?? null,
+      pavementMaterial: this.roadMaterial,
+      missingNorthPad: Boolean(this.northPad) && !this.group.getObjectByName('floor-outside-north-pad'),
+      northPad: this.northPad
+    };
   }
 
   rebuildShopNorth(floorWest, floorEast) {
@@ -635,6 +676,7 @@ export class OutsideEnvironment {
   }
 
   dispose() {
+    this.diorama?.dispose();
     this.group.removeFromParent();
     for (let i = 0; i < this.ownedGeometries.length; i += 1) {
       this.ownedGeometries[i].dispose();
