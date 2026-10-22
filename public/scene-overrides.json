@@ -354,6 +354,204 @@
       "cloneOf": "floor-outside-top-left",
       "castShadow": false,
       "receiveShadow": false
+    },
+    {
+      "id": "placed-mvj94vwy-sod9yh",
+      "name": "firehydrant",
+      "position": [
+        -10.1758,
+        0.02,
+        1.4588
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        2,
+        2,
+        2
+      ],
+      "visible": true,
+      "parentId": "store",
+      "collision": true,
+      "model": "/models/outside/firehydrant.glb",
+      "extra": {
+        "title": null,
+        "label": null,
+        "size": null,
+        "caseSize": null,
+        "caseAccent": null,
+        "caseInterior": null
+      },
+      "castShadow": false,
+      "receiveShadow": false
+    },
+    {
+      "id": "placed-mvj958bv-smmapb",
+      "name": "bench",
+      "position": [
+        -4.776,
+        0.02,
+        -0.09
+      ],
+      "rotation": [
+        0,
+        1.5708,
+        0
+      ],
+      "scale": [
+        2,
+        2,
+        2
+      ],
+      "visible": true,
+      "parentId": "store",
+      "collision": true,
+      "model": "/models/outside/bench.glb",
+      "extra": {
+        "title": null,
+        "label": null,
+        "size": null,
+        "caseSize": null,
+        "caseAccent": null,
+        "caseInterior": null
+      },
+      "castShadow": false,
+      "receiveShadow": false
+    },
+    {
+      "id": "placed-mvj95yk7-mks2uw",
+      "name": "streetlight",
+      "position": [
+        -5.064,
+        0.02,
+        4
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        2,
+        2,
+        2
+      ],
+      "visible": true,
+      "parentId": "store",
+      "collision": true,
+      "model": "/models/outside/streetlight.glb",
+      "extra": {
+        "title": null,
+        "label": null,
+        "size": null,
+        "caseSize": null,
+        "caseAccent": null,
+        "caseInterior": null
+      },
+      "castShadow": false,
+      "receiveShadow": false
+    },
+    {
+      "id": "placed-mvj96ses-1l55nz",
+      "name": "streetlight Copy",
+      "position": [
+        -4.954,
+        0.02,
+        -2.8265
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        2,
+        2,
+        2
+      ],
+      "visible": true,
+      "parentId": "store",
+      "collision": true,
+      "model": "/models/outside/streetlight.glb",
+      "extra": {
+        "title": null,
+        "label": null,
+        "size": null,
+        "caseSize": null,
+        "caseAccent": null,
+        "caseInterior": null
+      },
+      "castShadow": false,
+      "receiveShadow": false
+    },
+    {
+      "id": "placed-mvj9768i-r6ryb1",
+      "name": "streetlight Copy Copy",
+      "position": [
+        -10.384,
+        0.02,
+        -2.826
+      ],
+      "rotation": [
+        0,
+        3.1416,
+        0
+      ],
+      "scale": [
+        2,
+        2,
+        2
+      ],
+      "visible": true,
+      "parentId": "store",
+      "collision": true,
+      "model": "/models/outside/streetlight.glb",
+      "extra": {
+        "title": null,
+        "label": null,
+        "size": null,
+        "caseSize": null,
+        "caseAccent": null,
+        "caseInterior": null
+      },
+      "castShadow": false,
+      "receiveShadow": false
+    },
+    {
+      "id": "placed-mvj97fa7-ctme1z",
+      "name": "streetlight Copy",
+      "position": [
+        -10.384,
+        0.02,
+        4
+      ],
+      "rotation": [
+        0,
+        3.1416,
+        0
+      ],
+      "scale": [
+        2,
+        2,
+        2
+      ],
+      "visible": true,
+      "parentId": "store",
+      "collision": true,
+      "model": "/models/outside/streetlight.glb",
+      "extra": {
+        "title": null,
+        "label": null,
+        "size": null,
+        "caseSize": null,
+        "caseAccent": null,
+        "caseInterior": null
+      },
+      "castShadow": false,
+      "receiveShadow": false
     }
   ]
 }
