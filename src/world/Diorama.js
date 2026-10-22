@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import { createToonMaterial, createToonMaterialFromImported, getSharedToonGradientMap } from '../rendering/ToonMaterial.js';
 
-const STREETLIGHT = '/models/outside/streetlight.glb';
+export const STREETLIGHT_MODEL = '/models/outside/streetlight.glb';
+const STREETLIGHT = STREETLIGHT_MODEL;
 const BENCH = '/models/outside/bench.glb';
 const HYDRANT = '/models/outside/firehydrant.glb';
 
@@ -59,6 +60,7 @@ export class Diorama {
     this.socket = null;
     this.streetlights = [];
     this.placedLights = [];
+    this.previewNight = null;
     this.nightAmount = 0;
     this.lightConfig = {
       color: 0xffd58a,
@@ -685,9 +687,10 @@ export class Diorama {
     root.name = 'diorama-streetlight';
     root.position.set(x, 0.02, z);
     root.rotation.y = rotationY;
-    root.userData.editorIgnore = true;
     root.traverse((child) => {
-      child.userData.editorIgnore = true;
+      if (child !== root) {
+        child.userData.editorIgnore = true;
+      }
     });
     this.group.add(root);
     this.attachLamp(root, this.streetlights);
@@ -718,6 +721,7 @@ export class Diorama {
     light.castShadow = cfg.castShadow === true;
     light.position.copy(placed.light);
     light.userData.editorIgnore = true;
+    light.userData.editorPrefabPart = true;
     const target = new THREE.Object3D();
     target.name = 'streetlight-target';
     target.position.set(placed.light.x, 0.02, placed.light.z);
@@ -729,8 +733,15 @@ export class Diorama {
     bulb.scale.setScalar(placed.radius);
     bulb.visible = false;
     bulb.userData.editorIgnore = true;
+    bulb.userData.editorPrefabPart = true;
     root.add(light, target, bulb);
     root.userData.streetlightLit = true;
+    if (!root.userData.editorModel) {
+      root.userData.editorPrefab = STREETLIGHT;
+      root.userData.editorRoot = true;
+      root.userData.editorIgnore = false;
+      root.userData.editorId = root.userData.editorId || `diorama-streetlight-${list.length}`;
+    }
     list.push({ light, bulb, root });
   }
 
@@ -754,9 +765,131 @@ export class Diorama {
     return { bulb, light, radius: this.socket.radius };
   }
 
+  meshOf(root) {
+    let mesh = null;
+    root?.traverse((child) => {
+      if (!mesh && child.isMesh && !child.userData.editorPrefabPart && child.geometry?.attributes?.position) {
+        mesh = child;
+      }
+    });
+    return mesh;
+  }
+
+  rootToMesh(root, position) {
+    const mesh = this.meshOf(root);
+    const point = position.clone();
+    if (!mesh) {
+      return point;
+    }
+    root.updateWorldMatrix(true, true);
+    root.localToWorld(point);
+    mesh.worldToLocal(point);
+    return point;
+  }
+
+  applySavedPrefab(prefab) {
+    if (!prefab?.parts || !this.socket) {
+      return;
+    }
+    const bulb = prefab.parts['streetlight-bulb'];
+    const spot = prefab.parts['streetlight-spot'];
+    if (Array.isArray(bulb?.position)) {
+      this.socket.bulb.fromArray(bulb.position);
+    }
+    if (Array.isArray(bulb?.scale)) {
+      this.socket.radius = Math.abs(bulb.scale[0]) || this.socket.radius;
+    }
+    if (Array.isArray(spot?.position)) {
+      this.socket.light.fromArray(spot.position);
+    }
+    this.readLightSettings(spot);
+    this.reflowStreetlights();
+  }
+
+  readLightSettings(spot) {
+    if (!spot) {
+      return;
+    }
+    const cfg = this.lightConfig;
+    if (typeof spot.intensity === 'number') cfg.intensity = spot.intensity;
+    if (typeof spot.color === 'string') cfg.color = new THREE.Color(spot.color).getHex();
+    if (typeof spot.angle === 'number') cfg.angle = spot.angle;
+    if (typeof spot.penumbra === 'number') cfg.penumbra = spot.penumbra;
+    if (typeof spot.distance === 'number') cfg.distance = spot.distance;
+    if (typeof spot.decay === 'number') cfg.decay = spot.decay;
+  }
+
+  captureStreetlightPart(root, object) {
+    if (!this.socket || !object) {
+      return;
+    }
+    if (object.name === 'streetlight-bulb') {
+      this.socket.bulb.copy(this.rootToMesh(root, object.position));
+      this.socket.radius = Math.abs(object.scale.x) || this.socket.radius;
+      return;
+    }
+    if (object.name === 'streetlight-spot') {
+      this.socket.light.copy(this.rootToMesh(root, object.position));
+      this.lightConfig.intensity = object.intensity;
+      this.lightConfig.color = object.color.getHex();
+      this.lightConfig.angle = object.angle;
+      this.lightConfig.penumbra = object.penumbra;
+      this.lightConfig.distance = object.distance;
+      this.lightConfig.decay = object.decay;
+    }
+  }
+
+  reflowStreetlights(skipRoot = null, skipName = '') {
+    const lists = [this.streetlights, this.placedLights];
+    for (let listIndex = 0; listIndex < lists.length; listIndex += 1) {
+      const list = lists[listIndex];
+      for (let i = 0; i < list.length; i += 1) {
+        const lamp = list[i];
+        const placed = this.socketOn(lamp.root);
+        const skip = lamp.root === skipRoot;
+        if (!skip || skipName !== 'streetlight-bulb') {
+          lamp.bulb.position.copy(placed.bulb);
+          lamp.bulb.scale.setScalar(this.socket.radius);
+        }
+        if (!skip || skipName !== 'streetlight-spot') {
+          lamp.light.position.copy(placed.light);
+        }
+        lamp.light.target.position.set(lamp.light.position.x, 0.02, lamp.light.position.z);
+      }
+    }
+    this.setNight(this.nightAmount);
+  }
+
+  streetlightPrefabRecord() {
+    const color = new THREE.Color(this.lightConfig.color);
+    const round = (value) => Math.round(value * 10000) / 10000;
+    const vec = (point) => [round(point.x), round(point.y), round(point.z)];
+    const radius = round(this.socket.radius);
+    return {
+      parts: {
+        'streetlight-bulb': {
+          position: vec(this.socket.bulb),
+          scale: [radius, radius, radius]
+        },
+        'streetlight-spot': {
+          position: vec(this.socket.light),
+          intensity: round(this.lightConfig.intensity),
+          color: `#${color.getHexString()}`,
+          angle: round(this.lightConfig.angle),
+          penumbra: round(this.lightConfig.penumbra),
+          distance: round(this.lightConfig.distance),
+          decay: round(this.lightConfig.decay)
+        }
+      }
+    };
+  }
+
   setNight(amount) {
-    const night = Math.min(1, Math.max(0, amount || 0));
-    this.nightAmount = night;
+    const requested = Math.min(1, Math.max(0, amount || 0));
+    if (this.previewNight == null) {
+      this.nightAmount = requested;
+    }
+    const night = this.previewNight == null ? requested : this.previewNight;
     const cfg = this.lightConfig;
     if (!cfg) {
       return;

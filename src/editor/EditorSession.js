@@ -39,6 +39,7 @@ export class EditorSession {
     this.pointerDown = null;
     this.transformBefore = null;
     this.preview = null;
+    this.prefabModel = null;
 
     this.view = new EditorCamera(game.canvas);
     this.raycaster = new THREE.Raycaster();
@@ -75,6 +76,7 @@ export class EditorSession {
         <button type="button" data-action="delete">Delete</button>
         <button type="button" data-action="undo">Undo</button>
         <button type="button" data-action="redo">Redo</button>
+        <button type="button" data-action="prefab-done" hidden>Done Prefab</button>
         <span class="editor-status"></span>
       </div>
       <section class="panel editor-hierarchy">
@@ -103,6 +105,7 @@ export class EditorSession {
     this.assetList = this.root.querySelector('[data-role="assets"]');
     this.assetName = this.root.querySelector('[data-role="asset-name"]');
     this.toolButtons = [...this.root.querySelectorAll('[data-mode]')];
+    this.prefabDone = this.root.querySelector('[data-action="prefab-done"]');
 
     this.launch = document.createElement('button');
     this.launch.id = 'editor-launch';
@@ -127,6 +130,7 @@ export class EditorSession {
       if (action === 'delete') this.deleteSelection();
       if (action === 'undo') this.undo();
       if (action === 'redo') this.redo();
+      if (action === 'prefab-done') this.exitPrefab();
     });
     this.root.querySelector('[data-role="search"]').addEventListener('input', (event) => {
       this.query = event.target.value.trim().toLowerCase();
@@ -184,7 +188,7 @@ export class EditorSession {
       this.place(url, point, null);
     };
     this.onUnload = (event) => {
-      if (this.overrides.isDirty()) {
+      if (this.overrides.isDirty() || this.game.prefabs?.dirty) {
         event.preventDefault();
         event.returnValue = '';
       }
@@ -214,6 +218,7 @@ export class EditorSession {
       this.syncInspector();
     });
     this.controls.addEventListener('objectChange', () => {
+      this.syncPrefabPart(this.selected);
       this.syncInspector();
       if (this.selected && !this.selected.isLight) {
         this.box.setFromObject(this.selected);
@@ -285,6 +290,7 @@ export class EditorSession {
     this.overrides.syncGameplay();
     this.game.occlusion.restoreAll();
     this.game.followCamera.snap();
+    this.exitPrefab();
   }
 
   update(dt) {
@@ -396,11 +402,174 @@ export class EditorSession {
 
   refreshHierarchy() {
     this.hierarchyList.replaceChildren();
+    this.appendPrefabs(this.hierarchyList);
     const roots = this.game.scene.children.filter((child) => (
       child.userData.editorPersistent && child.userData.editorRoot && !child.userData.editorHelper
     ));
     this.appendNodes(this.hierarchyList, roots, 0);
     this.updateSelectionHighlight();
+  }
+
+  appendPrefabs(container) {
+    const catalog = this.prefabCatalog();
+    if (catalog.size === 0) {
+      return;
+    }
+    const title = document.createElement('div');
+    title.className = 'editor-prefab-label';
+    title.textContent = 'Prefabs';
+    container.append(title);
+    catalog.forEach((instances, model) => {
+      const row = document.createElement('div');
+      row.className = 'editor-row';
+      row.style.paddingLeft = '8px';
+      if (this.prefabModel === model) row.classList.add('is-selected');
+      const label = document.createElement('span');
+      label.className = 'editor-label';
+      label.textContent = `${fileName(model)} (${this.prefabInstances(model).length})`;
+      row.append(label);
+      row.addEventListener('click', () => this.enterPrefab(model));
+      row.addEventListener('dblclick', () => {
+        this.enterPrefab(model);
+        if (this.selected) this.view.focus(this.selected);
+      });
+      container.append(row);
+      if (this.prefabModel !== model || !instances[0]) {
+        return;
+      }
+      const parts = prefabParts(instances[0]);
+      for (let i = 0; i < parts.length; i += 1) {
+        const part = parts[i];
+        const partRow = document.createElement('div');
+        partRow.className = 'editor-row';
+        partRow.dataset.key = objectKey(part);
+        partRow.style.paddingLeft = '22px';
+        if (part === this.selected) partRow.classList.add('is-selected');
+        const partLabel = document.createElement('span');
+        partLabel.className = 'editor-label';
+        partLabel.textContent = part.name || part.type;
+        partRow.append(partLabel);
+        partRow.addEventListener('click', (event) => {
+          event.stopPropagation();
+          this.select(part);
+        });
+        partRow.addEventListener('dblclick', () => this.view.focus(part));
+        container.append(partRow);
+      }
+    });
+  }
+
+  prefabCatalog() {
+    const map = new Map();
+    this.game.scene.traverse((object) => {
+      const model = object.userData?.editorPrefab;
+      if (!model) {
+        return;
+      }
+      if (!map.has(model)) map.set(model, []);
+      map.get(model).push(object);
+    });
+    const saved = Object.keys(this.game.prefabs?.models || {});
+    for (let i = 0; i < saved.length; i += 1) {
+      if (!map.has(saved[i])) map.set(saved[i], this.prefabInstances(saved[i]));
+    }
+    if (this.prefabModel && !map.has(this.prefabModel)) {
+      map.set(this.prefabModel, this.prefabInstances(this.prefabModel));
+    }
+    return map;
+  }
+
+  prefabInstances(model) {
+    const list = [];
+    this.game.scene.traverse((object) => {
+      if (modelOf(object) === model && (object.userData.editorRoot || object.userData.editorPrefab)) {
+        list.push(object);
+      }
+    });
+    return list;
+  }
+
+  enterPrefab(model) {
+    if (!model) {
+      return;
+    }
+    const instances = this.prefabInstances(model);
+    if (instances.length === 0) {
+      this.setStatus('No copies of that prefab are in the scene');
+      return;
+    }
+    this.prefabModel = model;
+    if (this.prefabDone) this.prefabDone.hidden = false;
+    const diorama = this.game.outside?.diorama;
+    if (model.endsWith('streetlight.glb') && diorama) {
+      diorama.previewNight = 1;
+      diorama.setNight(diorama.nightAmount);
+    }
+    const part = prefabParts(instances[0])[0] || instances[0];
+    this.refreshHierarchy();
+    this.select(part);
+    this.view.focus(part);
+    this.setStatus(`Editing ${fileName(model)} prefab. Changes apply to all ${instances.length} copies. Save to keep them.`);
+  }
+
+  exitPrefab() {
+    if (!this.prefabModel) {
+      return;
+    }
+    this.prefabModel = null;
+    if (this.prefabDone) this.prefabDone.hidden = true;
+    const diorama = this.game.outside?.diorama;
+    if (diorama) {
+      diorama.previewNight = null;
+      diorama.setNight(this.game.lighting?.night ?? diorama.nightAmount);
+    }
+    if (this.active) {
+      this.refreshHierarchy();
+      this.renderInspector();
+      this.setStatus('Prefab editing closed');
+    }
+  }
+
+  syncPrefabPart(object) {
+    if (!this.prefabModel || !object || object === this.prefabRootOf(object)) {
+      return;
+    }
+    const root = this.prefabRootOf(object);
+    if (!root || modelOf(root) !== this.prefabModel) {
+      return;
+    }
+    const diorama = this.game.outside?.diorama;
+    if (this.prefabModel.endsWith('streetlight.glb') && diorama && object.userData.editorPrefabPart) {
+      diorama.captureStreetlightPart(root, object);
+      diorama.reflowStreetlights(root, object.name);
+      this.game.prefabs?.set(this.prefabModel, diorama.streetlightPrefabRecord());
+      return;
+    }
+    const record = this.game.prefabs?.get(this.prefabModel) || { parts: {} };
+    const parts = { ...(record.parts || {}) };
+    parts[object.name] = {
+      position: object.position.toArray(),
+      rotation: [object.rotation.x, object.rotation.y, object.rotation.z],
+      scale: object.scale.toArray()
+    };
+    const instances = this.prefabInstances(this.prefabModel);
+    for (let i = 0; i < instances.length; i += 1) {
+      if (instances[i] === root) {
+        continue;
+      }
+      const match = findNamed(instances[i], object.name);
+      if (!match) {
+        continue;
+      }
+      match.position.copy(object.position);
+      match.rotation.copy(object.rotation);
+      match.scale.copy(object.scale);
+    }
+    this.game.prefabs?.set(this.prefabModel, { ...record, parts });
+  }
+
+  prefabRootOf(object) {
+    return prefabRootOf(object);
   }
 
   appendNodes(container, objects, depth) {
@@ -569,6 +738,23 @@ export class EditorSession {
           : object.type;
     meta.textContent = `${kind}${object.userData.editorId ? ` · ${object.userData.editorId}` : ''}`;
     this.inspector.append(meta);
+    const prefabModel = modelOf(root || object);
+    if (prefabModel) {
+      const edit = document.createElement('button');
+      edit.type = 'button';
+      edit.textContent = this.prefabModel === prefabModel ? 'Done Prefab' : 'Edit Prefab';
+      edit.addEventListener('click', () => {
+        if (this.prefabModel === prefabModel) this.exitPrefab();
+        else this.enterPrefab(prefabModel);
+      });
+      this.inspector.append(edit);
+      if (this.prefabModel === prefabModel && object !== (root || object)) {
+        const note = document.createElement('p');
+        note.className = 'editor-note';
+        note.textContent = 'This part is shared. Moving it updates every copy of the prefab.';
+        this.inspector.append(note);
+      }
+    }
     if (root && root !== object) {
       const jump = document.createElement('button');
       jump.type = 'button';
@@ -630,7 +816,9 @@ export class EditorSession {
         });
       });
     }
-    if (object.isLight) {
+    if (object.userData.editorPrefabPart && object.isLight && this.prefabModel?.endsWith('streetlight.glb')) {
+      this.addStreetlightFields();
+    } else if (object.isLight) {
       this.addNumber('Intensity', object.intensity, (value) => {
         const before = object.userData.editorLightLock ? { ...object.userData.editorLightLock } : null;
         this.overrides.setLightField(object, 'intensity', value);
@@ -804,6 +992,7 @@ export class EditorSession {
     object.position.set(position[0], position[1], position[2]);
     object.rotation.set(toRadians(rotation[0]), toRadians(rotation[1]), toRadians(rotation[2]));
     object.scale.set(scale[0], scale[1], scale[2]);
+    this.syncPrefabPart(object);
   }
 
   commitTransformUndo() {
@@ -842,6 +1031,7 @@ export class EditorSession {
     object.position.copy(state.position);
     object.quaternion.copy(state.quaternion);
     object.scale.copy(state.scale);
+    this.syncPrefabPart(object);
     this.overrides.syncGameplay();
     if (this.selected === object) {
       this.syncInspector();
@@ -927,6 +1117,10 @@ export class EditorSession {
   deleteSelection() {
     const object = this.selected;
     if (!object?.parent) {
+      return;
+    }
+    if (object.userData.editorPrefab || object.userData.editorPrefabPart) {
+      this.setStatus('Open the prefab to move shared parts. Placed copies can still be deleted from the hierarchy.');
       return;
     }
     if (object.userData.editorRoot && PROTECTED_IDS.has(object.userData.editorId)) {
@@ -1047,7 +1241,7 @@ export class EditorSession {
     this.setPointer(event);
     const hits = this.raycaster.intersectObjects(this.game.scene.children, true);
     for (let i = 0; i < hits.length; i += 1) {
-      const picked = resolvePick(hits[i].object, alt);
+      const picked = resolvePick(hits[i].object, alt, this.prefabModel);
       if (picked) {
         return picked;
       }
@@ -1130,7 +1324,10 @@ export class EditorSession {
     if (event.code === 'KeyW') this.setTool('translate');
     if (event.code === 'KeyE') this.setTool('rotate');
     if (event.code === 'KeyR') this.setTool('scale');
-    if (event.code === 'Escape') this.select(null);
+    if (event.code === 'Escape') {
+      if (this.prefabModel) this.exitPrefab();
+      else this.select(null);
+    }
   }
 
   async save() {
@@ -1148,8 +1345,31 @@ export class EditorSession {
       throw new Error((await response.text()) || `Save failed (${response.status})`);
     }
     this.overrides.markSaved(documentState);
+    if (this.game.prefabs?.dirty) {
+      await this.game.prefabs.save();
+    }
     this.dirty = false;
-    this.setStatus('Scene saved');
+    this.setStatus(this.game.prefabs ? 'Scene and prefabs saved' : 'Scene saved');
+  }
+
+  addStreetlightFields() {
+    const cfg = this.game.outside?.diorama?.lightConfig;
+    if (!cfg) {
+      return;
+    }
+    const apply = (key, value) => {
+      cfg[key] = value;
+      this.game.outside.diorama.setNight(this.game.outside.diorama.nightAmount);
+      this.game.prefabs?.set(this.prefabModel, this.game.outside.diorama.streetlightPrefabRecord());
+    };
+    this.addNumber('Intensity', cfg.intensity, (value) => apply('intensity', value));
+    this.addColorField('Color', `#${new THREE.Color(cfg.color).getHexString()}`, (value) => {
+      apply('color', new THREE.Color(value).getHex());
+    });
+    this.addNumber('Angle', toDegrees(cfg.angle), (value) => apply('angle', toRadians(value)));
+    this.addNumber('Penumbra', cfg.penumbra, (value) => apply('penumbra', value));
+    this.addNumber('Distance', cfg.distance, (value) => apply('distance', value));
+    this.addNumber('Decay', cfg.decay, (value) => apply('decay', value));
   }
 }
 
@@ -1167,9 +1387,63 @@ function sameTransform(before, after) {
     && before.quaternion.angleTo(after.quaternion) < 1e-4;
 }
 
-function resolvePick(object, alt) {
+function modelOf(object) {
+  return object?.userData?.editorPrefab || object?.userData?.editorModel || '';
+}
+
+function prefabRootOf(object) {
+  let current = object;
+  while (current && current.type !== 'Scene') {
+    if (current.userData?.editorHelper || isRuntimeObject(current)) {
+      return null;
+    }
+    if (current.userData?.editorRoot && !current.userData?.editorIgnore) {
+      return modelOf(current) ? current : null;
+    }
+    current = current.parent;
+  }
+  return null;
+}
+
+function findNamed(root, name) {
+  let found = null;
+  root.traverse((child) => {
+    if (!found && child !== root && child.name === name) {
+      found = child;
+    }
+  });
+  return found;
+}
+
+function prefabParts(root) {
+  const parts = [];
+  root.traverse((child) => {
+    if (child !== root && child.userData?.editorPrefabPart) {
+      parts.push(child);
+    }
+  });
+  return parts;
+}
+
+function resolvePick(object, alt, prefabModel) {
   if (hasHelper(object) || !isShown(object)) {
     return null;
+  }
+  if (object.userData?.editorIgnore || object.userData?.editorPrefabPart) {
+    const prefab = prefabRootOf(object);
+    if (!prefab) {
+      return null;
+    }
+    if (alt && prefabModel && modelOf(prefab) === prefabModel) {
+      let current = object;
+      while (current && current !== prefab) {
+        if (current.userData.editorPrefabPart) {
+          return current;
+        }
+        current = current.parent;
+      }
+    }
+    return prefab;
   }
   let current = object;
   while (current && current.type !== 'Scene') {

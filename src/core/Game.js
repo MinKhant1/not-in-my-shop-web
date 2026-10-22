@@ -8,6 +8,8 @@ import { VirtualJoystick } from '../ui/VirtualJoystick.js';
 import { FollowCamera } from '../camera/FollowCamera.js';
 import { Store } from '../world/Store.js';
 import { OutsideEnvironment } from '../world/OutsideEnvironment.js';
+import { STREETLIGHT_MODEL } from '../world/Diorama.js';
+import { PrefabLibrary } from '../editor/PrefabLibrary.js';
 import { Player } from '../entities/Player.js';
 import { ShopperManager } from '../shoppers/ShopperManager.js';
 import { PlayerOcclusionManager } from '../systems/PlayerOcclusionManager.js';
@@ -98,9 +100,11 @@ export class Game {
     const store = new Store(this.scene, this.loader, this.collision, this.config);
     store.onBoundsChanged = (limits) => this.applyPlayLimits(limits);
     this.outside = new OutsideEnvironment(this.scene, this.loader, this.collision, this.config);
+    this.prefabs = new PrefabLibrary();
     await Promise.all([
       store.load(unlocked, ownedFixtures),
-      this.outside.load()
+      this.outside.load(),
+      this.prefabs.load()
     ]);
     this.occlusion.collect(store);
     this.outside.trackOccluders(this.occlusion);
@@ -114,7 +118,9 @@ export class Game {
     this.sceneOverrides = new SceneOverrides(this);
     await this.sceneOverrides.loadAndApply();
     this.applyPlayLimits(store.playLimits());
+    this.outside.diorama?.applySavedPrefab(this.prefabs.get(STREETLIGHT_MODEL));
     this.outside.diorama?.attachPlacedStreetlights(this.scene);
+    this.prefabs.applyGeneric(this.scene);
     store.onVisibilitySynced = () => this.sceneOverrides.reapplyVisibility();
     store.onFixtureSpawned = (object, id) => {
       this.occlusion.track(object, id);

@@ -3,6 +3,7 @@ import path from 'node:path';
 import { defineConfig } from 'vite';
 
 const SCENE_FILE = 'scene-overrides.json';
+const PREFAB_FILE = 'prefabs.json';
 const MAX_SCENE_BYTES = 2_000_000;
 
 function readBody(req) {
@@ -52,6 +53,26 @@ function listAssets(root) {
   return assets;
 }
 
+function isPrefabDocument(value) {
+  return Boolean(value)
+    && value.version === 1
+    && value.models
+    && typeof value.models === 'object'
+    && !Array.isArray(value.models);
+}
+
+function writePublicFile(root, name, text) {
+  const file = path.join(root, 'public', name);
+  const temporary = `${file}.tmp`;
+  fs.writeFileSync(temporary, text);
+  try {
+    fs.renameSync(temporary, file);
+  } catch {
+    fs.copyFileSync(temporary, file);
+    fs.unlinkSync(temporary);
+  }
+}
+
 function isSceneDocument(value) {
   return Boolean(value)
     && value.version === 1
@@ -80,21 +101,29 @@ function editorApi() {
           res.end('Scene document is invalid');
           return;
         }
-        const file = path.join(root, 'public', SCENE_FILE);
-        const text = `${JSON.stringify(parsed, null, 2)}\n`;
-        const temporary = `${file}.tmp`;
-        fs.writeFileSync(temporary, text);
-        try {
-          fs.renameSync(temporary, file);
-        } catch {
-          fs.copyFileSync(temporary, file);
-          fs.unlinkSync(temporary);
-        }
+        writePublicFile(root, SCENE_FILE, `${JSON.stringify(parsed, null, 2)}\n`);
         res.setHeader('Content-Type', 'application/json');
         res.end(JSON.stringify({ ok: true }));
       } catch (error) {
         res.statusCode = 400;
         res.end(error.message || 'Could not save the scene');
+      }
+      return;
+    }
+    if (url === '/__editor/prefabs' && req.method === 'POST') {
+      try {
+        const parsed = JSON.parse(await readBody(req));
+        if (!isPrefabDocument(parsed)) {
+          res.statusCode = 400;
+          res.end('Prefab document is invalid');
+          return;
+        }
+        writePublicFile(root, PREFAB_FILE, `${JSON.stringify(parsed, null, 2)}\n`);
+        res.setHeader('Content-Type', 'application/json');
+        res.end(JSON.stringify({ ok: true }));
+      } catch (error) {
+        res.statusCode = 400;
+        res.end(error.message || 'Could not save prefabs');
       }
       return;
     }
