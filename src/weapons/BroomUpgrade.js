@@ -33,6 +33,7 @@ export class BroomUpgrade {
   async restore() {
     await this.station.setBroomLevel(this.current);
     this.syncOffer();
+    this.onChanged?.();
   }
 
   purchase() {
@@ -50,6 +51,7 @@ export class BroomUpgrade {
     });
     const following = nextBroom(this.level);
     if (!following) {
+      this.onChanged?.();
       return;
     }
     this.pad.configure({
@@ -57,6 +59,7 @@ export class BroomUpgrade {
       cost: following.cost,
       hired: false
     });
+    this.onChanged?.();
     return 'again';
   }
 

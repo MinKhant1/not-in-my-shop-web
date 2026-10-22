@@ -76,8 +76,11 @@ export function groceryDecor(section) {
   ];
 }
 
+// Shared aisle spot in every expansion section. Grocery uses the built-in stand instead.
+export const WEAPON_PLACEHOLDER_LOCAL = [6.05, 2.15];
+
 const SHARED_RESERVED = [
-  { label: 'WEAPON', local: [6.05, 2.15] }
+  { label: 'WEAPON', local: WEAPON_PLACEHOLDER_LOCAL }
 ];
 
 export function buildExpansionShell(section) {

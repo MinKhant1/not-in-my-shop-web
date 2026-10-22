@@ -31,6 +31,7 @@ import { CashierHire } from '../checkout/CashierHire.js';
 import { PlayerActivityManager } from '../player/PlayerActivity.js';
 import { WeaponStation } from '../weapons/WeaponStation.js';
 import { BroomUpgrade } from '../weapons/BroomUpgrade.js';
+import { BroomStationSet } from '../weapons/BroomStations.js';
 import { PlayerWeaponController } from '../weapons/PlayerWeaponController.js';
 import { DroppedItemManager } from '../combat/DroppedItemManager.js';
 import { HitFeedback } from '../combat/HitFeedback.js';
@@ -115,6 +116,7 @@ export class Game {
     store.onSectionUnlocked = (count) => {
       this.shoppers.syncSections(count);
       this.cameras?.syncCameras();
+      this.broomStations?.syncUnlocked();
     };
     this.sceneOverrides = new SceneOverrides(this);
     await this.sceneOverrides.loadAndApply();
@@ -300,6 +302,25 @@ export class Game {
     this.weaponStation.onZoneMove = (x, z) => this.broomUpgrade.pad.setPosition(x, z);
     this.weapons.getBroom = () => this.broomUpgrade.current;
     await this.broomUpgrade.restore();
+    const stationConfig = upgradeConfig.broomStation ?? {};
+    this.broomStations = new BroomStationSet({
+      scene: this.scene,
+      loader: this.loader,
+      collision: this.collision,
+      money: this.money,
+      upgrades: this.upgrades,
+      save: this.save,
+      upgradeManager: this.upgradeManager,
+      broomUpgrade: this.broomUpgrade,
+      player: this.player,
+      toonFactory: this.config.graphics.toonShading ? this.player.toonFactory : null,
+      getUnlocked: () => this.store.maxUnlocked,
+      onSpawn: (object, id) => this.occlusion.track(object, id),
+      weapons: this.config.weapons,
+      stationConfig,
+      interval: upgradeConfig.coinInterval ?? 0.15
+    });
+    this.broomUpgrade.onChanged = () => this.broomStations.syncFromUpgrade();
     if (this.config.debug || this.config.checkout.debugCheckout || this.config.weapons.debugWeapons || this.config.weapons.debugBroomGrip) {
       window.__checkout = this.checkout;
       window.__money = this.money;
@@ -317,6 +338,7 @@ export class Game {
       window.__security = this.security;
       window.__cameras = this.cameras;
       window.__cashiers = this.cashiers;
+      window.__broomStations = this.broomStations;
     }
     this.sceneOverrides.syncGameplay();
     const editorRequested = import.meta.env.DEV || new URLSearchParams(window.location.search).has('editor');
@@ -381,6 +403,7 @@ export class Game {
     this.player.update(dt);
     this.upgradeManager?.update(dt);
     this.weaponStation.setUpgradeMode(this.upgrades.canPurchase());
+    this.broomStations?.setUpgradeMode(this.upgrades.canPurchase());
     const position = this.player.group.position;
     this.purchases?.update(dt, playing, position.x, position.z);
     this.shoppers.update(dt);
@@ -392,9 +415,10 @@ export class Game {
     if (playing) {
       this.activity.updateZones({
         checkout: this.checkout.playerInside(),
-        weapon: this.weaponStation.playerInside()
+        weapon: this.weaponStation.playerInside() || this.broomStations.playerInside()
       });
       this.weaponStation.update(dt);
+      this.broomStations.update(dt);
       this.weapons.update(dt);
       this.drops.update(this.player, this.money);
       this.checkout.update(dt);

@@ -85,6 +85,10 @@ export const GameConfig = {
       moveSpeed: 1.7,
       radius: 0.22
     },
+    broomStation: {
+      cost: 200,
+      halfSize: 0.72
+    },
     securityCamera: {
       id: 'security-camera',
       cost: 100,
