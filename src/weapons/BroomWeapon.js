@@ -1,5 +1,8 @@
 import * as THREE from 'three';
 import { createToonMaterialFromImported } from '../rendering/ToonMaterial.js';
+import { FlameParticles } from './FlameParticles.js';
+
+const FLAME_HEAD = new THREE.Vector3(0, 0.42, 0);
 
 function applyStationPose(object, offset, rotation, scale) {
   object.position.set(offset[0], offset[1], offset[2]);
@@ -30,30 +33,22 @@ export class BroomWeapon {
     this.pivot.name = 'broom-swing';
     this.holder.add(this.pivot);
     this.model = null;
+    this.modelUrl = '';
+    this.loader = null;
+    this.toonFactory = null;
+    this.scene = null;
+    this.flameAnchor = null;
+    this.flames = null;
+    this.flamesOn = false;
     this.equipped = false;
     this.swingTime = -1;
     this.hitSent = false;
   }
 
   async load(loader, toonFactory) {
-    const asset = await loader.load(this.config.model);
-    const model = asset.scene;
-    model.name = 'broom';
-    model.traverse((child) => {
-      if (!child.isMesh) {
-        return;
-      }
-      child.castShadow = false;
-      child.receiveShadow = false;
-      if (!toonFactory) {
-        return;
-      }
-      const sources = Array.isArray(child.material) ? child.material : [child.material];
-      const next = sources.map((source) => createToonMaterialFromImported(source, toonFactory.gradientMap));
-      child.material = next.length === 1 ? next[0] : next;
-    });
-    this.model = model;
-    this.pivot.add(model);
+    this.loader = loader;
+    this.toonFactory = toonFactory;
+    await this.useModel(this.config.model);
     if (this.config.debugBroomGrip) {
       const origin = new THREE.AxesHelper(1.35);
       origin.name = 'broom-origin';
@@ -67,6 +62,65 @@ export class BroomWeapon {
       exposeLines(origin);
       exposeLines(marker);
     }
+  }
+
+  async useModel(url) {
+    if (!url || (url === this.modelUrl && this.model)) {
+      return;
+    }
+    const asset = await this.loader.load(url);
+    const model = asset.scene;
+    model.name = 'broom';
+    applyBroomMaterials(model, this.toonFactory);
+    if (this.model) {
+      this.pivot.remove(this.model);
+      releaseBroomMaterials(this.model);
+    }
+    this.model = model;
+    this.modelUrl = url;
+    this.pivot.add(model);
+    this.attachFlameAnchor();
+    if (this.equipped) {
+      this.syncEquipPose();
+    } else {
+      this.model.position.set(0, 0, 0);
+    }
+  }
+
+  attachFlameAnchor() {
+    if (!this.flameAnchor) {
+      this.flameAnchor = new THREE.Object3D();
+      this.flameAnchor.name = 'broom-flame-anchor';
+    }
+    this.flameAnchor.position.copy(FLAME_HEAD);
+    this.model.add(this.flameAnchor);
+  }
+
+  setFlames(active) {
+    this.flamesOn = active === true;
+    if (!this.flamesOn || !this.scene || !this.flameAnchor) {
+      return;
+    }
+    if (!this.flames) {
+      this.flames = new FlameParticles(this.scene, this.flameAnchor, {
+        count: 14,
+        height: 1.05,
+        spread: 0.14,
+        size: 20
+      });
+    }
+  }
+
+  updateFlames(dt) {
+    if (!this.flames) {
+      return;
+    }
+    this.flames.enabled = this.flamesOn && this.holder.visible;
+    this.flames.update(dt);
+  }
+
+  burstFlames() {
+    this.flames?.burst();
   }
 
   equip(socket) {
@@ -134,4 +188,49 @@ export class BroomWeapon {
     }
     return null;
   }
+}
+
+export function applyBroomMaterials(model, toonFactory) {
+  model.traverse((child) => {
+    if (!child.isMesh) {
+      return;
+    }
+    child.castShadow = false;
+    child.receiveShadow = false;
+    const geometry = child.geometry;
+    const missingNormals = Boolean(geometry && !geometry.attributes.normal);
+    if (missingNormals) {
+      geometry.computeVertexNormals();
+    }
+    if (!toonFactory) {
+      return;
+    }
+    const painted = Boolean(geometry?.attributes?.color);
+    const sources = Array.isArray(child.material) ? child.material : [child.material];
+    const next = sources.map((source) => {
+      const material = createToonMaterialFromImported(source, toonFactory.gradientMap);
+      if (painted) {
+        material.vertexColors = true;
+        material.color.setHex(0xffffff);
+      }
+      if (missingNormals || source?.side === THREE.DoubleSide) {
+        material.side = THREE.DoubleSide;
+      }
+      return material;
+    });
+    child.material = next.length === 1 ? next[0] : next;
+    child.userData.broomMaterials = true;
+  });
+}
+
+function releaseBroomMaterials(model) {
+  model.traverse((child) => {
+    if (!child.isMesh || child.userData.broomMaterials !== true) {
+      return;
+    }
+    const materials = Array.isArray(child.material) ? child.material : [child.material];
+    for (let i = 0; i < materials.length; i += 1) {
+      materials[i]?.dispose();
+    }
+  });
 }

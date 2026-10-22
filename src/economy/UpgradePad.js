@@ -30,14 +30,15 @@ export class UpgradePad {
     this.showCostLabel = spec.showCostLabel !== false;
     this.requireFull = spec.requireFull === true;
     this.banner = spec.banner === true;
+    this.manual = spec.manual === true;
     this.investment = new UpgradeInvestment(spec.cost);
     this.signature = '';
     this.labelSignature = '';
     this.finishTimer = 0;
     this.time = 0;
     this.triggerEnabled = false;
-    this.hired = this.retainWhenOwned && this.shopUpgrades.owns(this.id);
-    this.removed = this.shopUpgrades.owns(this.id) && !this.retainWhenOwned;
+    this.hired = !this.manual && this.retainWhenOwned && this.shopUpgrades.owns(this.id);
+    this.removed = !this.manual && this.shopUpgrades.owns(this.id) && !this.retainWhenOwned;
     if (this.removed) {
       this.investment.purchased = true;
       this.investment.invested = this.investment.cost;
@@ -187,8 +188,13 @@ export class UpgradePad {
     const broke = this.requireFull && inside && this.money.getMoney() < remaining;
     const result = this.investment.tick(this.money, dt, inside, this.interval, broke);
     if (result === 'purchased') {
-      this.shopUpgrades.markPurchased(this.id);
-      this.onPurchase?.();
+      if (!this.manual) {
+        this.shopUpgrades.markPurchased(this.id);
+      }
+      const followUp = this.onPurchase?.();
+      if (followUp === 'again') {
+        return;
+      }
       this.triggerEnabled = false;
       if (this.retainWhenOwned) {
         this.hired = true;
@@ -228,6 +234,31 @@ export class UpgradePad {
       this.removed = true;
       this.root.visible = false;
     }
+  }
+
+  configure({ name, cost, hired }) {
+    if (name) {
+      this.name = name;
+    }
+    this.investment = new UpgradeInvestment(cost ?? this.investment.cost);
+    this.hired = hired === true;
+    this.removed = false;
+    this.signature = '';
+    this.labelSignature = '';
+    this.finishTimer = 0;
+    if (this.outline?.material?.color) {
+      this.outline.material.color.setHex(this.hired ? 0x7dcea0 : 0xf0b429);
+      this.outline.material.opacity = this.hired ? 0.8 : 0.42;
+    }
+    if (this.signMaterial) {
+      this.signMaterial.opacity = 1;
+    }
+    this.sign?.scale.set(1, 1, 1);
+    if (this.hired) {
+      this.paintHired();
+      return;
+    }
+    this.redraw();
   }
 
   redraw() {

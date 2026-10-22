@@ -154,6 +154,7 @@ export class ShopperManager {
         shopper.outcomeCounted = true;
         this.dayStats?.recordCaught();
       };
+      shopper.onDrops = (drops) => this.onThiefDrops?.(drops);
       shopper.onEscaped = () => {
         if (shopper.outcomeCounted || !shopper.isThief || shopper.isDefeated) {
           return;

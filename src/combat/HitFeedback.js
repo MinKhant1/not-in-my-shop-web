@@ -24,12 +24,23 @@ export class HitFeedback {
   constructor(scene, config) {
     this.scene = scene;
     this.entries = [];
-    this.texture = createNumberTexture(`-${config.broomDamage}`);
+    this.textures = new Map();
+    this.texture = this.textureFor(config.broomDamage);
   }
 
-  spawn(x, y, z) {
+  textureFor(amount) {
+    const key = Math.max(0, Math.round(amount));
+    let texture = this.textures.get(key);
+    if (!texture) {
+      texture = createNumberTexture(`-${key}`);
+      this.textures.set(key, texture);
+    }
+    return texture;
+  }
+
+  spawn(x, y, z, amount) {
     const material = new THREE.SpriteMaterial({
-      map: this.texture,
+      map: amount == null ? this.texture : this.textureFor(amount),
       transparent: true,
       depthTest: false
     });

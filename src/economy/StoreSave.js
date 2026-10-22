@@ -65,6 +65,14 @@ export class StoreSave {
     return Number.isFinite(this.data.money) ? this.data.money : null;
   }
 
+  broomLevel() {
+    const level = Math.round(Number(this.data.broomLevel));
+    if (level === 2 || level === 3) {
+      return level;
+    }
+    return 1;
+  }
+
   upgrades() {
     return Array.isArray(this.data.purchasedUpgrades)
       ? this.data.purchasedUpgrades.filter((id) => typeof id === 'string')

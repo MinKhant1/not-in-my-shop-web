@@ -27,6 +27,7 @@ import { CheckoutInteraction } from '../checkout/CheckoutInteraction.js';
 import { CashierHire } from '../checkout/CashierHire.js';
 import { PlayerActivityManager } from '../player/PlayerActivity.js';
 import { WeaponStation } from '../weapons/WeaponStation.js';
+import { BroomUpgrade } from '../weapons/BroomUpgrade.js';
 import { PlayerWeaponController } from '../weapons/PlayerWeaponController.js';
 import { DroppedItemManager } from '../combat/DroppedItemManager.js';
 import { HitFeedback } from '../combat/HitFeedback.js';
@@ -270,6 +271,22 @@ export class Game {
       this.activity,
       this.config.weapons
     );
+    this.shoppers.onThiefDrops = (drops) => this.drops.spawn(drops);
+    this.broomUpgrade = new BroomUpgrade({
+      scene: this.scene,
+      money: this.money,
+      save: this.save,
+      station: this.weaponStation,
+      upgrades: this.upgrades,
+      level: this.save.broomLevel(),
+      position: [this.weaponStation.zoneX, this.weaponStation.zoneZ],
+      halfSize: 0.72,
+      interval: upgradeConfig.coinInterval ?? 0.15
+    });
+    this.upgradeManager.pads.push(this.broomUpgrade.pad);
+    this.weaponStation.onZoneMove = (x, z) => this.broomUpgrade.pad.setPosition(x, z);
+    this.weapons.getBroom = () => this.broomUpgrade.current;
+    await this.broomUpgrade.restore();
     if (this.config.debug || this.config.checkout.debugCheckout || this.config.weapons.debugWeapons || this.config.weapons.debugBroomGrip) {
       window.__checkout = this.checkout;
       window.__money = this.money;
@@ -349,6 +366,7 @@ export class Game {
     this.player.movementLocked = !playing;
     this.player.update(dt);
     this.upgradeManager?.update(dt);
+    this.weaponStation.setUpgradeMode(this.upgrades.canPurchase());
     const position = this.player.group.position;
     this.purchases?.update(dt, playing, position.x, position.z);
     this.shoppers.update(dt);

@@ -11,6 +11,7 @@ export class PlayerWeaponController {
     this.feedback = feedback;
     this.activity = activity;
     this.config = config;
+    this.getBroom = null;
     this.target = null;
     this.cooldown = 0;
     this.rangeRing = null;
@@ -41,6 +42,7 @@ export class PlayerWeaponController {
     if (this.broom.equipped) {
       this.broom.syncEquipPose();
     }
+    this.broom.updateFlames(dt);
     this.cooldown = Math.max(0, this.cooldown - dt);
     const armed = this.player.hasBroomEquipped && this.activity.activity === PlayerActivity.WEAPON;
     if (!armed) {
@@ -123,9 +125,15 @@ export class PlayerWeaponController {
     if (!target || !this.isValidTarget(target)) {
       return;
     }
-    const defeated = target.takeDamage(this.config.broomDamage);
+    const stats = this.broomStats();
+    const defeated = target.takeDamage(stats.damage);
     const position = target.group.position;
-    this.feedback.spawn(position.x, 1.55, position.z);
+    this.feedback.spawn(position.x, 1.55, position.z, stats.damage);
+    if (!defeated && stats.burnDps > 0 && stats.burnDuration > 0) {
+      target.applyBurn?.(stats.burnDps, stats.burnDuration);
+      this.broom.burstFlames();
+      target.burnFlames?.burst();
+    }
     if (!defeated) {
       return;
     }
@@ -141,6 +149,19 @@ export class PlayerWeaponController {
     this.rangeRing.visible = this.player.hasBroomEquipped;
     this.rangeRing.position.x = this.player.position.x;
     this.rangeRing.position.z = this.player.position.z;
+  }
+
+  broomStats() {
+    const stats = this.getBroom?.();
+    if (stats) {
+      return stats;
+    }
+    return {
+      level: 1,
+      damage: this.config.broomDamage,
+      burnDps: 0,
+      burnDuration: 0
+    };
   }
 
   describe() {

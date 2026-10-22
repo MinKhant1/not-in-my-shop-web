@@ -4,6 +4,7 @@ import { ThiefHealth } from '../combat/ThiefHealth.js';
 import { ShopperInventory } from './ShopperInventory.js';
 import { ShopperRoute } from './ShopperNavigation.js';
 import { ShopperVisuals, applyToonOutfit } from './ShopperVisuals.js';
+import { FlameParticles } from '../weapons/FlameParticles.js';
 
 const ROOT_POSITION_TRACKS = new Set([
   'Bone.position',
@@ -71,6 +72,11 @@ export class ShopperAI {
     // Kept by SecurityCameraSystem while a stealing thief is spotted. Cleared when they are caught or leave.
     this.trackedByCCTV = false;
     this.isDefeated = false;
+    this.burning = false;
+    this.burnDps = 0;
+    this.burnLeft = 0;
+    this.burnFlames = null;
+    this.burnAnchor = null;
     this.shopClosed = false;
     this.health = null;
     this.destinationId = null;
@@ -141,6 +147,10 @@ export class ShopperAI {
 
   update(dt) {
     if (this.state === ShopperState.DESPAWNED) {
+      this.stopBurn(true);
+      return;
+    }
+    if (this.updateBurn(dt)) {
       return;
     }
     this.visuals.tick(dt);
@@ -373,16 +383,78 @@ export class ShopperAI {
       && this.state !== ShopperState.DEFEATED_FLEEING;
   }
 
-  takeDamage(amount) {
+  takeDamage(amount, flash = true) {
     if (!this.isAttackable()) {
       return false;
     }
     this.ensureCombatant();
     const defeated = this.health.takeDamage(amount);
-    this.visuals.flashHit();
+    if (flash) {
+      this.visuals.flashHit();
+    }
     this.visuals.showHealth(this.health.ratio);
     this.refreshDebug();
     return defeated;
+  }
+
+  // One burn at a time. Another flaming hit only restarts the 3 second timer.
+  applyBurn(dps, duration) {
+    if (!this.isAttackable() || dps <= 0 || duration <= 0) {
+      return;
+    }
+    this.burning = true;
+    this.burnDps = dps;
+    this.burnLeft = duration;
+    if (!this.burnFlames) {
+      this.burnAnchor = new THREE.Object3D();
+      this.burnAnchor.name = 'thief-flame-anchor';
+      this.burnAnchor.position.y = 1.05;
+      this.group.add(this.burnAnchor);
+      const scene = this.group.parent ?? this.burnAnchor;
+      this.burnFlames = new FlameParticles(scene, this.burnAnchor, {
+        count: 20,
+        height: 0.62,
+        spread: 0.16
+      });
+    }
+    this.burnFlames.enabled = true;
+  }
+
+  updateBurn(dt) {
+    if (!this.burning) {
+      this.burnFlames?.update(dt);
+      return false;
+    }
+    this.burnLeft -= dt;
+    const defeated = this.takeDamage(this.burnDps * dt, false);
+    this.burnFlames?.update(dt);
+    if (defeated) {
+      this.stopBurn(true);
+      const drops = this.dieOrFlee(this.weaponsConfig?.defeatedThiefRunSpeed ?? 2.4);
+      this.onDrops?.(drops);
+      return true;
+    }
+    if (this.burnLeft <= 0) {
+      this.stopBurn(false);
+    }
+    return false;
+  }
+
+  stopBurn(immediate) {
+    this.burning = false;
+    this.burnDps = 0;
+    this.burnLeft = 0;
+    if (!this.burnFlames) {
+      return;
+    }
+    if (immediate) {
+      this.burnFlames.dispose();
+      this.burnFlames = null;
+      this.burnAnchor?.removeFromParent();
+      this.burnAnchor = null;
+      return;
+    }
+    this.burnFlames.enabled = false;
   }
 
   dieOrFlee(runSpeed) {
@@ -390,6 +462,7 @@ export class ShopperAI {
       return [];
     }
     this.isDefeated = true;
+    this.stopBurn(true);
     this.onCaught?.();
     if (this.health) {
       this.health.isDefeated = true;
@@ -743,6 +816,7 @@ export class ShopperAI {
   }
 
   dispose() {
+    this.stopBurn(true);
     if (this.checkoutQueue.queue.includes(this)) {
       this.checkoutQueue.complete(this);
     }
