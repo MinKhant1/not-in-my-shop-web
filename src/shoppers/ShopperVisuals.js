@@ -1,6 +1,42 @@
 import * as THREE from 'three';
 
 let thiefIconMaterial = null;
+let knockoutTexture = null;
+
+function drawStar(context, x, y, outer, inner) {
+  context.beginPath();
+  for (let i = 0; i < 10; i += 1) {
+    const radius = i % 2 === 0 ? outer : inner;
+    const angle = -Math.PI / 2 + i * Math.PI / 5;
+    const px = x + Math.cos(angle) * radius;
+    const py = y + Math.sin(angle) * radius;
+    if (i === 0) {
+      context.moveTo(px, py);
+    } else {
+      context.lineTo(px, py);
+    }
+  }
+  context.closePath();
+  context.fill();
+}
+
+function getKnockoutTexture() {
+  if (knockoutTexture) {
+    return knockoutTexture;
+  }
+  const canvas = document.createElement('canvas');
+  canvas.width = 256;
+  canvas.height = 128;
+  const context = canvas.getContext('2d');
+  context.clearRect(0, 0, 256, 128);
+  context.fillStyle = '#ffe36a';
+  drawStar(context, 48, 72, 28, 12);
+  drawStar(context, 128, 46, 36, 15);
+  drawStar(context, 208, 74, 26, 11);
+  knockoutTexture = new THREE.CanvasTexture(canvas);
+  knockoutTexture.colorSpace = THREE.SRGBColorSpace;
+  return knockoutTexture;
+}
 
 function getThiefIconMaterial() {
   if (thiefIconMaterial) {
@@ -79,6 +115,8 @@ export class ShopperVisuals {
     this.icon = null;
     this.thiefMaterials = null;
     this.healthSprite = null;
+    this.stars = null;
+    this.starSpin = 0;
     this.flashTime = 0;
     this.debugSprite = null;
     this.debugTexture = null;
@@ -152,11 +190,40 @@ export class ShopperVisuals {
     }
   }
 
+  showKnockedOut() {
+    if (!this.stars) {
+      this.stars = new THREE.Sprite(new THREE.SpriteMaterial({
+        map: getKnockoutTexture(),
+        transparent: true,
+        depthTest: false
+      }));
+      this.stars.name = 'knockout-stars';
+      this.stars.position.y = 1.22;
+      this.stars.scale.set(0.72, 0.36, 1);
+      this.group.add(this.stars);
+    }
+    this.stars.visible = true;
+    this.starSpin = 0;
+  }
+
+  hideKnockedOut() {
+    if (this.stars) {
+      this.stars.visible = false;
+    }
+  }
+
   flashHit() {
     this.flashTime = 0.12;
   }
 
   tick(dt) {
+    if (this.stars?.visible) {
+      this.starSpin += dt * 2.6;
+      this.stars.material.rotation = this.starSpin;
+      const pulse = 1 + Math.sin(this.starSpin * 2.2) * 0.08;
+      this.stars.scale.set(0.72 * pulse, 0.36 * pulse, 1);
+      this.stars.position.y = 1.22 + Math.sin(this.starSpin * 1.5) * 0.04;
+    }
     if (this.flashTime <= 0 || !this.thiefMaterials) {
       return;
     }
@@ -304,6 +371,10 @@ export class ShopperVisuals {
       this.healthSprite.removeFromParent();
       this.healthSprite.material.dispose();
       this.healthTexture.dispose();
+    }
+    if (this.stars) {
+      this.stars.removeFromParent();
+      this.stars.material.dispose();
     }
   }
 }

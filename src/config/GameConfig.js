@@ -183,7 +183,9 @@ export const GameConfig = {
     flameQuality: 'auto',
     pickupRadius: 1,
     itemRecoveryValue: 5,
-    defeatedThiefRunSpeed: 2.4,
+    // Seconds they stay on the ground after the fall, before standing back up.
+    knockoutLieTime: 0.8,
+    defeatedThiefRunSpeed: 3.6,
     zonePosition: [1.9, 1.25],
     zoneRadius: 0.42,
     broomStationOffset: [-0.52, 0.02, 0.08],

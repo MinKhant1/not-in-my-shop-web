@@ -112,6 +112,7 @@ export class PlayerWeaponController {
       && shopper.isThief
       && !shopper.isDefeated
       && shopper.state !== ShopperState.DESPAWNED
+      && shopper.state !== ShopperState.KNOCKED_OUT
       && shopper.state !== ShopperState.DEFEATED_FLEEING;
   }
 

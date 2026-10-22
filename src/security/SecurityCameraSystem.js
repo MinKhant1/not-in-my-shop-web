@@ -179,6 +179,7 @@ export class SecurityCameraSystem {
 
   isFinished(shopper) {
     return shopper.isDefeated === true
+      || shopper.state === ShopperState.KNOCKED_OUT
       || shopper.state === ShopperState.DEFEATED_FLEEING
       || shopper.state === ShopperState.DESPAWNED;
   }

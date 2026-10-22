@@ -16,8 +16,14 @@ const CLIP_ALIASES = {
   idle: ['idle'],
   walk: ['walk', 'walking'],
   carry: ['walk_carry', 'walkcarry'],
-  pickup: ['pickup', 'pick_up', 'pick']
+  pickup: ['pickup', 'pick_up', 'pick'],
+  run: ['run'],
+  death: ['death', 'defeat']
 };
+
+const KNOCKOUT_FALL_ANGLE = 1.4;
+const KNOCKOUT_FALL_SCALE = 1.3;
+const KNOCKOUT_GET_UP_SCALE = 1.45;
 
 function findClip(clips, aliases, reject) {
   for (let i = 0; i < aliases.length; i += 1) {
@@ -72,6 +78,8 @@ export class ShopperAI {
     // Kept by SecurityCameraSystem while a stealing thief is spotted. Cleared when they are caught or leave.
     this.trackedByCCTV = false;
     this.isDefeated = false;
+    this.knockout = null;
+    this.fleeSpeed = 0;
     this.burning = false;
     this.burnDps = 0;
     this.burnLeft = 0;
@@ -128,7 +136,7 @@ export class ShopperAI {
     this.visuals = new ShopperVisuals(this.group, model, debug);
 
     this.mixer = null;
-    this.actions = { idle: null, walk: null, carry: null, pickup: null };
+    this.actions = { idle: null, walk: null, carry: null, pickup: null, run: null, death: null };
     this.currentAction = null;
     this.setupAnimations(model, asset.animations ?? []);
     this.refreshDebug();
@@ -150,7 +158,19 @@ export class ShopperAI {
       this.stopBurn(true);
       return;
     }
+    if (this.state === ShopperState.KNOCKED_OUT) {
+      this.updateKnockout(dt);
+      if (this.state === ShopperState.KNOCKED_OUT) {
+        this.visuals.tick(dt);
+        this.refreshDebug();
+        return;
+      }
+    }
     if (this.updateBurn(dt)) {
+      if (this.state === ShopperState.KNOCKED_OUT) {
+        this.visuals.tick(dt);
+        this.refreshDebug();
+      }
       return;
     }
     this.visuals.tick(dt);
@@ -380,6 +400,7 @@ export class ShopperAI {
     return this.isThief
       && !this.isDefeated
       && this.state !== ShopperState.DESPAWNED
+      && this.state !== ShopperState.KNOCKED_OUT
       && this.state !== ShopperState.DEFEATED_FLEEING;
   }
 
@@ -471,7 +492,7 @@ export class ShopperAI {
       this.health.currentHP = 0;
     }
     this.visuals.hideThiefIcon();
-    this.visuals.hideHealth();
+    this.visuals.showHealth(0);
     this.visuals.hideCountdown();
     this.impatient = false;
     this.angerTimer = 0;
@@ -496,11 +517,141 @@ export class ShopperAI {
     }
     this.queueIndex = -1;
     this.hasReachedQueueSlot = false;
-    this.state = ShopperState.DEFEATED_FLEEING;
-    this.route.config.moveSpeed = runSpeed;
-    this.goTo(this.thiefExitId(), true);
+    this.route.clear();
+    this.startKnockout(runSpeed);
     this.refreshDebug();
     return drops;
+  }
+
+  // Death plays forward into the fall, holds on the ground, then reverses so they stand back up.
+  startKnockout(runSpeed) {
+    this.fleeSpeed = runSpeed;
+    this.state = ShopperState.KNOCKED_OUT;
+    this.moving = false;
+    this.actionLock = 'knockout';
+    this.lookTarget = null;
+    const action = this.actions.death;
+    const duration = action ? action.getClip().duration : 0;
+    if (action && duration > 0.05) {
+      this.knockout = {
+        phase: 'fall',
+        time: 0,
+        phaseDuration: duration / KNOCKOUT_FALL_SCALE,
+        procedural: false
+      };
+      this.playDeath(KNOCKOUT_FALL_SCALE);
+    } else {
+      this.knockout = {
+        phase: 'fall',
+        time: 0,
+        phaseDuration: 0.42,
+        procedural: true
+      };
+    }
+    this.visuals.showKnockedOut();
+  }
+
+  playDeath(timeScale) {
+    const action = this.actions.death;
+    const fade = 0.1;
+    action.reset();
+    action.enabled = true;
+    action.setLoop(THREE.LoopOnce, 1);
+    action.clampWhenFinished = true;
+    action.timeScale = timeScale;
+    action.fadeIn(fade).play();
+    if (this.currentAction && this.currentAction !== 'death' && this.actions[this.currentAction]) {
+      this.actions[this.currentAction].fadeOut(fade);
+    }
+    this.currentAction = 'death';
+  }
+
+  updateKnockout(dt) {
+    const ko = this.knockout;
+    if (!ko) {
+      this.beginDefeatedFlee();
+      return;
+    }
+    ko.time += dt;
+    if (ko.procedural) {
+      this.applyKnockoutTilt(ko);
+    } else if (this.mixer) {
+      this.mixer.update(dt);
+    }
+    if (ko.time < ko.phaseDuration) {
+      return;
+    }
+    if (ko.phase === 'fall') {
+      this.holdKnockout();
+      return;
+    }
+    if (ko.phase === 'down') {
+      this.riseFromKnockout();
+      return;
+    }
+    this.beginDefeatedFlee();
+  }
+
+  applyKnockoutTilt(ko) {
+    const t = ko.phaseDuration <= 0 ? 1 : Math.min(1, ko.time / ko.phaseDuration);
+    let angle = KNOCKOUT_FALL_ANGLE;
+    if (ko.phase === 'fall') {
+      angle *= 1 - (1 - t) * (1 - t);
+    } else if (ko.phase === 'rise') {
+      const smooth = t * t * (3 - 2 * t);
+      angle *= 1 - smooth;
+    }
+    this.visual.rotation.x = angle;
+  }
+
+  holdKnockout() {
+    const action = this.actions.death;
+    if (action && !this.knockout.procedural) {
+      action.paused = true;
+      action.time = action.getClip().duration;
+    }
+    this.knockout.phase = 'down';
+    this.knockout.time = 0;
+    this.knockout.phaseDuration = Math.max(0.35, this.weaponsConfig?.knockoutLieTime ?? 0.8);
+  }
+
+  riseFromKnockout() {
+    const ko = this.knockout;
+    ko.phase = 'rise';
+    ko.time = 0;
+    this.visuals.hideKnockedOut();
+    if (ko.procedural || !this.actions.death) {
+      ko.procedural = true;
+      ko.phaseDuration = 0.48;
+      return;
+    }
+    const action = this.actions.death;
+    const duration = action.getClip().duration;
+    ko.phaseDuration = duration / KNOCKOUT_GET_UP_SCALE;
+    action.enabled = true;
+    action.paused = false;
+    action.timeScale = -KNOCKOUT_GET_UP_SCALE;
+    action.time = duration;
+    action.setEffectiveWeight(1);
+    action.play();
+    this.currentAction = 'death';
+  }
+
+  beginDefeatedFlee() {
+    this.visual.rotation.x = 0;
+    this.actionLock = null;
+    this.knockout = null;
+    if (this.actions.death) {
+      this.actions.death.paused = true;
+    }
+    this.visuals.hideKnockedOut();
+    this.visuals.hideHealth();
+    this.state = ShopperState.DEFEATED_FLEEING;
+    this.route.config.moveSpeed = this.fleeSpeed || this.weaponsConfig?.defeatedThiefRunSpeed || 3.6;
+    if (this.actions.run) {
+      this.actions.run.timeScale = 1.25;
+    }
+    this.goTo(this.thiefExitId(), true);
   }
 
   leaveAsThief() {
@@ -525,6 +676,7 @@ export class ShopperAI {
       || this.state === ShopperState.EXITING
       || this.state === ShopperState.DESPAWNED
       || this.state === ShopperState.THIEF
+      || this.state === ShopperState.KNOCKED_OUT
       || this.state === ShopperState.DEFEATED_FLEEING
     ) {
       return;
@@ -644,6 +796,7 @@ export class ShopperAI {
     this.hasReachedQueueSlot = false;
     if (
       this.state === ShopperState.EXITING
+      || this.state === ShopperState.KNOCKED_OUT
       || this.state === ShopperState.DEFEATED_FLEEING
       || (this.state === ShopperState.THIEF && this.isThiefExit(this.destinationId))
     ) {
@@ -716,6 +869,8 @@ export class ShopperAI {
     const walkClip = findClip(clips, CLIP_ALIASES.walk, (name) => name.includes('carry'));
     const carryClip = findClip(clips, CLIP_ALIASES.carry);
     const pickupClip = findClip(clips, CLIP_ALIASES.pickup);
+    const runClip = findClip(clips, CLIP_ALIASES.run, (name) => name.includes('carry'));
+    const deathClip = findClip(clips, CLIP_ALIASES.death);
     if (!idleClip && !walkClip) {
       return;
     }
@@ -735,6 +890,17 @@ export class ShopperAI {
       action.setLoop(THREE.LoopOnce, 1);
       action.clampWhenFinished = true;
       this.actions.pickup = action;
+    }
+    if (runClip) {
+      const action = this.mixer.clipAction(withoutRootMotion(runClip));
+      action.timeScale = 1.25;
+      this.actions.run = action;
+    }
+    if (deathClip) {
+      const action = this.mixer.clipAction(withoutRootMotion(deathClip));
+      action.setLoop(THREE.LoopOnce, 1);
+      action.clampWhenFinished = true;
+      this.actions.death = action;
     }
 
     const starting = this.actions.idle ?? this.actions.walk;
@@ -765,13 +931,21 @@ export class ShopperAI {
     if (this.actionLock !== 'pickup') {
       let next = 'idle';
       if (moving) {
-        next = this.inventory.count > 0 && this.actions.carry ? 'carry' : 'walk';
+        if (this.state === ShopperState.DEFEATED_FLEEING && this.actions.run) {
+          next = 'run';
+        } else {
+          next = this.inventory.count > 0 && this.actions.carry ? 'carry' : 'walk';
+        }
         if (!this.actions[next]) {
           next = this.actions.walk ? 'walk' : 'idle';
         }
       }
       if (this.actions[next] && next !== this.currentAction) {
-        this.actions[next].reset().fadeIn(FADE_SECONDS).play();
+        const action = this.actions[next].reset().fadeIn(FADE_SECONDS);
+        if (next === 'run') {
+          action.timeScale = 1.25;
+        }
+        action.play();
         if (this.currentAction && this.actions[this.currentAction]) {
           this.actions[this.currentAction].fadeOut(FADE_SECONDS);
         }
