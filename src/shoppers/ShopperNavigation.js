@@ -176,9 +176,10 @@ export class ShopperNavigation {
     this.addNode(node(backEast, right, backZ, 'lane'));
     this.addNode(node(frontEast, right, frontZ, 'lane'));
     this.linkBoth(backWest, frontWest);
-    this.linkBoth(backEast, frontEast);
     this.linkBoth(backWest, backEast);
     this.linkBoth(frontWest, frontEast);
+    // The broom stand sits on this lane (local x 6.05, z 2.15). Step west around it.
+    this.linkAroundBroom(index, backEast, frontEast, right, frontZ);
     if (index === 1) {
       this.addNode(node('grocery-east-back', 3.15, backZ, 'lane'));
       this.linkBoth('backRight', 'grocery-east-back');
@@ -188,6 +189,21 @@ export class ShopperNavigation {
     const previous = index - 1;
     this.linkBoth(`section${previous}-east-back`, backWest);
     this.linkBoth(`section${previous}-east-front`, frontWest);
+  }
+
+  linkAroundBroom(index, backId, frontId, eastX, frontZ) {
+    const southZ = 1.15;
+    const dodgeX = eastX - 0.72;
+    const southId = `section${index}-broom-south`;
+    const westSouthId = `section${index}-broom-west-south`;
+    const westNorthId = `section${index}-broom-west-north`;
+    this.addNode(node(southId, eastX, southZ, 'lane'));
+    this.addNode(node(westSouthId, dodgeX, southZ, 'lane'));
+    this.addNode(node(westNorthId, dodgeX, frontZ, 'lane'));
+    this.linkBoth(backId, southId);
+    this.linkBoth(southId, westSouthId);
+    this.linkBoth(westSouthId, westNorthId);
+    this.linkBoth(westNorthId, frontId);
   }
 
   addNode(entry) {
