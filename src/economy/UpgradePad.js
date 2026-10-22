@@ -28,6 +28,7 @@ export class UpgradePad {
     this.hiredText = spec.hiredText === undefined ? 'HIRED' : spec.hiredText;
     this.brokeText = spec.brokeText || '';
     this.hiredLines = Array.isArray(spec.hiredLines) ? spec.hiredLines : null;
+    this.detail = spec.detail || '';
     this.showFloorTitle = spec.showFloorTitle === true;
     this.showCostLabel = spec.showCostLabel !== false;
     this.requireFull = spec.requireFull === true;
@@ -300,6 +301,16 @@ export class UpgradePad {
       for (let i = 0; i < lines.length; i += 1) {
         ctx.fillText(lines[i], width / 2, height * (titleTop + i * step));
       }
+    }
+    if (this.detail) {
+      let size = 40;
+      ctx.font = `700 ${size}px system-ui, sans-serif`;
+      while (size > 22 && ctx.measureText(this.detail).width > width - 96) {
+        size -= 2;
+        ctx.font = `700 ${size}px system-ui, sans-serif`;
+      }
+      ctx.fillStyle = '#ffe7a3';
+      ctx.fillText(this.detail, width / 2, height * 0.5);
     }
 
     const barX = 64;

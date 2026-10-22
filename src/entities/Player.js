@@ -101,7 +101,9 @@ export class Player {
     this.toonFactory = null;
     this.materialSlots = [];
 
-    this.speed = this.config.speed;
+    this.baseSpeed = this.config.speed;
+    this.speedModifiers = new Map();
+    this.speed = this.baseSpeed;
     this.collisionRadius = this.config.collisionRadius;
 
     this.group = new THREE.Group();
@@ -130,6 +132,27 @@ export class Player {
 
   get position() {
     return this.group.position;
+  }
+
+  // Replaces the named factor and rebuilds speed from the base. Calling it again does not stack.
+  setSpeedModifier(id, multiplier) {
+    if (!id) {
+      return;
+    }
+    const next = Number(multiplier);
+    if (!Number.isFinite(next) || next === 1) {
+      this.speedModifiers.delete(id);
+    } else {
+      this.speedModifiers.set(id, next);
+    }
+    let scale = 1;
+    for (const value of this.speedModifiers.values()) {
+      scale *= value;
+    }
+    this.speed = this.baseSpeed * scale;
+    if (this.actions.walk && this.baseSpeed > 0) {
+      this.actions.walk.setEffectiveTimeScale(this.speed / this.baseSpeed);
+    }
   }
 
   async load() {

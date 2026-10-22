@@ -7,7 +7,7 @@ import { InputSystem } from '../systems/InputSystem.js';
 import { VirtualJoystick } from '../ui/VirtualJoystick.js';
 import { FollowCamera } from '../camera/FollowCamera.js';
 import { Store } from '../world/Store.js';
-import { sectionIndexAt } from '../world/StoreSections.js';
+import { reservedSpot, sectionIndexAt } from '../world/StoreSections.js';
 import { OutsideEnvironment } from '../world/OutsideEnvironment.js';
 import { STREETLIGHT_MODEL } from '../world/Diorama.js';
 import { PrefabLibrary } from '../editor/PrefabLibrary.js';
@@ -38,6 +38,8 @@ import { HitFeedback } from '../combat/HitFeedback.js';
 import { SceneOverrides } from '../editor/SceneOverrides.js';
 import { SecurityGuard } from '../security/SecurityGuard.js';
 import { SecurityCameraSystem } from '../security/SecurityCameraSystem.js';
+import { RollerSkates } from '../player/RollerSkates.js';
+import { findSceneObject } from './findSceneObject.js';
 
 export class Game {
   constructor(canvas, app) {
@@ -265,6 +267,46 @@ export class Game {
         }
       }
     });
+    const skateConfig = upgradeConfig.rollerSkate ?? {};
+    const skatesAlreadyOwned = this.upgrades.owns(skateConfig.id);
+    const skateSpot = reservedSpot('sports', 'sports_skates');
+    this.rollerSkates = new RollerSkates({
+      player: this.player,
+      loader: this.loader,
+      toonFactory: this.config.graphics.toonPlayer ? this.player.toonFactory : null,
+      config: skateConfig
+    });
+    this.upgradeManager.add({
+      id: skateConfig.id,
+      name: 'SKATES',
+      detail: 'MOVEMENT SPEED +30%',
+      cost: skateConfig.cost,
+      position: [skateSpot?.x ?? 12.65, skateSpot?.z ?? 1.85],
+      halfSize: skateConfig.halfSize ?? 0.72,
+      circular: true,
+      retainWhenOwned: true,
+      showFloorTitle: true,
+      hiredLines: ['SPEED +30%', 'OWNED'],
+      onPurchase: () => {
+        this.rollerSkates.activate();
+        this.player.setSpeedModifier(skateConfig.id, skateConfig.speedMultiplier ?? 1.3);
+        if (!skatesAlreadyOwned) {
+          this.save.write({
+            purchasedUpgrades: [...this.upgrades.purchased],
+            money: this.money.getMoney()
+          });
+        }
+      }
+    });
+    // The reserved card sits on the same spot as the purchase circle.
+    const skateMarker = findSceneObject(this.scene, 'decor-reserved-sports-skates');
+    if (skateMarker) {
+      skateMarker.traverse((child) => {
+        if (child !== skateMarker) {
+          child.visible = false;
+        }
+      });
+    }
     this.cashiers = new CashierHire({
       scene: this.scene,
       loader: this.loader,
@@ -337,6 +379,7 @@ export class Game {
       window.__save = this.save;
       window.__security = this.security;
       window.__cameras = this.cameras;
+      window.__rollerSkates = this.rollerSkates;
       window.__cashiers = this.cashiers;
       window.__broomStations = this.broomStations;
     }

@@ -154,6 +154,27 @@ export function sectionById(id) {
   return null;
 }
 
+export function reservedSpot(sectionId, spotId) {
+  const section = sectionById(sectionId);
+  if (!section) {
+    return null;
+  }
+  for (let i = 0; i < section.reserved.length; i += 1) {
+    const spot = section.reserved[i];
+    if (spot.id !== spotId) {
+      continue;
+    }
+    const west = sectionWest(section.index);
+    return {
+      id: spot.id,
+      label: spot.label,
+      x: west + spot.local[0],
+      z: spot.local[1]
+    };
+  }
+  return null;
+}
+
 export function sanitizeUnlock(ids) {
   const have = ids instanceof Set ? ids : new Set(ids);
   const unlocked = [];

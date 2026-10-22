@@ -101,6 +101,20 @@ export const GameConfig = {
       sweepRadians: 0.48,
       sweepPeriod: 7.5
     },
+    // One-time sports upgrade. The pad sits on the reserved SKATES spot.
+    // roller_skate.glb is the left skate only: +Y up, toe toward -Z, wheels on Y=0.
+    // Pose is in foot-bone local space. Rx(+90) lays skate-up on bone +Z and the toe on bone +Y.
+    rollerSkate: {
+      id: 'roller-skate',
+      cost: 100,
+      halfSize: 0.72,
+      model: '/models/objects/roller_skate.glb',
+      speedMultiplier: 1.3,
+      position: { x: 0, y: 0.03, z: -0.09 },
+      rotation: { x: Math.PI / 2, y: 0, z: 0 },
+      scale: 0.32,
+      outward: 0
+    },
     cashier: {
       cost: 60,
       halfSize: 0.72,
