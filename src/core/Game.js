@@ -8,6 +8,7 @@ import { VirtualJoystick } from '../ui/VirtualJoystick.js';
 import { FollowCamera } from '../camera/FollowCamera.js';
 import { Store } from '../world/Store.js';
 import { reservedSpot, sectionIndexAt } from '../world/StoreSections.js';
+import { cleanShopName, ShopSign } from '../world/ShopSign.js';
 import { OutsideEnvironment } from '../world/OutsideEnvironment.js';
 import { STREETLIGHT_MODEL } from '../world/Diorama.js';
 import { PrefabLibrary } from '../editor/PrefabLibrary.js';
@@ -135,6 +136,7 @@ export class Game {
     this.mainMenu = new MainMenu(this);
     this.sceneOverrides = new SceneOverrides(this);
     await this.sceneOverrides.loadAndApply();
+    this.shopSign = new ShopSign(this.scene, this.save);
     this.applyPlayLimits(store.playLimits());
     this.outside.diorama?.applySavedPrefab(this.prefabs.get(STREETLIGHT_MODEL));
     this.outside.diorama?.attachPlacedStreetlights(this.scene);
@@ -420,6 +422,7 @@ export class Game {
       window.__cashiers = this.cashiers;
       window.__broomStations = this.broomStations;
       window.__menu = this.mainMenu;
+      window.__shopSign = this.shopSign;
     }
     this.sceneOverrides.syncGameplay();
     this.registerEditorAnchors();
@@ -494,7 +497,9 @@ export class Game {
         }
       }
     }
-    this.purchases?.syncSquare(object);
+    if (object.userData.editorKind === 'purchase') {
+      this.purchases?.syncSquare(object);
+    }
   }
 
   applyPlayLimits(limits) {
@@ -522,12 +527,14 @@ export class Game {
     const dt = Math.min(this.clock.getDelta(), 0.05);
     if (this.editor?.active) {
       this.editor.update(dt);
+      this.shopSign?.update(this.lighting.night);
       this.renderer.render(this.scene, this.editor.camera);
       return;
     }
     if (this.mainMenu?.blocksGameplay()) {
       this.mainMenu.update(dt);
       this.lighting.update(dt);
+      this.shopSign?.update(this.lighting.night);
       this.outside?.diorama?.setNight(this.lighting.night);
       this.player.movementLocked = this.mainMenu.state === 'MODAL';
       this.player.update(dt);
@@ -539,6 +546,7 @@ export class Game {
     }
     this.dayNight.update(dt);
     this.lighting.update(dt);
+    this.shopSign?.update(this.lighting.night);
     this.outside?.diorama?.setNight(this.lighting.night);
     this.sceneOverrides?.applyLightLocks();
     this.phaseHud.update(dt);
@@ -588,7 +596,7 @@ export class Game {
     });
   }
 
-  async resetToNewShop() {
+  async resetToNewShop(shopName) {
     const fixtures = Array.isArray(this.save.data.purchasedFixtures)
       ? [...this.save.data.purchasedFixtures]
       : [];
@@ -638,8 +646,10 @@ export class Game {
       purchasedFixtures: [],
       pendingPurchase: null,
       played: false,
-      day: this.dayNight.snapshot()
+      day: this.dayNight.snapshot(),
+      shopName: cleanShopName(shopName) || 'MY SHOP'
     });
+    this.shopSign?.applyNewGame(this.save.shopName());
   }
 
   updateDebug(dt) {

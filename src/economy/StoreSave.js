@@ -13,6 +13,17 @@ function storage() {
   }
 }
 
+function readVec3(value) {
+  if (!Array.isArray(value) || value.length < 3) {
+    return null;
+  }
+  const vector = [Number(value[0]), Number(value[1]), Number(value[2])];
+  if (vector.some((entry) => !Number.isFinite(entry))) {
+    return null;
+  }
+  return vector;
+}
+
 function readData() {
   const store = storage();
   if (!store) {
@@ -169,6 +180,31 @@ export class StoreSave {
       money: money ? money.getMoney() : this.data.money
     });
     return amount;
+  }
+
+  shopName() {
+    const name = typeof this.data.shopName === 'string'
+      ? this.data.shopName.replace(/\s+/g, ' ').trim().slice(0, 20)
+      : '';
+    return name || 'MY SHOP';
+  }
+
+  shopSign() {
+    const sign = this.data.shopSign;
+    if (!sign || typeof sign !== 'object') {
+      return null;
+    }
+    const position = readVec3(sign.position);
+    const rotation = readVec3(sign.rotation);
+    const scale = readVec3(sign.scale);
+    if (!position || !rotation || !scale) {
+      return null;
+    }
+    return {
+      position,
+      rotation,
+      scale: scale.map((value) => (value === 0 ? 1 : value))
+    };
   }
 
   apply(money, upgrades) {

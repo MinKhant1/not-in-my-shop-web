@@ -291,6 +291,7 @@ export class EditorSession {
     this.game.input.suspended = false;
     this.game.input.keys.clear();
     this.game.presentEditor(false);
+    this.game.shopSign?.persistTransform();
     this.overrides.syncGameplay();
     this.game.mainMenu?.setEditing(false);
     this.game.occlusion.restoreAll();
@@ -1094,6 +1095,10 @@ export class EditorSession {
     if (!source) {
       return;
     }
+    if (source.userData.editorKind === 'shop-sign') {
+      this.setStatus('The shop sign stays as one object.');
+      return;
+    }
     this.busy = true;
     try {
       const created = await this.overrides.duplicate(source);
@@ -1137,6 +1142,10 @@ export class EditorSession {
     }
     if (object.userData.editorKind === 'upgrade' || object.userData.editorKind === 'purchase') {
       this.setStatus('Move this marker. It stays in the shop.');
+      return;
+    }
+    if (object.userData.editorKind === 'shop-sign') {
+      this.setStatus('Move the shop sign. It stays in the shop.');
       return;
     }
     const parent = object.parent;
@@ -1347,6 +1356,7 @@ export class EditorSession {
       document.activeElement.blur();
     }
     this.overrides.syncGameplay();
+    this.game.shopSign?.persistTransform();
     const documentState = this.overrides.serialize();
     const response = await fetch('/__editor/scene', {
       method: 'POST',

@@ -188,10 +188,10 @@ export class PurchaseManager {
     if (!root) {
       return;
     }
-    root.position.y = 0;
     const x = root.position.x;
     const z = root.position.z;
     if (this.openPad?.root === root && this.openShop) {
+      root.position.y = 0;
       this.openShop.x = x;
       this.openShop.z = z;
       return;
@@ -201,6 +201,7 @@ export class PurchaseManager {
       if (offer.view.root !== root) {
         continue;
       }
+      root.position.y = 0;
       offer.x = x;
       offer.z = z;
       return;

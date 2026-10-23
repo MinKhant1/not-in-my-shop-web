@@ -938,6 +938,44 @@ body.is-main-menu #debug-shop {
   display: none;
 }
 
+#menu-panel.is-compact {
+  width: min(300px, calc(100vw - 28px));
+  padding: 16px 14px 14px;
+}
+
+#menu-panel.is-compact h2 {
+  font-size: 18px;
+  letter-spacing: 0.08em;
+}
+
+#menu-panel form {
+  margin: 0;
+}
+
+#menu-panel input[type="text"] {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 14px;
+  padding: 12px;
+  border: 1px solid rgba(255, 246, 228, 0.35);
+  border-radius: 10px;
+  background: var(--ui-bg-2);
+  color: var(--ui-text);
+  font: 16px/1.2 system-ui, sans-serif;
+  touch-action: auto;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+#menu-panel input[type="text"]::placeholder {
+  color: rgba(255, 246, 228, 0.45);
+}
+
+body.is-naming #joystick-zone {
+  pointer-events: none;
+}
+
 #menu-panel h2,
 #menu-panel h3,
 #menu-panel p {

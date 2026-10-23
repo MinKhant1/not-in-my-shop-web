@@ -843,7 +843,7 @@ export class SceneOverrides {
     for (let i = 0; i < roots.length; i += 1) {
       const object = roots[i];
       const id = object.userData.editorId;
-      if (!id) {
+      if (!id || object.userData.editorKind === 'shop-sign') {
         continue;
       }
       seen.add(id);

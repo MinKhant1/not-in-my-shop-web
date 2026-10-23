@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { paletteHex, StorePalette } from '../theme/storePalette.js';
+import { cleanShopName, DEFAULT_SHOP_NAME, SHOP_NAME_LIMIT } from '../world/ShopSign.js';
 
 const HOLD_SECONDS = 0.8;
 const SQUARE_RADIUS = 0.72;
@@ -340,7 +341,7 @@ export class MainMenu {
 
   promptNewShop() {
     if (!this.game.save.hasProgress()) {
-      this.startNewShop();
+      this.promptShopName();
       return;
     }
     this.openModal(() => {
@@ -348,20 +349,70 @@ export class MainMenu {
       title.textContent = 'New Shop';
       const copy = document.createElement('p');
       copy.textContent = 'Start from day 1? This replaces your saved money, upgrades, and shop progress.';
-      const start = this.button('Start New Shop', () => this.startNewShop());
+      const start = this.button('Start New Shop', () => this.promptShopName());
       const cancel = this.button('Cancel', () => this.closeModal(), true);
       this.panel.append(title, copy, start, cancel);
     });
   }
 
-  async startNewShop() {
+  promptShopName() {
+    this.openModal(() => {
+      this.panel.classList.add('is-compact');
+      const form = document.createElement('form');
+      const title = document.createElement('h2');
+      title.textContent = 'NAME YOUR SHOP';
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.name = 'shop-name';
+      input.maxLength = SHOP_NAME_LIMIT;
+      input.placeholder = 'Enter shop name...';
+      input.value = DEFAULT_SHOP_NAME;
+      input.autocomplete = 'off';
+      input.autocapitalize = 'characters';
+      input.enterKeyHint = 'done';
+      input.spellcheck = false;
+      input.setAttribute('aria-label', 'Shop name');
+      input.setAttribute('data-no-joystick', '');
+      const open = this.button('OPEN SHOP', () => {});
+      open.type = 'submit';
+      form.append(title, input, open);
+      form.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const name = cleanShopName(input.value);
+        if (!name) {
+          input.focus();
+          return;
+        }
+        this.startNewShop(name);
+      });
+      this.panel.append(form);
+      window.setTimeout(() => {
+        input.focus();
+        input.select();
+      }, 30);
+    });
+    this.setNaming(true);
+  }
+
+  setNaming(active) {
+    document.body.classList.toggle('is-naming', active === true);
+    if (this.game.input && !this.game.editor?.active) {
+      this.game.input.suspended = active === true;
+      if (active) {
+        this.game.input.keys.clear();
+        this.game.input.joystick?.reset?.();
+      }
+    }
+  }
+
+  async startNewShop(shopName) {
     if (this.busy) {
       return;
     }
     this.busy = true;
     this.closeModal();
     try {
-      await this.game.resetToNewShop();
+      await this.game.resetToNewShop(shopName);
       this.game.dayNight.applySnapshot(null, true);
       this.beginPlay();
     } catch (error) {
@@ -443,8 +494,10 @@ export class MainMenu {
   }
 
   closeModal() {
+    this.panel.classList.remove('is-compact');
     this.panel.hidden = true;
     this.panel.replaceChildren();
+    this.setNaming(false);
     this.state = this.previousState === 'PLAYING' ? 'PLAYING' : 'MAIN_MENU';
     this.syncPresentation();
   }
