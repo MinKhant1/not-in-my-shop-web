@@ -132,6 +132,54 @@ export class DayNightController {
     return true;
   }
 
+  holdMenu() {
+    this.timerRunning = false;
+    this.hooks.setSpawning?.(false);
+  }
+
+  snapshot() {
+    const closed = this.phase === DayPhase.NIGHT
+      || this.phase === DayPhase.CLOSING
+      || this.phase === DayPhase.RESULTS
+      || this.closedForNight;
+    return {
+      number: this.dayNumber,
+      remaining: this.remaining,
+      phase: closed ? 'NIGHT' : 'DAY'
+    };
+  }
+
+  applySnapshot(snapshot, running) {
+    const number = Math.round(Number(snapshot?.number));
+    this.dayNumber = Number.isFinite(number) && number > 0 ? number : 1;
+    this.results = null;
+    this.closingElapsed = 0;
+    this.transitionElapsed = 0;
+    const night = snapshot?.phase === 'NIGHT';
+    if (night) {
+      this.phase = DayPhase.NIGHT;
+      this.closedForNight = true;
+      this.remaining = 0;
+      this.timerRunning = false;
+      this.upgradesOpen = true;
+      this.hooks.setSpawning?.(false);
+      this.hooks.setUpgradesOpen?.(true);
+      this.hooks.onVisual?.('night');
+      return;
+    }
+    this.phase = DayPhase.DAY;
+    this.closedForNight = false;
+    this.upgradesOpen = false;
+    const remaining = Number(snapshot?.remaining);
+    this.remaining = Number.isFinite(remaining)
+      ? Math.min(this.dayDuration, Math.max(0, remaining))
+      : this.dayDuration;
+    this.timerRunning = running === true && this.remaining > 0;
+    this.hooks.setSpawning?.(running === true);
+    this.hooks.setUpgradesOpen?.(false);
+    this.hooks.onVisual?.('day');
+  }
+
   debugToggle() {
     if (this.phase !== DayPhase.DAY && this.phase !== DayPhase.NIGHT) {
       return false;

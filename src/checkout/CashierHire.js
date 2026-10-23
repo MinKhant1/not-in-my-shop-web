@@ -123,7 +123,6 @@ export class CashierHire {
         config: this.config
       })
     };
-    const alreadyOwned = this.upgrades.owns(id);
     station.pad = this.upgradeManager.add({
       id,
       name: 'HIRE CASHIER',
@@ -140,15 +139,19 @@ export class CashierHire {
         station.cashier.hire();
         station.cashier.place(station.standX, station.standZ, station.faceX, station.faceZ);
         this.applyAutomation();
-        if (!alreadyOwned) {
-          this.save.write({
-            purchasedUpgrades: [...this.upgrades.purchased],
-            money: this.money.getMoney()
-          });
-        }
+        this.save.write({
+          purchasedUpgrades: [...this.upgrades.purchased],
+          money: this.money.getMoney()
+        });
       }
     });
     return station;
+  }
+
+  dismissAll() {
+    for (let i = 0; i < this.stations.length; i += 1) {
+      this.stations[i].cashier.dismiss();
+    }
   }
 
   layout(station) {

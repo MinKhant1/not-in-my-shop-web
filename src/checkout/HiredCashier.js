@@ -40,10 +40,16 @@ export class HiredCashier {
   }
 
   hire() {
-    if (this.hired && (this.ready || this.loading || this.group)) {
+    if (this.hired && (this.ready || this.loading)) {
       return;
     }
     this.hired = true;
+    if (this.group) {
+      this.group.visible = true;
+      this.ready = true;
+      this.snap();
+      return;
+    }
     if (!this.modelUrl || this.loading) {
       return;
     }
@@ -58,6 +64,14 @@ export class HiredCashier {
       this.loading = false;
       console.error('Failed to load cashier', error);
     });
+  }
+
+  dismiss() {
+    this.hired = false;
+    this.ready = false;
+    if (this.group) {
+      this.group.visible = false;
+    }
   }
 
   place(x, z, faceX, faceZ) {

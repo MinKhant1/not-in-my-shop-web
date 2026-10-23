@@ -64,6 +64,11 @@ export const GameConfig = {
     startingMoney: 0,
     debugMoney: true
   },
+  menu: {
+    holdSeconds: 0.8,
+    feedbackUrl: '',
+    developer: ''
+  },
   upgrades: {
     coinInterval: 0.15,
     securityGuard: {

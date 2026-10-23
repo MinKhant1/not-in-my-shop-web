@@ -3,7 +3,56 @@
   "deleted": [
     "floor-outside-north-pad"
   ],
-  "objects": {},
+  "objects": {
+    "decor-reserved-sports-skates": {
+      "nodes": {
+        "decor-reserved-sports-skates": {
+          "visible": false
+        },
+        "decor-reserved-sports-skates/object#0": {
+          "visible": false
+        },
+        "decor-reserved-sports-skates/object#1": {
+          "visible": false
+        }
+      }
+    },
+    "menu-continue": {
+      "position": [
+        -4.786,
+        0.05,
+        -0.45
+      ]
+    },
+    "menu-credits": {
+      "position": [
+        -4.786,
+        0.05,
+        1.15
+      ]
+    },
+    "menu-feedback": {
+      "position": [
+        -4.786,
+        0.05,
+        2.75
+      ]
+    },
+    "menu-new-shop": {
+      "position": [
+        -4.786,
+        0.05,
+        -2.0493
+      ]
+    },
+    "menu-player-spawn": {
+      "position": [
+        -6.6265,
+        0.06,
+        -1.1649
+      ]
+    }
+  },
   "added": [
     {
       "id": "placed-mvj327fa-c8t3i6",
@@ -252,39 +301,6 @@
       "parentId": "store",
       "collision": true,
       "model": "/models/outside/firehydrant.glb",
-      "extra": {
-        "title": null,
-        "label": null,
-        "size": null,
-        "caseSize": null,
-        "caseAccent": null,
-        "caseInterior": null
-      },
-      "castShadow": false,
-      "receiveShadow": false
-    },
-    {
-      "id": "placed-mvj958bv-smmapb",
-      "name": "bench",
-      "position": [
-        -4.776,
-        0.02,
-        -0.09
-      ],
-      "rotation": [
-        0,
-        1.5708,
-        0
-      ],
-      "scale": [
-        2,
-        2,
-        2
-      ],
-      "visible": true,
-      "parentId": "store",
-      "collision": true,
-      "model": "/models/outside/bench.glb",
       "extra": {
         "title": null,
         "label": null,

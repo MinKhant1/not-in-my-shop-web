@@ -264,6 +264,17 @@ export class UpgradePad {
     this.redraw();
   }
 
+  // Clears a finished purchase so a new shop can offer the upgrade again.
+  reopen() {
+    this.configure({
+      name: this.name,
+      cost: this.investment.cost,
+      hired: false
+    });
+    this.triggerEnabled = false;
+    this.root.visible = false;
+  }
+
   redraw() {
     const invested = this.investment.invested;
     const cost = this.investment.cost;

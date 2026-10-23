@@ -40,6 +40,7 @@ import { SecurityGuard } from '../security/SecurityGuard.js';
 import { SecurityCameraSystem } from '../security/SecurityCameraSystem.js';
 import { RollerSkates } from '../player/RollerSkates.js';
 import { findSceneObject } from './findSceneObject.js';
+import { MainMenu } from '../menu/MainMenu.js';
 
 export class Game {
   constructor(canvas, app) {
@@ -74,6 +75,7 @@ export class Game {
       prepareNextDay: () => {
         this.shoppers.prepareNextDay();
         this.dayStats.reset();
+        this.persistDay();
       },
       setUpgradesOpen: (open) => this.upgrades.setOpen(open),
       dismissShoppers: () => {
@@ -83,7 +85,10 @@ export class Game {
       },
       snapshotStats: (dayNumber) => this.dayStats.snapshot(dayNumber, this.money.getMoney()),
       onVisual: (phase) => this.lighting.setPhase(phase),
-      onClosingStart: () => this.audio.bell()
+      onClosingStart: () => {
+        this.audio.bell();
+        this.persistDay();
+      }
     });
     this.phaseHud = new DayNightHUD(app, this.dayNight, this.audio, () => this.money.getMoney());
     this.clock = new THREE.Clock();
@@ -97,7 +102,11 @@ export class Game {
   async init() {
     this.save.claimPendingRefund(this.money);
     this.money.setPersist((amount) => {
-      this.save.write({ money: amount });
+      const playing = this.mainMenu?.state === 'PLAYING';
+      this.save.write({
+        money: amount,
+        ...(playing ? { day: this.dayNight.snapshot(), played: true } : {})
+      });
     });
     const unlocked = this.save.unlockedSections();
     const ownedFixtures = this.save.purchasedFixtures(unlocked);
@@ -120,6 +129,7 @@ export class Game {
       this.cameras?.syncCameras();
       this.broomStations?.syncUnlocked();
     };
+    this.mainMenu = new MainMenu(this);
     this.sceneOverrides = new SceneOverrides(this);
     await this.sceneOverrides.loadAndApply();
     this.applyPlayLimits(store.playLimits());
@@ -136,6 +146,9 @@ export class Game {
     this.player = new Player(this.loader, this.input, this.collision, this.config);
     await this.player.load();
     this.scene.add(this.player.group);
+    this.mainMenu.placePlayer();
+    this.dayNight.holdMenu();
+    this.mainMenu.syncPresentation();
     await this.shoppers.load();
 
     const debugView = this.collision.createDebugVisuals();
@@ -206,7 +219,6 @@ export class Game {
     this.drops = new DroppedItemManager(this.scene, this.config.weapons);
     this.hitFeedback = new HitFeedback(this.scene, this.config.weapons);
     const guardConfig = upgradeConfig.securityGuard ?? {};
-    const guardAlreadyOwned = this.upgrades.owns(guardConfig.id);
     this.security = new SecurityGuard({
       scene: this.scene,
       loader: this.loader,
@@ -229,16 +241,13 @@ export class Game {
       showFloorTitle: true,
       onPurchase: () => {
         this.security.hire();
-        if (!guardAlreadyOwned) {
-          this.save.write({
-            purchasedUpgrades: [...this.upgrades.purchased],
-            money: this.money.getMoney()
-          });
-        }
+        this.save.write({
+          purchasedUpgrades: [...this.upgrades.purchased],
+          money: this.money.getMoney()
+        });
       }
     });
     const cameraConfig = upgradeConfig.securityCamera ?? {};
-    const camerasAlreadyOwned = this.upgrades.owns(cameraConfig.id);
     this.cameras = new SecurityCameraSystem({
       scene: this.scene,
       loader: this.loader,
@@ -259,16 +268,13 @@ export class Game {
       showFloorTitle: true,
       onPurchase: () => {
         this.cameras.activate();
-        if (!camerasAlreadyOwned) {
-          this.save.write({
-            purchasedUpgrades: [...this.upgrades.purchased],
-            money: this.money.getMoney()
-          });
-        }
+        this.save.write({
+          purchasedUpgrades: [...this.upgrades.purchased],
+          money: this.money.getMoney()
+        });
       }
     });
     const skateConfig = upgradeConfig.rollerSkate ?? {};
-    const skatesAlreadyOwned = this.upgrades.owns(skateConfig.id);
     const skateSpot = reservedSpot('sports', 'sports_skates');
     this.rollerSkates = new RollerSkates({
       player: this.player,
@@ -290,12 +296,10 @@ export class Game {
       onPurchase: () => {
         this.rollerSkates.activate();
         this.player.setSpeedModifier(skateConfig.id, skateConfig.speedMultiplier ?? 1.3);
-        if (!skatesAlreadyOwned) {
-          this.save.write({
-            purchasedUpgrades: [...this.upgrades.purchased],
-            money: this.money.getMoney()
-          });
-        }
+        this.save.write({
+          purchasedUpgrades: [...this.upgrades.purchased],
+          money: this.money.getMoney()
+        });
       }
     });
     // The reserved card sits on the same spot as the purchase circle.
@@ -382,6 +386,7 @@ export class Game {
       window.__rollerSkates = this.rollerSkates;
       window.__cashiers = this.cashiers;
       window.__broomStations = this.broomStations;
+      window.__menu = this.mainMenu;
     }
     this.sceneOverrides.syncGameplay();
     const editorRequested = import.meta.env.DEV || new URLSearchParams(window.location.search).has('editor');
@@ -436,6 +441,18 @@ export class Game {
       this.renderer.render(this.scene, this.editor.camera);
       return;
     }
+    if (this.mainMenu?.blocksGameplay()) {
+      this.mainMenu.update(dt);
+      this.lighting.update(dt);
+      this.outside?.diorama?.setNight(this.lighting.night);
+      this.player.movementLocked = this.mainMenu.state === 'MODAL';
+      this.player.update(dt);
+      this.followCamera.update(dt);
+      this.occlusion.update(dt);
+      this.updateDebug(dt);
+      this.renderer.render(this.scene, this.followCamera.camera);
+      return;
+    }
     this.dayNight.update(dt);
     this.lighting.update(dt);
     this.outside?.diorama?.setNight(this.lighting.night);
@@ -474,6 +491,68 @@ export class Game {
     this.occlusion.update(dt);
     this.updateDebug(dt);
     this.renderer.render(this.scene, this.followCamera.camera);
+  }
+
+  persistDay() {
+    if (this.mainMenu?.state !== 'PLAYING') {
+      return;
+    }
+    this.save.write({
+      day: this.dayNight.snapshot(),
+      played: true
+    });
+  }
+
+  async resetToNewShop() {
+    const fixtures = Array.isArray(this.save.data.purchasedFixtures)
+      ? [...this.save.data.purchasedFixtures]
+      : [];
+    this.save.clear();
+    const persist = this.money.persist;
+    this.money.persist = null;
+    this.money.setMoney(this.config.economy?.startingMoney ?? 0);
+    this.money.persist = persist;
+    this.upgrades.purchased.clear();
+    this.upgrades.setOpen(false);
+    this.dayNight.applySnapshot(null, false);
+    this.dayNight.holdMenu();
+    this.dayStats.reset();
+    this.rollerSkates?.detach();
+    const skateId = this.config.upgrades?.rollerSkate?.id;
+    if (skateId) {
+      this.player.setSpeedModifier(skateId, 1);
+    }
+    this.security?.dismiss();
+    this.cameras?.deactivate();
+    this.cashiers?.dismissAll();
+    if (this.broomUpgrade) {
+      this.broomUpgrade.level = 1;
+      await this.broomUpgrade.restore();
+    }
+    this.broomStations?.syncFromUpgrade();
+    this.store.maxUnlocked = 0;
+    this.store.syncUnlock();
+    this.shoppers.syncSections(0);
+    this.shoppers.setSpawningEnabled(false);
+    for (let i = 0; i < fixtures.length; i += 1) {
+      this.store.concealFixture(fixtures[i]);
+    }
+    this.purchases?.owned.clear();
+    this.purchases?.syncOffers();
+    const pads = this.upgradeManager?.pads ?? [];
+    for (let i = 0; i < pads.length; i += 1) {
+      pads[i].reopen();
+    }
+    this.save.write({
+      money: this.money.getMoney(),
+      broomLevel: 1,
+      purchasedUpgrades: [],
+      unlockedSections: this.save.unlockedSections(),
+      purchasedFixtures: [],
+      pendingPurchase: null,
+      played: false,
+      day: this.dayNight.snapshot()
+    });
   }
 
   updateDebug(dt) {

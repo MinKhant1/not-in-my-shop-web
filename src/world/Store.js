@@ -191,9 +191,38 @@ export class Store {
     }
   }
 
+  concealFixture(id) {
+    const record = this.records.find((entry) => entry.entry.id === id);
+    if (!record) {
+      return;
+    }
+    record.object.visible = false;
+    this.collision.setIdEnabled(id, false);
+    this.spawnedFixtures.delete(id);
+  }
+
   async spawnFixture(fixture) {
     if (!fixture || fixture.existing || this.spawnedFixtures.has(fixture.id)) {
       return false;
+    }
+    const existing = this.records.find((record) => record.entry.id === fixture.id);
+    if (existing) {
+      existing.object.visible = true;
+      const enabled = !this.heldFixtureCollision.has(fixture.id);
+      const hasBox = this.collision.boxes.some((box) => box.id === fixture.id);
+      if (hasBox) {
+        this.collision.setIdEnabled(fixture.id, enabled);
+      } else {
+        this.collision.addObject(existing.object, {
+          id: fixture.id,
+          group: existing.entry.group,
+          enabled
+        });
+      }
+      this.spawnedFixtures.add(fixture.id);
+      this.onFixtureSpawned?.(existing.object, fixture.id);
+      this.collision.rebuildDebug();
+      return true;
     }
     const entry = {
       id: fixture.id,

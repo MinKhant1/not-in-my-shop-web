@@ -48,6 +48,7 @@ export class SecurityCameraSystem {
     this.purchased = true;
     if (this.ready) {
       this.syncCameras();
+      this.showRigs();
       return;
     }
     if (this.loading || !this.baseUrl || !this.headUrl) {
@@ -65,10 +66,26 @@ export class SecurityCameraSystem {
       this.applyToon(this.headTemplate);
       this.ready = true;
       this.syncCameras();
+      this.showRigs();
     }).catch((error) => {
       this.loading = false;
       console.error('Failed to load security cameras', error);
     });
+  }
+
+  deactivate() {
+    this.purchased = false;
+    this.showRigs();
+  }
+
+  showRigs() {
+    const unlocked = this.getUnlockedIndex?.() ?? 0;
+    for (let i = 0; i < this.rigs.length; i += 1) {
+      const rig = this.rigs[i];
+      const spot = SECURITY_CAMERA_SPOTS.find((entry) => entry.id === rig.id);
+      const open = Boolean(spot) && unlocked >= spot.requiredSection - 1;
+      rig.root.visible = this.purchased === true && open;
+    }
   }
 
   // Show a camera for every spot whose section is unlocked. Locked spots stay unbuilt.

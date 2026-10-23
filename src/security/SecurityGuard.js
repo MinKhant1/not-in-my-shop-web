@@ -85,6 +85,11 @@ export class SecurityGuard {
       return;
     }
     this.hired = true;
+    if (this.group) {
+      this.group.visible = true;
+      this.ready = true;
+      return;
+    }
     if (!this.modelUrl || this.loading) {
       return;
     }
@@ -99,6 +104,15 @@ export class SecurityGuard {
       this.loading = false;
       console.error('Failed to load security guard', error);
     });
+  }
+
+  dismiss() {
+    this.hired = false;
+    this.setShift(false);
+    this.ready = false;
+    if (this.group) {
+      this.group.visible = false;
+    }
   }
 
   setShift(active) {

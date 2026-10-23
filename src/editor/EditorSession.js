@@ -262,6 +262,7 @@ export class EditorSession {
       this.view.frameHome();
       this.viewReady = true;
     }
+    this.game.mainMenu?.setEditing(true);
     this.refreshHierarchy();
     if (this.selected?.parent) {
       this.controls.attach(this.selected);
@@ -288,6 +289,7 @@ export class EditorSession {
     this.game.input.suspended = false;
     this.game.input.keys.clear();
     this.overrides.syncGameplay();
+    this.game.mainMenu?.setEditing(false);
     this.game.occlusion.restoreAll();
     this.game.followCamera.snap();
     this.exitPrefab();
@@ -736,7 +738,8 @@ export class EditorSession {
         : object.userData.editorProcedural
           ? `Procedural ${object.userData.editorProcedural}`
           : object.type;
-    meta.textContent = `${kind}${object.userData.editorId ? ` · ${object.userData.editorId}` : ''}`;
+    const menuKind = object.userData.menuAction || object.userData.menuRole;
+    meta.textContent = `${kind}${object.userData.editorId ? ` · ${object.userData.editorId}` : ''}${menuKind ? ` · ${menuKind}` : ''}`;
     this.inspector.append(meta);
     const prefabModel = modelOf(root || object);
     if (prefabModel) {

@@ -92,6 +92,49 @@ export class StoreSave {
     return sanitizeFixtures(this.data.purchasedFixtures, unlocked);
   }
 
+  day() {
+    const day = this.data.day;
+    if (!day || typeof day !== 'object') {
+      return null;
+    }
+    const number = Math.round(Number(day.number));
+    if (!Number.isFinite(number) || number < 1) {
+      return null;
+    }
+    const remaining = Number(day.remaining);
+    return {
+      number,
+      remaining: Number.isFinite(remaining) ? remaining : null,
+      phase: day.phase === 'NIGHT' ? 'NIGHT' : 'DAY'
+    };
+  }
+
+  hasProgress() {
+    if (this.data.played === true) {
+      return true;
+    }
+    if (this.money() > 0) {
+      return true;
+    }
+    if (this.upgrades().length > 0) {
+      return true;
+    }
+    if (this.broomLevel() > 1) {
+      return true;
+    }
+    if (this.unlockedSections().length > 1) {
+      return true;
+    }
+    if (Array.isArray(this.data.purchasedFixtures) && this.data.purchasedFixtures.length > 0) {
+      return true;
+    }
+    if (this.data.pendingPurchase) {
+      return true;
+    }
+    const day = this.day();
+    return Boolean(day && (day.number > 1 || day.phase === 'NIGHT'));
+  }
+
   isPurchaseComplete(id) {
     if (typeof id !== 'string' || id.length === 0) {
       return false;
