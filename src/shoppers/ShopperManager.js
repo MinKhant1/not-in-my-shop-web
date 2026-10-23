@@ -175,6 +175,17 @@ export class ShopperManager {
     return this.shoppers;
   }
 
+  // Active thieves only. Customers are left alone. Escapes are not recorded here.
+  fleeThieves() {
+    let fled = 0;
+    for (let i = 0; i < this.shoppers.length; i += 1) {
+      if (this.shoppers[i].fleeFromIntercom()) {
+        fled += 1;
+      }
+    }
+    return fled;
+  }
+
   describe() {
     let thieves = 0;
     for (let i = 0; i < this.shoppers.length; i += 1) {

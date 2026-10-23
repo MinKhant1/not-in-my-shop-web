@@ -94,6 +94,26 @@ export const GameConfig = {
       cost: 200,
       halfSize: 0.72
     },
+    intercom: {
+      id: 'intercom',
+      cost: 100,
+      position: [-2.05, 2.35],
+      halfSize: 0.72,
+      cooldown: 60,
+      icon: '/assets/ui/ability/intercom_ability_icon.png',
+      micModel: '/models/objects/intercom_mic_stand.glb',
+      speakerModel: '/models/objects/wall_pa_speaker.glb',
+      micScale: 0.58,
+      micPosition: [1.62, 0.42, 2.78],
+      micRotation: [0, Math.PI, 0],
+      speakerScale: 0.72,
+      speakerHeight: 0.78,
+      speakerRightOffset: 1.05,
+      speakerWallZ: -4.2,
+      speakerBack: 0.186,
+      pulseSeconds: 1.2,
+      noticeSeconds: 1.7
+    },
     securityCamera: {
       id: 'security-camera',
       cost: 100,

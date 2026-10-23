@@ -38,6 +38,7 @@ import { HitFeedback } from '../combat/HitFeedback.js';
 import { SceneOverrides } from '../editor/SceneOverrides.js';
 import { SecurityGuard } from '../security/SecurityGuard.js';
 import { SecurityCameraSystem } from '../security/SecurityCameraSystem.js';
+import { IntercomSystem } from '../security/IntercomSystem.js';
 import { RollerSkates } from '../player/RollerSkates.js';
 import { findSceneObject } from './findSceneObject.js';
 import { MainMenu } from '../menu/MainMenu.js';
@@ -75,6 +76,7 @@ export class Game {
       prepareNextDay: () => {
         this.shoppers.prepareNextDay();
         this.dayStats.reset();
+        this.intercom?.resetCooldown();
         this.persistDay();
       },
       setUpgradesOpen: (open) => this.upgrades.setOpen(open),
@@ -127,6 +129,7 @@ export class Game {
     store.onSectionUnlocked = (count) => {
       this.shoppers.syncSections(count);
       this.cameras?.syncCameras();
+      this.intercom?.syncSpeakers();
       this.broomStations?.syncUnlocked();
     };
     this.mainMenu = new MainMenu(this);
@@ -257,6 +260,35 @@ export class Game {
       getUnlockedIndex: () => this.store.maxUnlocked,
       config: cameraConfig
     });
+    const intercomConfig = upgradeConfig.intercom ?? {};
+    this.intercom = new IntercomSystem({
+      scene: this.scene,
+      loader: this.loader,
+      shoppers: this.shoppers,
+      audio: this.audio,
+      app: this.app,
+      toonFactory: this.config.graphics.toonShading ? this.player.toonFactory : null,
+      getUnlockedIndex: () => this.store.maxUnlocked,
+      config: intercomConfig
+    });
+    this.upgradeManager.add({
+      id: intercomConfig.id,
+      name: 'INTERCOM',
+      cost: intercomConfig.cost,
+      position: intercomConfig.position,
+      halfSize: intercomConfig.halfSize,
+      circular: true,
+      retainWhenOwned: true,
+      showFloorTitle: true,
+      hiredText: 'OWNED',
+      onPurchase: () => {
+        this.intercom.activate();
+        this.save.write({
+          purchasedUpgrades: [...this.upgrades.purchased],
+          money: this.money.getMoney()
+        });
+      }
+    });
     this.upgradeManager.add({
       id: cameraConfig.id,
       name: 'SECURITY CAMERA',
@@ -383,6 +415,7 @@ export class Game {
       window.__save = this.save;
       window.__security = this.security;
       window.__cameras = this.cameras;
+      window.__intercom = this.intercom;
       window.__rollerSkates = this.rollerSkates;
       window.__cashiers = this.cashiers;
       window.__broomStations = this.broomStations;
@@ -488,6 +521,7 @@ export class Game {
     const viewWidth = this.app.clientWidth || window.innerWidth;
     const viewHeight = this.app.clientHeight || window.innerHeight;
     this.cameras?.update(dt, this.followCamera.camera, viewWidth, viewHeight);
+    this.intercom?.update(dt, playing);
     this.occlusion.update(dt);
     this.updateDebug(dt);
     this.renderer.render(this.scene, this.followCamera.camera);
@@ -524,6 +558,7 @@ export class Game {
     }
     this.security?.dismiss();
     this.cameras?.deactivate();
+    this.intercom?.deactivate();
     this.cashiers?.dismissAll();
     if (this.broomUpgrade) {
       this.broomUpgrade.level = 1;

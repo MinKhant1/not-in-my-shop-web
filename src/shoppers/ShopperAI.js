@@ -300,6 +300,9 @@ export class ShopperAI {
       this.leaveBecauseShopClosed();
       return;
     }
+    if (this.isDefeated || this.state === ShopperState.DEFEATED_FLEEING) {
+      return;
+    }
     this.inventory.addRandom();
     this.refreshDebug();
     if (this.inventory.count < this.groceryTarget) {
@@ -313,6 +316,9 @@ export class ShopperAI {
   }
 
   decide() {
+    if (this.isDefeated || this.state === ShopperState.DEFEATED_FLEEING) {
+      return;
+    }
     if (this.shopClosed) {
       this.leaveBecauseShopClosed();
       return;
@@ -635,6 +641,56 @@ export class ShopperAI {
     action.setEffectiveWeight(1);
     action.play();
     this.currentAction = 'death';
+  }
+
+  // Intercom: health is exactly 0 and they run for the exit. Skips the knockout so they are not removed early.
+  fleeFromIntercom() {
+    if (!this.isThief || this.state === ShopperState.DESPAWNED) {
+      return false;
+    }
+    if (this.state === ShopperState.DEFEATED_FLEEING) {
+      if (this.health) {
+        this.health.currentHP = 0;
+        this.health.isDefeated = true;
+      }
+      return false;
+    }
+    this.ensureCombatant();
+    this.health.currentHP = 0;
+    this.health.isDefeated = true;
+    this.isDefeated = true;
+    this.stopBurn(true);
+    this.wait = 0;
+    this.afterWait = null;
+    this.pending = null;
+    this.impatient = false;
+    this.angerTimer = 0;
+    this.angerReact = 0;
+    this.actionLock = null;
+    this.knockout = null;
+    this.lookTarget = null;
+    this.visual.rotation.x = 0;
+    if (this.actions.death) {
+      this.actions.death.stop();
+      this.actions.death.paused = true;
+    }
+    if (this.currentAction === 'death') {
+      this.currentAction = null;
+    }
+    this.visuals.hideThiefIcon();
+    this.visuals.showHealth(0);
+    this.visuals.hideCountdown();
+    this.visuals.hideKnockedOut();
+    if (this.checkoutQueue.queue.includes(this)) {
+      this.checkoutQueue.complete(this);
+    }
+    this.queueIndex = -1;
+    this.hasReachedQueueSlot = false;
+    this.route.clear();
+    this.fleeSpeed = this.weaponsConfig?.defeatedThiefRunSpeed ?? 3.6;
+    this.beginDefeatedFlee();
+    this.refreshDebug();
+    return true;
   }
 
   beginDefeatedFlee() {

@@ -24,17 +24,20 @@ export class ShopAudio {
     if (!context) {
       return;
     }
-    const now = context.currentTime;
+    this.scheduleTone(context, context.currentTime, frequency, duration, type, gainValue);
+  }
+
+  scheduleTone(context, when, frequency, duration, type, gainValue) {
     const oscillator = context.createOscillator();
     const gain = context.createGain();
     oscillator.type = type;
-    oscillator.frequency.setValueAtTime(frequency, now);
-    gain.gain.setValueAtTime(gainValue, now);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+    oscillator.frequency.setValueAtTime(frequency, when);
+    gain.gain.setValueAtTime(gainValue, when);
+    gain.gain.exponentialRampToValueAtTime(0.0001, when + duration);
     oscillator.connect(gain);
     gain.connect(context.destination);
-    oscillator.start(now);
-    oscillator.stop(now + duration);
+    oscillator.start(when);
+    oscillator.stop(when + duration);
   }
 
   tick() {
@@ -44,5 +47,18 @@ export class ShopAudio {
   bell() {
     this.tone(880, 0.28, 'sine', 0.05);
     this.tone(1320, 0.4, 'sine', 0.03);
+  }
+
+  // Short PA chime. Scheduled on the audio clock so it stays in time with the game.
+  announce() {
+    const context = this.ensure();
+    if (!context) {
+      return;
+    }
+    const now = context.currentTime;
+    this.scheduleTone(context, now, 494, 0.16, 'square', 0.03);
+    this.scheduleTone(context, now + 0.14, 659, 0.16, 'square', 0.028);
+    this.scheduleTone(context, now + 0.3, 784, 0.34, 'triangle', 0.036);
+    this.scheduleTone(context, now + 0.46, 392, 0.42, 'sine', 0.02);
   }
 }
