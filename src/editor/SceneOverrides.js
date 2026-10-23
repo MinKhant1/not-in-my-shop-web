@@ -132,9 +132,10 @@ export class SceneOverrides {
     object.userData.editorRoot = true;
     object.userData.editorPersistent = true;
     object.userData.editorCollision = false;
-    if (!this.baseline.has(id)) {
-      this.captureOne(object);
+    if (this.baseline.has(id)) {
+      return;
     }
+    this.captureOne(object);
     const pending = this.doc?.objects?.[id];
     if (pending) {
       this.applyState(object, pending);
@@ -968,7 +969,10 @@ export class SceneOverrides {
   }
 
   markSaved(doc) {
-    this.savedText = JSON.stringify(doc || this.serialize());
+    const saved = doc || this.serialize();
+    this.doc = saved;
+    this.pendingObjects = saved.objects || {};
+    this.savedText = JSON.stringify(saved);
   }
 
   isDirty() {

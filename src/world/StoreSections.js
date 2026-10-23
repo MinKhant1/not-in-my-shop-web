@@ -106,11 +106,7 @@ const FIXTURE_SPECS = {
 
 const RESERVED = {
   sports: [
-    { id: 'sports_skates', label: 'SKATES', local: [2.15, 1.85] },
-    { id: 'sports_broom', label: 'BROOM', local: [4.85, 1.85] }
-  ],
-  clothing: [
-    { id: 'clothing_intercom', label: 'INTERCOM', local: [3.5, 1.85] }
+    { id: 'sports_skates', label: 'SKATES', local: [2.15, 1.85] }
   ]
 };
 

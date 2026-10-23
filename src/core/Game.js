@@ -625,6 +625,7 @@ export class Game {
     }
     this.purchases?.owned.clear();
     this.purchases?.syncOffers();
+    this.registerEditorAnchors();
     const pads = this.upgradeManager?.pads ?? [];
     for (let i = 0; i < pads.length; i += 1) {
       pads[i].reopen();

@@ -62,9 +62,8 @@ export class PurchaseManager {
   }
 
   syncOffers() {
-    const next = storeSections[this.store.maxUnlocked + 1] ?? null;
-    if (next) {
-      this.ensureExpansion(next);
+    for (let s = this.store.maxUnlocked + 1; s < storeSections.length; s += 1) {
+      this.ensureExpansion(storeSections[s]);
     }
 
     for (let s = 0; s < storeSections.length; s += 1) {
@@ -104,8 +103,9 @@ export class PurchaseManager {
     if (this.offers.some((offer) => offer.id === id)) {
       return;
     }
-    const west = sectionEast(this.store.maxUnlocked) - 7;
-    const east = sectionEast(this.store.maxUnlocked);
+    const doorIndex = Math.max(0, section.index - 1);
+    const west = sectionEast(doorIndex) - 7;
+    const east = sectionEast(doorIndex);
     const placed = section.id === 'electronics'
       ? { x: 2.237, z: 0 }
       : clampToInterior(east - 1.05, 2.55, EXPANSION_HALF_X, EXPANSION_HALF_Z, west, east);

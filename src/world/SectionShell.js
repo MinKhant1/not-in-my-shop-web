@@ -79,10 +79,6 @@ export function groceryDecor(section) {
 // Shared aisle spot in every expansion section. Grocery uses the built-in stand instead.
 export const WEAPON_PLACEHOLDER_LOCAL = [6.05, 2.15];
 
-const SHARED_RESERVED = [
-  { label: 'WEAPON', local: WEAPON_PLACEHOLDER_LOCAL }
-];
-
 export function buildExpansionShell(section) {
   const index = section.index;
   const west = sectionEast(index) - SECTION_WIDTH;
@@ -117,7 +113,7 @@ export function buildExpansionShell(section) {
     decor(`sign-${section.id}`, 'sign', [centerX, 1.18, -4.16], section, { title: section.name })
   );
 
-  const reserved = section.reserved.concat(SHARED_RESERVED);
+  const reserved = section.reserved;
   for (let i = 0; i < reserved.length; i += 1) {
     const spot = reserved[i];
     entries.push(decor(
