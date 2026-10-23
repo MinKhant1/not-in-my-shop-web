@@ -10,6 +10,7 @@ import { Store } from '../world/Store.js';
 import { reservedSpot, sectionIndexAt } from '../world/StoreSections.js';
 import { cleanShopName, ShopSign } from '../world/ShopSign.js';
 import { OutsideEnvironment } from '../world/OutsideEnvironment.js';
+import { HotdogStand } from '../world/HotdogStand.js';
 import { STREETLIGHT_MODEL } from '../world/Diorama.js';
 import { PrefabLibrary } from '../editor/PrefabLibrary.js';
 import { Player } from '../entities/Player.js';
@@ -134,6 +135,8 @@ export class Game {
       this.broomStations?.syncUnlocked();
     };
     this.mainMenu = new MainMenu(this);
+    this.hotdog = new HotdogStand(this.scene, this.loader, this.collision, this.outside, this.config);
+    await this.hotdog.load();
     this.sceneOverrides = new SceneOverrides(this);
     await this.sceneOverrides.loadAndApply();
     this.shopSign = new ShopSign(this.scene, this.save);
@@ -423,6 +426,7 @@ export class Game {
       window.__broomStations = this.broomStations;
       window.__menu = this.mainMenu;
       window.__shopSign = this.shopSign;
+      window.__hotdog = this.hotdog;
     }
     this.sceneOverrides.syncGameplay();
     this.registerEditorAnchors();
@@ -525,6 +529,7 @@ export class Game {
   loop() {
     requestAnimationFrame(this.loop);
     const dt = Math.min(this.clock.getDelta(), 0.05);
+    this.hotdog?.update(dt);
     if (this.editor?.active) {
       this.editor.update(dt);
       this.shopSign?.update(this.lighting.night);
