@@ -218,6 +218,7 @@ export class EditorSession {
       this.syncInspector();
     });
     this.controls.addEventListener('objectChange', () => {
+      this.game.syncEditorAnchor?.(this.selected);
       this.syncPrefabPart(this.selected);
       this.syncInspector();
       if (this.selected && !this.selected.isLight) {
@@ -263,6 +264,7 @@ export class EditorSession {
       this.viewReady = true;
     }
     this.game.mainMenu?.setEditing(true);
+    this.game.presentEditor(true);
     this.refreshHierarchy();
     if (this.selected?.parent) {
       this.controls.attach(this.selected);
@@ -288,6 +290,7 @@ export class EditorSession {
     this.box.visible = false;
     this.game.input.suspended = false;
     this.game.input.keys.clear();
+    this.game.presentEditor(false);
     this.overrides.syncGameplay();
     this.game.mainMenu?.setEditing(false);
     this.game.occlusion.restoreAll();
@@ -995,6 +998,7 @@ export class EditorSession {
     object.position.set(position[0], position[1], position[2]);
     object.rotation.set(toRadians(rotation[0]), toRadians(rotation[1]), toRadians(rotation[2]));
     object.scale.set(scale[0], scale[1], scale[2]);
+    this.game.syncEditorAnchor?.(object);
     this.syncPrefabPart(object);
   }
 
@@ -1034,6 +1038,7 @@ export class EditorSession {
     object.position.copy(state.position);
     object.quaternion.copy(state.quaternion);
     object.scale.copy(state.scale);
+    this.game.syncEditorAnchor?.(object);
     this.syncPrefabPart(object);
     this.overrides.syncGameplay();
     if (this.selected === object) {
@@ -1128,6 +1133,10 @@ export class EditorSession {
     }
     if (object.userData.editorRoot && PROTECTED_IDS.has(object.userData.editorId)) {
       this.setStatus('The store and street roots stay in the scene');
+      return;
+    }
+    if (object.userData.editorKind === 'upgrade' || object.userData.editorKind === 'purchase') {
+      this.setStatus('Move this marker. It stays in the shop.');
       return;
     }
     const parent = object.parent;

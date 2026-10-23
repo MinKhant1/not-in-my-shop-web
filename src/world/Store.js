@@ -294,7 +294,41 @@ export class Store {
     }
   }
 
+  presentForEditor(editing) {
+    this.editorReveal = editing === true;
+    if (!this.editorReveal) {
+      this.syncUnlock();
+      return;
+    }
+    this.setGroupVisible('east-wall', false);
+    this.collision.setGroupEnabled('east-wall', false);
+    const last = storeSections.length - 1;
+    for (let index = 1; index < storeSections.length; index += 1) {
+      const section = storeSections[index];
+      const edge = index === last;
+      this.setGroupVisible(`section-${section.id}`, true);
+      this.setGroupVisible(`boundary-${section.id}`, edge);
+      const shell = this.shells.get(section.id);
+      if (shell) {
+        shell.floors.visible = true;
+        shell.apron.visible = edge;
+      }
+      this.setCollisionGroup(`section-${section.id}`, true);
+      this.setCollisionGroup(`boundary-${section.id}`, edge);
+    }
+    this.onBoundsChanged?.({
+      minX: STORE_WEST - 2.5,
+      maxX: sectionEast(last) + 0.45,
+      floorWest: -3,
+      floorEast: sectionEast(last) - 0.5
+    });
+    this.onVisibilitySynced?.();
+  }
+
   syncUnlock() {
+    if (this.editorReveal) {
+      return;
+    }
     const open = this.maxUnlocked;
     this.setGroupVisible('east-wall', open === 0);
     this.collision.setGroupEnabled('east-wall', open === 0);

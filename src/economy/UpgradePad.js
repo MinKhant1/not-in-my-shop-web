@@ -157,6 +157,11 @@ export class UpgradePad {
   }
 
   update(dt, accepting, x, z) {
+    if (this.editorReveal) {
+      this.root.visible = true;
+      this.triggerEnabled = false;
+      return;
+    }
     if (this.hired) {
       this.triggerEnabled = false;
       this.root.visible = accepting === true;

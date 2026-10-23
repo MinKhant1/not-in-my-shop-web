@@ -422,6 +422,7 @@ export class Game {
       window.__menu = this.mainMenu;
     }
     this.sceneOverrides.syncGameplay();
+    this.registerEditorAnchors();
     const editorRequested = import.meta.env.DEV || new URLSearchParams(window.location.search).has('editor');
     if (editorRequested) {
       const { EditorSession } = await import('../editor/EditorSession.js');
@@ -444,6 +445,56 @@ export class Game {
 
     this.clock.start();
     this.loop();
+  }
+
+  presentEditor(editing) {
+    this.store?.presentForEditor(editing);
+    this.purchases?.presentForEditor(editing);
+    this.upgradeManager?.presentForEditor(editing);
+    this.registerEditorAnchors();
+  }
+
+  registerEditorAnchors() {
+    const overrides = this.sceneOverrides;
+    if (!overrides?.adoptAnchor) {
+      return;
+    }
+    const pads = this.upgradeManager?.pads ?? [];
+    for (let i = 0; i < pads.length; i += 1) {
+      const root = pads[i].root;
+      root.userData.editorKind = 'upgrade';
+      overrides.adoptAnchor(root);
+      pads[i].setPosition(root.position.x, root.position.z);
+    }
+    const offers = this.purchases?.offers ?? [];
+    for (let i = 0; i < offers.length; i += 1) {
+      const root = offers[i].view.root;
+      root.userData.editorKind = 'purchase';
+      overrides.adoptAnchor(root);
+      this.purchases.syncSquare(root);
+    }
+    const open = this.purchases?.openPad?.root;
+    if (open) {
+      open.userData.editorKind = 'purchase';
+      overrides.adoptAnchor(open);
+      this.purchases.syncSquare(open);
+    }
+  }
+
+  syncEditorAnchor(object) {
+    if (!object?.userData?.editorKind) {
+      return;
+    }
+    if (object.userData.editorKind === 'upgrade') {
+      const pads = this.upgradeManager?.pads ?? [];
+      for (let i = 0; i < pads.length; i += 1) {
+        if (pads[i].root === object) {
+          pads[i].setPosition(object.position.x, object.position.z);
+          return;
+        }
+      }
+    }
+    this.purchases?.syncSquare(object);
   }
 
   applyPlayLimits(limits) {

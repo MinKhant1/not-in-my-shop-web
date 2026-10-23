@@ -120,6 +120,27 @@ export class SceneOverrides {
     return found;
   }
 
+  adoptAnchor(object) {
+    if (!object) {
+      return;
+    }
+    const id = object.userData.editorId || object.name;
+    if (!id) {
+      return;
+    }
+    object.userData.editorId = id;
+    object.userData.editorRoot = true;
+    object.userData.editorPersistent = true;
+    object.userData.editorCollision = false;
+    if (!this.baseline.has(id)) {
+      this.captureOne(object);
+    }
+    const pending = this.doc?.objects?.[id];
+    if (pending) {
+      this.applyState(object, pending);
+    }
+  }
+
   persistentRoots() {
     const roots = [];
     this.game.scene.traverse((object) => {

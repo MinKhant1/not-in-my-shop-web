@@ -20,6 +20,15 @@ export class UpgradeManager {
     return pad;
   }
 
+  presentForEditor(editing) {
+    const show = editing === true;
+    for (let i = 0; i < this.pads.length; i += 1) {
+      const pad = this.pads[i];
+      pad.editorReveal = show;
+      pad.root.visible = show;
+    }
+  }
+
   update(dt) {
     const accepting = this.shopUpgrades.canPurchase();
     const position = this.getPosition();

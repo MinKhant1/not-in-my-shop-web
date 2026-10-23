@@ -63,12 +63,11 @@ export class PurchaseManager {
 
   syncOffers() {
     const next = storeSections[this.store.maxUnlocked + 1] ?? null;
-    const nextId = next ? expansionId(next.id) : null;
     if (next) {
       this.ensureExpansion(next);
     }
 
-    for (let s = 0; s <= this.store.maxUnlocked; s += 1) {
+    for (let s = 0; s < storeSections.length; s += 1) {
       const section = storeSections[s];
       const fixtures = section.fixtures;
       for (let i = 0; i < fixtures.length; i += 1) {
@@ -85,9 +84,8 @@ export class PurchaseManager {
 
     for (let i = this.offers.length - 1; i >= 0; i -= 1) {
       const offer = this.offers[i];
-      const staleExpansion = offer.type === 'store_expansion' && offer.id !== nextId;
-      const staleFurniture = offer.type === 'furniture' && (this.owned.has(offer.fixtureId) || !this.store.isUnlocked(offer.sectionId));
-      if (!staleExpansion && !staleFurniture) {
+      const staleFurniture = offer.type === 'furniture' && (this.owned.has(offer.fixtureId) || this.store.spawnedFixtures.has(offer.fixtureId));
+      if (!staleFurniture) {
         continue;
       }
       if (this.active === offer && !offer.investment.purchased) {
@@ -176,6 +174,38 @@ export class PurchaseManager {
     return this.upgrades?.canPurchase() === true;
   }
 
+  presentForEditor(editing) {
+    this.editorReveal = editing === true;
+    this.syncOffers();
+    this.setNightVisible(this.upgradesOpen());
+    if (this.openPad) {
+      this.openPad.root.visible = this.editorReveal === true;
+    }
+  }
+
+  syncSquare(root) {
+    if (!root) {
+      return;
+    }
+    root.position.y = 0;
+    const x = root.position.x;
+    const z = root.position.z;
+    if (this.openPad?.root === root && this.openShop) {
+      this.openShop.x = x;
+      this.openShop.z = z;
+      return;
+    }
+    for (let i = 0; i < this.offers.length; i += 1) {
+      const offer = this.offers[i];
+      if (offer.view.root !== root) {
+        continue;
+      }
+      offer.x = x;
+      offer.z = z;
+      return;
+    }
+  }
+
   createOpenPad() {
     const spot = this.openShop;
     if (!spot) {
@@ -228,8 +258,14 @@ export class PurchaseManager {
   }
 
   setNightVisible(open) {
+    const reveal = this.editorReveal === true;
+    const nextIndex = this.store.maxUnlocked + 1;
     for (let i = 0; i < this.offers.length; i += 1) {
-      this.offers[i].view.root.visible = open;
+      const offer = this.offers[i];
+      const sectionIndex = storeSections.findIndex((section) => section.id === offer.sectionId);
+      const nextUnlock = offer.type === 'store_expansion' && sectionIndex === nextIndex;
+      const inOpenShop = offer.type !== 'store_expansion' && (sectionIndex < 0 || sectionIndex <= this.store.maxUnlocked);
+      offer.view.root.visible = reveal || (open && (nextUnlock || inOpenShop));
     }
     for (let i = 0; i < this.fading.length; i += 1) {
       this.fading[i].view.root.visible = open;
@@ -248,7 +284,7 @@ export class PurchaseManager {
     let bestDistance = Infinity;
     for (let i = 0; i < this.offers.length; i += 1) {
       const offer = this.offers[i];
-      if (offer.investment.purchased || !this.contains(offer, x, z, false)) {
+      if (offer.investment.purchased || !offer.view.root.visible || !this.contains(offer, x, z, false)) {
         continue;
       }
       const dx = x - offer.x;
