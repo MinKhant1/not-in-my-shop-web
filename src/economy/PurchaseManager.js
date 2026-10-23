@@ -124,7 +124,7 @@ export class PurchaseManager {
       halfX: EXPANSION_HALF_X,
       halfZ: EXPANSION_HALF_Z,
       half: Math.max(EXPANSION_HALF_X, EXPANSION_HALF_Z),
-      accent: 0xf0b429
+      accent: 0xffca45
     });
   }
 
@@ -191,7 +191,7 @@ export class PurchaseManager {
       halfX: this.openHalf,
       halfZ: this.openHalf,
       half: this.openHalf,
-      accent: 0xf0b429,
+      accent: 0xffca45,
       meter: 'hold'
     });
     this.openPad.root.visible = false;
@@ -475,7 +475,7 @@ export class PurchaseManager {
     const geometry = new THREE.CircleGeometry(0.07, 10);
     for (let i = 0; i < COIN_POOL; i += 1) {
       const material = new THREE.MeshBasicMaterial({
-        color: 0xf0b429,
+        color: 0xffca45,
         transparent: true,
         opacity: 1,
         depthWrite: false,

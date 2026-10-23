@@ -254,7 +254,7 @@ class BroomStation {
     const disc = new THREE.Mesh(
       new THREE.CircleGeometry(radius * 0.78, 32),
       new THREE.MeshBasicMaterial({
-        color: 0xffc56b,
+        color: 0xffca45,
         transparent: true,
         opacity: 0.16,
         depthWrite: false,
@@ -266,7 +266,7 @@ class BroomStation {
     const ring = new THREE.Mesh(
       new THREE.RingGeometry(radius * 0.78, radius, 40),
       new THREE.MeshBasicMaterial({
-        color: 0xe08a2c,
+        color: 0xffca45,
         transparent: true,
         opacity: 0.9,
         depthWrite: false,
@@ -473,7 +473,7 @@ class BroomStation {
       const pulse = 1 + Math.sin(this.time * 3) * 0.035;
       this.ring.scale.set(pulse, pulse, 1);
       const inside = this.playerInside();
-      this.ring.material.color.setHex(inside ? 0xffd15c : 0xe08a2c);
+      this.ring.material.color.setHex(inside ? 0xffe29a : 0xffca45);
     }
     if (this.standFlames) {
       const show = this.level >= 3 && this.standUpgrade?.visible === true;

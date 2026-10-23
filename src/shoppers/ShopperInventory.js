@@ -1,11 +1,12 @@
 import * as THREE from 'three';
+import { StorePalette } from '../theme/storePalette.js';
 
 // Add `{ id, model: '/models/...' }` later to swap a box for a grocery model.
 export const groceryCatalog = [
-  { id: 'carton', color: 0xd9893b, size: [0.16, 0.1, 0.12] },
-  { id: 'bottle', color: 0x2f8f78, size: [0.08, 0.2, 0.08] },
-  { id: 'can', color: 0xc4473a, size: [0.09, 0.12, 0.09] },
-  { id: 'bread', color: 0xe2c078, size: [0.18, 0.08, 0.1] }
+  { id: 'carton', color: StorePalette.orange, size: [0.16, 0.1, 0.12] },
+  { id: 'bottle', color: StorePalette.sky, size: [0.08, 0.2, 0.08] },
+  { id: 'can', color: StorePalette.coral, size: [0.09, 0.12, 0.09] },
+  { id: 'bread', color: StorePalette.yellow, size: [0.18, 0.08, 0.1] }
 ];
 
 const geometries = new Map();

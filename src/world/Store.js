@@ -12,9 +12,19 @@ import {
   sectionEast,
   storeSections
 } from './StoreSections.js';
+import { brightShelfColor, floorColorAt, StorePalette } from '../theme/storePalette.js';
+import { createArchitectureTexture } from '../theme/architectureTexture.js';
 
 function isMiniMarketModel(url) {
   return url.startsWith('/models/environment/') || url.startsWith('/models/store/');
+}
+
+function isFloorModel(url) {
+  return typeof url === 'string' && url.endsWith('/floor.glb');
+}
+
+function isArchitectureModel(url) {
+  return typeof url === 'string' && url.startsWith('/models/environment/') && !isFloorModel(url);
 }
 
 function hasUsableMap(material) {
@@ -94,6 +104,9 @@ export class Store {
     this.floorDummy = new THREE.Object3D();
     this.reportedModels = new Set();
     this.miniMarketTexture = null;
+    this.architectureTexture = null;
+    this.floorMaterials = new Map();
+    this.brightShelfMaterials = new Map();
     this._box = new THREE.Box3();
     this.onBoundsChanged = null;
     this.onFixtureSpawned = null;
@@ -104,6 +117,7 @@ export class Store {
 
   async load(unlockedIds, ownedFixtureIds) {
     this.miniMarketTexture = await this.loader.getMiniMarketTexture();
+    this.architectureTexture = createArchitectureTexture(this.miniMarketTexture);
     this.scene.add(this.group);
     this.maxUnlocked = Math.max(0, sanitizeUnlock(unlockedIds).length - 1);
 
@@ -390,9 +404,39 @@ export class Store {
     await Promise.all([...urls].map((url) => this.loader.preload(url)));
   }
 
+  floorMaterial(color) {
+    let material = this.floorMaterials.get(color);
+    if (material) {
+      return material;
+    }
+    const source = new THREE.MeshStandardMaterial({
+      color,
+      roughness: 0.92,
+      metalness: 0
+    });
+    material = this.toonMaterials ? this.toonMaterials.fromImported(source) : source;
+    this.floorMaterials.set(color, material);
+    return material;
+  }
+
+  applyFloorColor(model, position) {
+    const color = floorColorAt(position?.[0] ?? 0, position?.[2] ?? 0);
+    const material = this.floorMaterial(color);
+    model.traverse((child) => {
+      if (child.isMesh) {
+        child.material = material;
+      }
+    });
+  }
+
   async prepareFloorTemplate() {
     const asset = await this.loader.load(shellFloorModel);
-    this.applyMiniMarketTexture(asset.scene, shellFloorModel);
+    const material = this.floorMaterial(0xffffff);
+    asset.scene.traverse((child) => {
+      if (child.isMesh) {
+        child.material = material;
+      }
+    });
     const meshes = [];
     asset.scene.updateWorldMatrix(true, true);
     asset.scene.traverse((child) => {
@@ -428,6 +472,16 @@ export class Store {
         this.floorDummy.updateMatrix();
         instanced.setMatrixAt(i, this.floorDummy.matrix);
       }
+      const primary = new THREE.Color(StorePalette.floorPrimary);
+      const secondary = new THREE.Color(StorePalette.floorSecondary);
+      for (let i = 0; i < tiles.length; i += 1) {
+        const checker = (Math.round(tiles[i][0]) + Math.round(tiles[i][1])) & 1;
+        instanced.setColorAt(i, checker ? secondary : primary);
+      }
+      if (instanced.instanceColor) {
+        instanced.instanceColor.setUsage(THREE.StaticDrawUsage);
+        instanced.instanceColor.needsUpdate = true;
+      }
       instanced.instanceMatrix.needsUpdate = true;
       group.add(instanced);
     }
@@ -450,9 +504,12 @@ export class Store {
       object.add(this.createMapPlaceholder(entry));
     } else {
       const asset = await this.loader.load(entry.model);
-      if (entry.keepColor === true) {
+      if (isFloorModel(entry.model)) {
+        this.applyFloorColor(asset.scene, entry.position);
+      } else if (entry.keepColor === true) {
         if (this.toonMaterials) {
-          this.applyOwnedToon(asset.scene);
+          const brighten = typeof entry.model === 'string' && entry.model.startsWith('/models/store/');
+          this.applyOwnedToon(asset.scene, brighten);
         }
       } else if (isMiniMarketModel(entry.model)) {
         this.applyMiniMarketTexture(asset.scene, entry.model);
@@ -479,7 +536,24 @@ export class Store {
     }
   }
 
-  applyOwnedToon(model) {
+  brightShelfMaterial(source) {
+    const color = source?.color;
+    const hex = color ? brightShelfColor(color.r, color.g, color.b) : StorePalette.shelfFrame;
+    const key = `${hex}|${source?.transparent === true}|${source?.opacity ?? 1}|${source?.side ?? 0}`;
+    let material = this.brightShelfMaterials.get(key);
+    if (material) {
+      return material;
+    }
+    const painted = source ? source.clone() : new THREE.MeshStandardMaterial();
+    painted.color.setHex(hex);
+    painted.roughness = StorePalette.roughness;
+    painted.metalness = StorePalette.metalness;
+    material = this.toonMaterials.fromImported(painted);
+    this.brightShelfMaterials.set(key, material);
+    return material;
+  }
+
+  applyOwnedToon(model, brighten = false) {
     model.traverse((child) => {
       if (!child.isMesh || !child.material) {
         return;
@@ -489,7 +563,12 @@ export class Store {
         geometry.computeVertexNormals();
       }
       const sources = Array.isArray(child.material) ? child.material : [child.material];
-      const next = sources.map((source) => this.toonMaterials.fromImported(source));
+      const next = sources.map((source) => {
+        if (brighten && source && !source.map) {
+          return this.brightShelfMaterial(source);
+        }
+        return this.toonMaterials.fromImported(source);
+      });
       child.material = Array.isArray(child.material) ? next : next[0];
     });
   }
@@ -515,7 +594,9 @@ export class Store {
   }
 
   applyMiniMarketTexture(model, modelUrl) {
-    const texture = this.miniMarketTexture;
+    const texture = isArchitectureModel(modelUrl)
+      ? (this.architectureTexture || this.miniMarketTexture)
+      : this.miniMarketTexture;
     const modelName = modelUrl.split('/').pop();
     const report = this.debug && !this.reportedModels.has(modelUrl);
     if (report) {

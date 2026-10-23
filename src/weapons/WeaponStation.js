@@ -44,7 +44,7 @@ export class WeaponStation {
     const disc = new THREE.Mesh(
       new THREE.CircleGeometry(this.zoneRadius * 0.78, 32),
       new THREE.MeshBasicMaterial({
-        color: 0xffc56b,
+        color: 0xffca45,
         transparent: true,
         opacity: 0.16,
         depthWrite: false,
@@ -57,7 +57,7 @@ export class WeaponStation {
     const ring = new THREE.Mesh(
       new THREE.RingGeometry(this.zoneRadius * 0.78, this.zoneRadius, 40),
       new THREE.MeshBasicMaterial({
-        color: 0xe08a2c,
+        color: 0xffca45,
         transparent: true,
         opacity: 0.9,
         depthWrite: false,

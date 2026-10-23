@@ -1,3 +1,5 @@
+import { sectionAccent, StorePalette } from '../theme/storePalette.js';
+
 export const SECTION_WIDTH = 7;
 export const STORE_WEST = -3.5;
 export const STORE_NORTH = -4.5;
@@ -13,11 +15,11 @@ export const CORNER_FLUSH = 0.2;
 export const SECTION_ORDER = ['grocery', 'electronics', 'sports', 'clothing', 'jewellery'];
 
 const ACCENT = {
-  grocery: 0x3f8f5a,
-  electronics: 0x3a78d0,
-  sports: 0xe07a2f,
-  clothing: 0xd7c4a3,
-  jewellery: 0xe0b84a
+  grocery: sectionAccent('grocery'),
+  electronics: sectionAccent('electronics'),
+  sports: sectionAccent('sports'),
+  clothing: sectionAccent('clothing'),
+  jewellery: sectionAccent('jewellery')
 };
 
 function sectionWest(index) {
@@ -93,11 +95,11 @@ const FIXTURE_SPECS = {
     { id: 'clothing_cash_register', name: 'Cash Register', asset: '/models/store/cash-register.glb', price: 40, local: [3.5, 0, 3.45], rotation: [0, Math.PI, 0], footprint: [0.8, 0.55], keepColor: false }
   ],
   jewellery: [
-    { id: 'jewellery_luxury_case', name: 'Luxury Glass Case', procedural: 'glass-case', price: 60, local: [3.5, 0, -3.82], footprint: [2.3, 0.5], caseSize: [2.25, 0.86, 0.46], caseAccent: ACCENT.jewellery, caseInterior: 0x6b1d32 },
+    { id: 'jewellery_luxury_case', name: 'Luxury Glass Case', procedural: 'glass-case', price: 60, local: [3.5, 0, -3.82], footprint: [2.3, 0.5], caseSize: [2.25, 0.86, 0.46], caseAccent: ACCENT.jewellery, caseInterior: StorePalette.lavender },
     { id: 'jewellery_ring_display', name: 'Ring Display', asset: '/models/store/ring_display.glb', price: 45, local: [2.15, 0, -1.45], scale: [1.5, 1.5, 1.5], footprint: [0.95, 0.58] },
     { id: 'jewellery_watch_display', name: 'Watch Display', asset: '/models/store/watch_display.glb', price: 45, local: [4.85, 0, -1.45], scale: [1.5, 1.5, 1.5], footprint: [1.05, 0.58] },
     { id: 'jewellery_necklace_display', name: 'Necklace Display', asset: '/models/store/necklace_display.glb', price: 45, local: [3.5, 0, 0.2], scale: [1.5, 1.5, 1.5], footprint: [1.2, 0.62] },
-    { id: 'jewellery_glass_showcase', name: 'Glass Showcase', procedural: 'glass-case', price: 50, local: [3.5, 0, 1.75], footprint: [1.2, 0.62], caseSize: [1.15, 0.66, 0.58], caseAccent: ACCENT.jewellery, caseInterior: 0x1d3a4a },
+    { id: 'jewellery_glass_showcase', name: 'Glass Showcase', procedural: 'glass-case', price: 50, local: [3.5, 0, 1.75], footprint: [1.2, 0.62], caseSize: [1.15, 0.66, 0.58], caseAccent: ACCENT.jewellery, caseInterior: StorePalette.sky },
     { id: 'jewellery_cash_register', name: 'Cash Register', asset: '/models/store/cash-register.glb', price: 40, local: [3.5, 0, 3.45], rotation: [0, Math.PI, 0], footprint: [0.8, 0.55], keepColor: false }
   ]
 };

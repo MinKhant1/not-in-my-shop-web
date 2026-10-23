@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { paletteHex, StorePalette } from '../theme/storePalette.js';
 
 function basic(color, opacity = 1) {
   return new THREE.MeshBasicMaterial({
@@ -27,12 +28,12 @@ function canvasTexture(width, height, draw) {
 
 function signTexture(title, accent) {
   return canvasTexture(512, 160, (ctx, width, height) => {
-    ctx.fillStyle = '#17202b';
+    ctx.fillStyle = paletteHex(StorePalette.uiBackground);
     ctx.fillRect(0, 0, width, height);
-    ctx.fillStyle = `#${accent.toString(16).padStart(6, '0')}`;
+    ctx.fillStyle = paletteHex(accent);
     ctx.fillRect(0, 0, 18, height);
     ctx.fillRect(width - 18, 0, 18, height);
-    ctx.fillStyle = '#fff6e4';
+    ctx.fillStyle = paletteHex(StorePalette.uiText);
     ctx.font = '800 72px system-ui, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -42,12 +43,12 @@ function signTexture(title, accent) {
 
 function plaqueTexture(label) {
   return canvasTexture(256, 96, (ctx, width, height) => {
-    ctx.fillStyle = 'rgba(28, 34, 42, 0.82)';
+    ctx.fillStyle = 'rgba(32, 40, 62, 0.9)';
     ctx.fillRect(0, 0, width, height);
-    ctx.strokeStyle = 'rgba(176, 186, 196, 0.7)';
+    ctx.strokeStyle = paletteHex(StorePalette.uiGold);
     ctx.lineWidth = 6;
     ctx.strokeRect(6, 6, width - 12, height - 12);
-    ctx.fillStyle = '#d5dde6';
+    ctx.fillStyle = paletteHex(StorePalette.uiText);
     ctx.font = '700 36px system-ui, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -67,7 +68,7 @@ export function createDecor(entry) {
 
   if (entry.decor === 'seam') {
     const [width, depth] = entry.size;
-    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(width, depth), basic(0x1c2430, 0.45));
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(width, depth), basic(StorePalette.wallTrim, 0.45));
     mesh.rotation.x = -Math.PI / 2;
     mesh.name = entry.id;
     mesh.renderOrder = 2;
@@ -106,7 +107,7 @@ export function createDecor(entry) {
   plaque.position.y = 0.22;
   const shadow = new THREE.Mesh(
     new THREE.CircleGeometry(0.28, 20),
-    basic(0x1c2430, 0.28)
+    basic(StorePalette.inactive, 0.28)
   );
   shadow.rotation.x = -Math.PI / 2;
   shadow.position.y = 0.01;

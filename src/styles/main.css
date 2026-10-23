@@ -1,3 +1,15 @@
+:root {
+  --ui-bg: #20283e;
+  --ui-bg-2: #34405c;
+  --ui-text: #ffffff;
+  --ui-gold: #ffca45;
+  --ui-mint: #65e9c3;
+  --ui-disabled: #80889c;
+  --ui-danger: #f47e79;
+  --ui-success: #75d9ad;
+  --sky: #c7e3f6;
+}
+
 html,
 body {
   width: 100%;
@@ -7,7 +19,7 @@ body {
   overflow: hidden;
   position: fixed;
   inset: 0;
-  background: #b4c0ca;
+  background: var(--sky);
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
@@ -562,8 +574,8 @@ body {
   min-height: 40px;
   padding: 6px 12px 6px 8px;
   border-radius: 999px;
-  background: rgba(20, 24, 28, 0.72);
-  color: #fff8e8;
+  background: rgba(32, 40, 62, 0.88);
+  color: var(--ui-text);
   font: 700 22px/1 system-ui, sans-serif;
   pointer-events: none;
 }
@@ -572,7 +584,7 @@ body {
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  background: radial-gradient(circle at 35% 35%, #fff1b8, #f0b429 58%, #a86b12);
+  background: radial-gradient(circle at 35% 35%, #fff4c4, var(--ui-gold) 58%, #d9a227);
   box-shadow: inset 0 0 0 2px #fff6d4;
 }
 
@@ -581,7 +593,7 @@ body {
   right: 8px;
   top: 100%;
   margin-top: 4px;
-  color: #ffe08a;
+  color: var(--ui-gold);
   font: 700 18px/1 system-ui, sans-serif;
   opacity: 0;
 }
@@ -612,8 +624,8 @@ body {
   width: 148px;
   padding: 6px;
   border-radius: 12px;
-  background: rgba(20, 24, 28, 0.82);
-  color: #fff8e8;
+  background: rgba(32, 40, 62, 0.9);
+  color: var(--ui-text);
   pointer-events: auto;
 }
 
@@ -628,8 +640,8 @@ body {
   min-height: 28px;
   border: 0;
   border-radius: 8px;
-  background: #3a4654;
-  color: #fff8e8;
+  background: var(--ui-bg-2);
+  color: var(--ui-text);
   font: 700 11px/1 system-ui, sans-serif;
   cursor: pointer;
 }
@@ -691,7 +703,7 @@ body {
 .shop-card-kicker {
   font: 800 10px/1.2 system-ui, sans-serif;
   letter-spacing: 0.08em;
-  color: #f0b429;
+  color: var(--ui-gold);
 }
 
 .shop-card-title {
@@ -746,8 +758,8 @@ body {
   height: 34px;
   border-radius: 50%;
   transform: translate(-50%, -50%);
-  background: #c0392b;
-  color: #fff6f4;
+  background: var(--ui-danger);
+  color: var(--ui-text);
   font: 800 22px/34px system-ui, sans-serif;
   text-align: center;
   box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.4);
@@ -784,10 +796,10 @@ body.is-main-menu #debug-shop {
   margin: 0;
   transform: translateX(-50%);
   padding: 8px 14px;
-  border: 1px solid #f0b429;
+  border: 1px solid var(--ui-gold);
   border-radius: 999px;
-  color: #fff6e4;
-  background: rgba(23, 32, 43, 0.82);
+  color: var(--ui-text);
+  background: rgba(32, 40, 62, 0.88);
   font: 700 13px/1 system-ui, sans-serif;
   letter-spacing: 0.04em;
   white-space: nowrap;
@@ -802,7 +814,7 @@ body.is-main-menu #debug-shop {
   position: absolute;
   inset: 0;
   z-index: 8;
-  background: #0e141c;
+  background: var(--ui-bg);
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.35s ease;
@@ -824,10 +836,10 @@ body.is-main-menu #debug-shop {
   padding: 22px 18px 16px;
   overflow: auto;
   transform: translate(-50%, -50%);
-  border: 2px solid #f0b429;
+  border: 2px solid var(--ui-gold);
   border-radius: 16px;
-  color: #fff6e4;
-  background: #17202b;
+  color: var(--ui-text);
+  background: var(--ui-bg);
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
   font-family: "Segoe UI", system-ui, sans-serif;
 }
@@ -843,7 +855,7 @@ body.is-main-menu #debug-shop {
 }
 
 #menu-panel h2 {
-  color: #f0b429;
+  color: var(--ui-gold);
   font: 800 28px/1.1 system-ui, sans-serif;
   letter-spacing: 0.04em;
   text-align: center;
@@ -851,7 +863,7 @@ body.is-main-menu #debug-shop {
 
 #menu-panel h3 {
   margin-top: 16px;
-  color: #f0b429;
+  color: var(--ui-gold);
   font: 800 14px/1.2 system-ui, sans-serif;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -859,7 +871,7 @@ body.is-main-menu #debug-shop {
 
 #menu-panel p {
   margin-top: 6px;
-  color: #fff6e4;
+  color: var(--ui-text);
   font: 16px/1.4 system-ui, sans-serif;
 }
 
@@ -875,18 +887,20 @@ body.is-main-menu #debug-shop {
   padding: 12px 14px;
   border: 0;
   border-radius: 10px;
-  color: #1b2430;
-  background: #f0b429;
+  color: var(--ui-bg);
+  background: var(--ui-gold);
   font: 800 15px/1 system-ui, sans-serif;
   letter-spacing: 0.04em;
 }
 
 #menu-panel button.is-quiet {
-  color: #fff6e4;
+  color: var(--ui-text);
   background: transparent;
   border: 1px solid rgba(255, 246, 228, 0.35);
 }
 
 #menu-panel button:disabled {
-  opacity: 0.45;
+  color: var(--ui-text);
+  background: var(--ui-disabled);
+  opacity: 1;
 }

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { createToonMaterial, createToonMaterialFromImported, getSharedToonGradientMap } from '../rendering/ToonMaterial.js';
+import { StorePalette } from '../theme/storePalette.js';
 
 export const STREETLIGHT_MODEL = '/models/outside/streetlight.glb';
 const STREETLIGHT = STREETLIGHT_MODEL;
@@ -202,19 +203,19 @@ export class Diorama {
       return;
     }
     this.materials = {
-      grass: this.colorMaterial(0x63a45a),
-      curb: this.colorMaterial(0xd7dde4),
-      plinth: this.colorMaterial(0x8b97a2),
-      plinthDeep: this.colorMaterial(0x5e6b76),
-      trunk: this.colorMaterial(0x8b5a38),
-      canopy: this.colorMaterial(0x3d8d4c),
-      cone: this.colorMaterial(0x2f7340),
-      bush: this.colorMaterial(0x4c9454),
-      hedge: this.colorMaterial(0x3e7c48),
-      fence: this.colorMaterial(0xe4dfd4),
-      filler: this.colorMaterial(0xb7b2a8),
+      grass: this.colorMaterial(0x7bc67a),
+      curb: this.colorMaterial(StorePalette.wall),
+      plinth: this.colorMaterial(StorePalette.ceiling),
+      plinthDeep: this.colorMaterial(StorePalette.wallTrim),
+      trunk: this.colorMaterial(StorePalette.wood),
+      canopy: this.colorMaterial(0x5ebe73),
+      cone: this.colorMaterial(0x4eaf68),
+      bush: this.colorMaterial(0x6fbf72),
+      hedge: this.colorMaterial(0x4eaf68),
+      fence: this.colorMaterial(StorePalette.shelfHighlight),
+      filler: this.colorMaterial(StorePalette.floorSecondary),
       shadow: new THREE.MeshBasicMaterial({
-        color: 0x1a2420,
+        color: StorePalette.inactive,
         transparent: true,
         opacity: 0.24,
         depthWrite: false,

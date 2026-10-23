@@ -1,6 +1,6 @@
 export const GameConfig = {
   debug: true,
-  background: 0xb4c0ca,
+  background: 0xc7e3f6,
   graphics: {
     shadows: false,
     toonShading: true,
@@ -146,20 +146,20 @@ export const GameConfig = {
     fogNear: 20,
     fogFar: 42,
     day: {
-      background: 0xb4c0ca,
-      hemisphereSky: 0xfff6ea,
-      hemisphereGround: 0x8e99a3,
-      hemisphereIntensity: 0.45,
-      sunColor: 0xfffaf3,
-      sunIntensity: 2,
-      fillColor: 0xffc27a,
-      fillIntensity: 0
+      background: 0xc7e3f6,
+      hemisphereSky: 0xfff8f0,
+      hemisphereGround: 0xcfc2d4,
+      hemisphereIntensity: 0.7,
+      sunColor: 0xfffaf6,
+      sunIntensity: 1.7,
+      fillColor: 0xffe7c8,
+      fillIntensity: 0.32
     },
     night: {
       background: 0x1d2838,
       hemisphereSky: 0x8ea6d8,
-      hemisphereGround: 0x3d3428,
-      hemisphereIntensity: 0.42,
+      hemisphereGround: 0x3a3558,
+      hemisphereIntensity: 0.48,
       sunColor: 0xb9c9ee,
       sunIntensity: 0.72,
       fillColor: 0xffb15e,

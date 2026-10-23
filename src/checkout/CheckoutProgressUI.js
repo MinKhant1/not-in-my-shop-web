@@ -61,7 +61,7 @@ export class CheckoutProgressUI {
     const fill = new THREE.Mesh(
       new THREE.PlaneGeometry(fillWidth, fillHeight),
       new THREE.MeshBasicMaterial({
-        color: 0xffd15c,
+        color: 0xffca45,
         transparent: true,
         depthWrite: false
       })

@@ -1,13 +1,14 @@
 import * as THREE from 'three';
+import { paletteHex, StorePalette } from '../theme/storePalette.js';
 
 const HOLD_SECONDS = 0.8;
 const SQUARE_RADIUS = 0.72;
 
 const ACTIONS = [
-  { id: 'menu-new-shop', action: 'new-shop', title: 'NEW SHOP', subtitle: 'DAY 1', color: '#f0b429', position: [-5.15, 0.05, -2.05] },
-  { id: 'menu-continue', action: 'continue', title: 'CONTINUE', subtitle: 'LOAD', color: '#7dcea0', position: [-5.15, 0.05, -0.45] },
-  { id: 'menu-credits', action: 'credits', title: 'CREDITS', subtitle: 'ABOUT', color: '#85c1e9', position: [-5.15, 0.05, 1.15] },
-  { id: 'menu-feedback', action: 'feedback', title: 'FEEDBACK', subtitle: 'FORM', color: '#e59866', position: [-5.15, 0.05, 2.75] }
+  { id: 'menu-new-shop', action: 'new-shop', title: 'NEW SHOP', subtitle: 'DAY 1', color: paletteHex(StorePalette.uiGold), position: [-5.15, 0.05, -2.05] },
+  { id: 'menu-continue', action: 'continue', title: 'CONTINUE', subtitle: 'LOAD', color: paletteHex(StorePalette.mint), position: [-5.15, 0.05, -0.45] },
+  { id: 'menu-credits', action: 'credits', title: 'CREDITS', subtitle: 'ABOUT', color: paletteHex(StorePalette.sky), position: [-5.15, 0.05, 1.15] },
+  { id: 'menu-feedback', action: 'feedback', title: 'FEEDBACK', subtitle: 'FORM', color: paletteHex(StorePalette.coral), position: [-5.15, 0.05, 2.75] }
 ];
 
 // The main menu is a set of editable objects in the shop scene, not a second scene.
@@ -86,7 +87,7 @@ export class MainMenu {
     ctx.fillStyle = 'rgba(23, 32, 43, 0.88)';
     ctx.fill();
     ctx.lineWidth = 12;
-    ctx.strokeStyle = '#f0b429';
+    ctx.strokeStyle = paletteHex(StorePalette.uiGold);
     ctx.stroke();
     ctx.beginPath();
     ctx.moveTo(128, 48);
@@ -94,7 +95,7 @@ export class MainMenu {
     ctx.lineTo(128, 124);
     ctx.lineTo(88, 150);
     ctx.closePath();
-    ctx.fillStyle = '#fff6e4';
+    ctx.fillStyle = paletteHex(StorePalette.uiText);
     ctx.fill();
     const texture = new THREE.CanvasTexture(canvas);
     texture.colorSpace = THREE.SRGBColorSpace;
@@ -125,7 +126,7 @@ export class MainMenu {
     const root = new THREE.Mesh(
       new THREE.BoxGeometry(0.55, 1.8, 1.2),
       new THREE.MeshBasicMaterial({
-        color: 0xf0b429,
+        color: StorePalette.uiGold,
         transparent: true,
         opacity: 0,
         depthWrite: false
@@ -287,7 +288,9 @@ export class MainMenu {
     ctx.clearRect(0, 0, 512, 512);
     ctx.beginPath();
     ctx.arc(256, 256, 228, 0, Math.PI * 2);
-    ctx.fillStyle = square.inside && !square.disabled ? '#243447' : '#1b2836';
+    ctx.fillStyle = square.inside && !square.disabled
+      ? paletteHex(StorePalette.uiBackgroundSecondary)
+      : paletteHex(StorePalette.uiBackground);
     ctx.fill();
     ctx.lineWidth = 22;
     ctx.strokeStyle = color;
@@ -295,12 +298,12 @@ export class MainMenu {
     if (progress > 0.01) {
       ctx.beginPath();
       ctx.lineWidth = 16;
-      ctx.strokeStyle = '#fff6e4';
+      ctx.strokeStyle = paletteHex(StorePalette.uiText);
       ctx.lineCap = 'round';
       ctx.arc(256, 256, 196, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * progress);
       ctx.stroke();
     }
-    ctx.fillStyle = '#fff6e4';
+    ctx.fillStyle = paletteHex(StorePalette.uiText);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.font = '800 58px system-ui, sans-serif';

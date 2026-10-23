@@ -29,7 +29,7 @@ export class CheckoutInteraction {
     const disc = new THREE.Mesh(
       new THREE.CircleGeometry(this.zoneRadius * 0.78, 32),
       new THREE.MeshBasicMaterial({
-        color: 0x7dffe0,
+        color: 0x65e9c3,
         transparent: true,
         opacity: 0.16,
         depthWrite: false,
@@ -42,7 +42,7 @@ export class CheckoutInteraction {
     const ring = new THREE.Mesh(
       new THREE.RingGeometry(this.zoneRadius * 0.78, this.zoneRadius, 40),
       new THREE.MeshBasicMaterial({
-        color: 0x3ddc97,
+        color: 0x65e9c3,
         transparent: true,
         opacity: 0.9,
         depthWrite: false,

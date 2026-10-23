@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { paletteHex, StorePalette } from '../theme/storePalette.js';
 
 function titleLines(name) {
   const words = String(name || 'BUY').toUpperCase().split(' ').filter(Boolean);
@@ -74,9 +75,9 @@ export class PurchaseSquare {
 
   setState(paid, price, mode) {
     if (mode === 'paused') {
-      this.outline.material.color.setHex(0xe07a7a);
+      this.outline.material.color.setHex(StorePalette.danger);
     } else if (mode === 'paying') {
-      this.outline.material.color.setHex(0xf0b429);
+      this.outline.material.color.setHex(StorePalette.uiGold);
     } else {
       this.outline.material.color.setHex(this.accent);
     }
@@ -102,21 +103,21 @@ export class PurchaseSquare {
     const height = this.canvas.height;
     ctx.clearRect(0, 0, width, height);
 
-    ctx.fillStyle = 'rgba(18, 26, 34, 0.94)';
+    ctx.fillStyle = 'rgba(32, 40, 62, 0.94)';
     ctx.fillRect(0, 0, width, height);
 
     const progress = price > 0 ? Math.max(0, Math.min(1, paid / price)) : 1;
     if (progress > 0) {
-      ctx.fillStyle = mode === 'paused' ? 'rgba(224, 122, 122, 0.9)' : 'rgba(240, 180, 41, 0.92)';
+      ctx.fillStyle = mode === 'paused' ? 'rgba(244, 126, 121, 0.9)' : 'rgba(255, 202, 69, 0.92)';
       const fillHeight = height * progress;
       ctx.fillRect(0, height - fillHeight, width, fillHeight);
     }
 
-    ctx.strokeStyle = mode === 'paused' ? '#e07a7a' : '#f0b429';
+    ctx.strokeStyle = paletteHex(mode === 'paused' ? StorePalette.danger : StorePalette.uiGold);
     ctx.lineWidth = 28;
     ctx.strokeRect(18, 18, width - 36, height - 36);
 
-    ctx.fillStyle = '#fff6e4';
+    ctx.fillStyle = paletteHex(StorePalette.uiText);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     if (this.meter === 'hold') {
@@ -127,7 +128,7 @@ export class PurchaseSquare {
       }
       if (progress <= 0) {
         ctx.font = '800 48px system-ui, sans-serif';
-        ctx.fillStyle = '#ffe7a3';
+        ctx.fillStyle = paletteHex(StorePalette.uiGold);
         ctx.fillText('STAND', width / 2, height * 0.74);
       }
       this.texture.needsUpdate = true;
@@ -142,7 +143,7 @@ export class PurchaseSquare {
         : paid > 0
           ? `${paid} / ${price}`
           : `$${price}`;
-      ctx.fillStyle = mode === 'paused' ? '#ffd0d0' : '#fff6e4';
+      ctx.fillStyle = paletteHex(mode === 'paused' ? StorePalette.danger : StorePalette.uiText);
       ctx.fillText(detail, width / 2, height * 0.72);
     } else {
       ctx.font = '800 68px system-ui, sans-serif';
@@ -152,15 +153,15 @@ export class PurchaseSquare {
       }
       ctx.font = '800 78px system-ui, sans-serif';
       if (mode === 'paused' && paid > 0) {
-        ctx.fillStyle = '#fff6e4';
+        ctx.fillStyle = paletteHex(StorePalette.uiText);
         ctx.fillText(`${paid} / ${price}`, width / 2, height * 0.68);
         ctx.font = '800 46px system-ui, sans-serif';
         ctx.fillText('NEED COINS', width / 2, height * 0.82);
       } else if (paid > 0) {
-        ctx.fillStyle = '#fff6e4';
+        ctx.fillStyle = paletteHex(StorePalette.uiText);
         ctx.fillText(`${paid} / ${price}`, width / 2, height * 0.72);
       } else {
-        ctx.fillStyle = mode === 'paused' ? '#ffd0d0' : '#ffe7a3';
+        ctx.fillStyle = paletteHex(mode === 'paused' ? StorePalette.danger : StorePalette.uiGold);
         ctx.fillText(`$${price}`, width / 2, height * 0.72);
       }
     }
