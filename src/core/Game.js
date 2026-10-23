@@ -11,6 +11,7 @@ import { reservedSpot, sectionIndexAt } from '../world/StoreSections.js';
 import { cleanShopName, ShopSign } from '../world/ShopSign.js';
 import { OutsideEnvironment } from '../world/OutsideEnvironment.js';
 import { HotdogStand } from '../world/HotdogStand.js';
+import { StreetPets } from '../world/StreetPets.js';
 import { STREETLIGHT_MODEL } from '../world/Diorama.js';
 import { PrefabLibrary } from '../editor/PrefabLibrary.js';
 import { Player } from '../entities/Player.js';
@@ -137,6 +138,8 @@ export class Game {
     this.mainMenu = new MainMenu(this);
     this.hotdog = new HotdogStand(this.scene, this.loader, this.collision, this.outside, this.config);
     await this.hotdog.load();
+    this.pets = new StreetPets(this.scene, this.loader, this.collision, this.outside, this.config);
+    await this.pets.load();
     this.sceneOverrides = new SceneOverrides(this);
     await this.sceneOverrides.loadAndApply();
     this.shopSign = new ShopSign(this.scene, this.save);
@@ -427,6 +430,7 @@ export class Game {
       window.__menu = this.mainMenu;
       window.__shopSign = this.shopSign;
       window.__hotdog = this.hotdog;
+      window.__pets = this.pets;
     }
     this.sceneOverrides.syncGameplay();
     this.registerEditorAnchors();
@@ -530,6 +534,7 @@ export class Game {
     requestAnimationFrame(this.loop);
     const dt = Math.min(this.clock.getDelta(), 0.05);
     this.hotdog?.update(dt);
+    this.pets?.update(dt);
     if (this.editor?.active) {
       this.editor.update(dt);
       this.shopSign?.update(this.lighting.night);
