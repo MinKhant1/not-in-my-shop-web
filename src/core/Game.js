@@ -250,6 +250,8 @@ export class Game {
       circular: true,
       retainWhenOwned: true,
       showFloorTitle: true,
+      hiredLines: ['GUARD', 'HIRED'],
+      summary: 'Hires a guard who patrols the shop and stops thieves.',
       onPurchase: () => {
         this.security.hire();
         this.save.write({
@@ -288,7 +290,8 @@ export class Game {
       circular: true,
       retainWhenOwned: true,
       showFloorTitle: true,
-      hiredText: 'OWNED',
+      hiredLines: ['INTERCOM', 'OWNED'],
+      summary: 'Sounds the speakers. Every thief drops what they took and runs. It needs a minute to recharge.',
       onPurchase: () => {
         this.intercom.activate();
         this.save.write({
@@ -306,6 +309,8 @@ export class Game {
       circular: true,
       retainWhenOwned: true,
       showFloorTitle: true,
+      hiredLines: ['CAMERA', 'OWNED'],
+      summary: 'Mounts cameras that sweep the aisles and warn you when a thief is spotted.',
       onPurchase: () => {
         this.cameras.activate();
         this.save.write({
@@ -333,6 +338,7 @@ export class Game {
       retainWhenOwned: true,
       showFloorTitle: true,
       hiredLines: ['SPEED +30%', 'OWNED'],
+      summary: 'Strap on skates. You move 30% faster.',
       onPurchase: () => {
         this.rollerSkates.activate();
         this.player.setSpeedModifier(skateConfig.id, skateConfig.speedMultiplier ?? 1.3);

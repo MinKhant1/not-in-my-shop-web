@@ -30,6 +30,7 @@ export class UpgradePad {
     this.brokeText = spec.brokeText || '';
     this.hiredLines = Array.isArray(spec.hiredLines) ? spec.hiredLines : null;
     this.detail = spec.detail || '';
+    this.summary = spec.summary || '';
     this.showFloorTitle = spec.showFloorTitle === true;
     this.showCostLabel = spec.showCostLabel !== false;
     this.requireFull = spec.requireFull === true;
@@ -144,6 +145,15 @@ export class UpgradePad {
     return line;
   }
 
+  covers(x, z) {
+    if (!this.circular || !this.root.visible || this.removed) {
+      return false;
+    }
+    const dx = x - this.x;
+    const dz = z - this.z;
+    return dx * dx + dz * dz <= this.half * this.half;
+  }
+
   contains(x, z) {
     if (!this.triggerEnabled || this.removed || this.hired) {
       return false;
@@ -245,9 +255,12 @@ export class UpgradePad {
     }
   }
 
-  configure({ name, cost, hired }) {
+  configure({ name, cost, hired, summary }) {
     if (name) {
       this.name = name;
+    }
+    if (summary !== undefined) {
+      this.summary = summary;
     }
     this.investment = new UpgradeInvestment(cost ?? this.investment.cost, PAY_SECONDS);
     this.hired = hired === true;

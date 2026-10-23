@@ -1,5 +1,5 @@
 import { UpgradePad } from '../economy/UpgradePad.js';
-import { broomByLevel, nextBroom } from './broomUpgrades.js';
+import { broomByLevel, broomOfferSummary, nextBroom } from './broomUpgrades.js';
 
 const PAD_ID = 'broom-upgrade';
 
@@ -21,6 +21,7 @@ export class BroomUpgrade {
       showFloorTitle: true,
       retainWhenOwned: true,
       banner: false,
+      summary: broomOfferSummary('BROOM'),
       onPurchase: () => this.purchase()
     }, options.interval);
     this.syncOffer();
@@ -57,7 +58,8 @@ export class BroomUpgrade {
     this.pad.configure({
       name: following.name.toUpperCase(),
       cost: following.cost,
-      hired: false
+      hired: false,
+      summary: broomOfferSummary(following.name)
     });
     this.onChanged?.();
     return 'again';
@@ -69,14 +71,16 @@ export class BroomUpgrade {
       this.pad.configure({
         name: 'BROOM',
         cost: 0,
-        hired: true
+        hired: true,
+        summary: broomOfferSummary('BROOM')
       });
       return;
     }
     this.pad.configure({
       name: next.name.toUpperCase(),
       cost: next.cost,
-      hired: false
+      hired: false,
+      summary: broomOfferSummary(next.name)
     });
   }
 }

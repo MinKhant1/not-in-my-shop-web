@@ -1,4 +1,5 @@
 import { UpgradePad } from './UpgradePad.js';
+import { UpgradeTip } from '../ui/UpgradeTip.js';
 
 export class UpgradeManager {
   constructor(scene, money, shopUpgrades, getPosition, interval, sectionOpen) {
@@ -9,6 +10,7 @@ export class UpgradeManager {
     this.sectionOpen = sectionOpen;
     this.scene = scene;
     this.pads = [];
+    this.tip = new UpgradeTip(document.querySelector('#app'));
   }
 
   add(spec) {
@@ -37,5 +39,25 @@ export class UpgradeManager {
       const open = this.sectionOpen ? this.sectionOpen(pad.x, pad.z) : true;
       pad.update(dt, accepting && open, position.x, position.z);
     }
+    this.tip.show(this.circleUnder(position.x, position.z));
+  }
+
+  circleUnder(x, z) {
+    let nearest = null;
+    let nearestDistance = Infinity;
+    for (let i = 0; i < this.pads.length; i += 1) {
+      const pad = this.pads[i];
+      if (!pad.covers(x, z) || !pad.summary) {
+        continue;
+      }
+      const dx = x - pad.x;
+      const dz = z - pad.z;
+      const distance = dx * dx + dz * dz;
+      if (distance < nearestDistance) {
+        nearest = pad;
+        nearestDistance = distance;
+      }
+    }
+    return nearest;
   }
 }

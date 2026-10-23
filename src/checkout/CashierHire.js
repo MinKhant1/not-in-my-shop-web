@@ -135,6 +135,8 @@ export class CashierHire {
       requireFull: true,
       banner: false,
       hiredText: '',
+      hiredLines: ['CASHIER', 'HIRED'],
+      summary: 'Hires a cashier to ring up customers while you leave the counter.',
       onPurchase: () => {
         station.cashier.hire();
         station.cashier.place(station.standX, station.standZ, station.faceX, station.faceZ);

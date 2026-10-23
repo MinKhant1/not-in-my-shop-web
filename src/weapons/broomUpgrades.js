@@ -43,3 +43,17 @@ export function broomByLevel(level) {
 export function nextBroom(level) {
   return BROOM_UPGRADES.find((entry) => entry.level === level + 1) ?? null;
 }
+
+export function broomOfferSummary(name) {
+  const label = String(name || '').toUpperCase();
+  if (label.includes('FLAM')) {
+    return 'Sets the broom alight. Swings hit harder and burn a thief for a few seconds.';
+  }
+  if (label.includes('SPIK')) {
+    return 'Adds spikes to the broom so each swing hits harder.';
+  }
+  if (label.includes('STATION')) {
+    return 'Places a broom stand in this aisle. Step on it again later to upgrade the broom.';
+  }
+  return 'The broom is fully upgraded. It hits hard and burns thieves.';
+}

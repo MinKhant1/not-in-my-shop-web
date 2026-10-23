@@ -563,6 +563,40 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
+#upgrade-tip {
+  position: absolute;
+  left: 50%;
+  top: calc(max(8px, env(safe-area-inset-top)) + 30px + min(126px, 33vw));
+  transform: translateX(-50%);
+  z-index: 5;
+  width: min(280px, calc(100% - 36px));
+  margin: 0;
+  padding: 10px 14px 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 202, 69, 0.55);
+  background: rgba(32, 40, 62, 0.62);
+  color: var(--ui-text);
+  text-align: center;
+  pointer-events: none;
+  box-shadow: 0 8px 24px rgba(16, 22, 38, 0.18);
+}
+
+#upgrade-tip[hidden] {
+  display: none;
+}
+
+#upgrade-tip h2 {
+  margin: 0 0 4px;
+  font: 800 13px/1.2 system-ui, sans-serif;
+  letter-spacing: 0.04em;
+  color: var(--ui-gold);
+}
+
+#upgrade-tip p {
+  margin: 0;
+  font: 600 13px/1.35 system-ui, sans-serif;
+}
+
 #money-hud {
   position: absolute;
   top: max(12px, env(safe-area-inset-top));

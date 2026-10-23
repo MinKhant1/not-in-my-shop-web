@@ -7,7 +7,7 @@ import { WEAPON_PLACEHOLDER_LOCAL } from '../world/SectionShell.js';
 import { applyBroomMaterials } from './BroomWeapon.js';
 import { placeBristleAnchor } from './bristleAnchor.js';
 import { FlamingBroomVFX } from './FlamingBroomVFX.js';
-import { nextBroom } from './broomUpgrades.js';
+import { broomOfferSummary, nextBroom } from './broomUpgrades.js';
 import { StorePalette } from '../theme/storePalette.js';
 
 // Same local pose WeaponStation uses for an upgraded broom on the grocery stand.
@@ -169,6 +169,7 @@ class BroomStation {
       showFloorTitle: true,
       retainWhenOwned: true,
       banner: false,
+      summary: broomOfferSummary('BROOM STATION'),
       onPurchase: () => this.handlePurchase()
     }, set.interval);
     set.upgradeManager.pads.push(this.pad);
@@ -196,7 +197,8 @@ class BroomStation {
       this.pad.configure({
         name: 'BROOM STATION',
         cost: this.set.cost,
-        hired: true
+        hired: true,
+        summary: 'The stand is ready. Step off, then back on to upgrade the broom.'
       });
       return 'again';
     }
@@ -325,14 +327,16 @@ class BroomStation {
       this.pad.configure({
         name: 'BROOM',
         cost: 0,
-        hired: true
+        hired: true,
+        summary: broomOfferSummary('BROOM')
       });
       return;
     }
     this.pad.configure({
       name: next.name.toUpperCase(),
       cost: next.cost,
-      hired: false
+      hired: false,
+      summary: broomOfferSummary(next.name)
     });
   }
 
