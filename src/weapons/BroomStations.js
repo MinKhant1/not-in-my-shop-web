@@ -8,6 +8,7 @@ import { applyBroomMaterials } from './BroomWeapon.js';
 import { placeBristleAnchor } from './bristleAnchor.js';
 import { FlamingBroomVFX } from './FlamingBroomVFX.js';
 import { nextBroom } from './broomUpgrades.js';
+import { StorePalette } from '../theme/storePalette.js';
 
 // Same local pose WeaponStation uses for an upgraded broom on the grocery stand.
 const STAND_BROOM = {
@@ -254,7 +255,7 @@ class BroomStation {
     const disc = new THREE.Mesh(
       new THREE.CircleGeometry(radius * 0.78, 32),
       new THREE.MeshBasicMaterial({
-        color: 0xffca45,
+        color: StorePalette.upgradeMarker,
         transparent: true,
         opacity: 0.16,
         depthWrite: false,
@@ -266,7 +267,7 @@ class BroomStation {
     const ring = new THREE.Mesh(
       new THREE.RingGeometry(radius * 0.78, radius, 40),
       new THREE.MeshBasicMaterial({
-        color: 0xffca45,
+        color: StorePalette.upgradeMarker,
         transparent: true,
         opacity: 0.9,
         depthWrite: false,
@@ -473,7 +474,7 @@ class BroomStation {
       const pulse = 1 + Math.sin(this.time * 3) * 0.035;
       this.ring.scale.set(pulse, pulse, 1);
       const inside = this.playerInside();
-      this.ring.material.color.setHex(inside ? 0xffe29a : 0xffca45);
+      this.ring.material.color.setHex(inside ? 0xffe7b0 : StorePalette.upgradeMarker);
     }
     if (this.standFlames) {
       const show = this.level >= 3 && this.standUpgrade?.visible === true;

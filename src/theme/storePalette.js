@@ -25,6 +25,9 @@ export const StorePalette = {
 
   highlight: 0x65e9c3,
   upgrade: 0xffca45,
+  upgradeMarker: 0xf5be4f,
+  shelfMarker: 0x55c8d0,
+  expansionMarker: 0xf18b72,
   success: 0x75d9ad,
   danger: 0xf47e79,
   inactive: 0x8f8da4,

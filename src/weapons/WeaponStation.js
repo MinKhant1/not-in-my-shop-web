@@ -4,6 +4,7 @@ import { PlayerActivity, WeaponId } from '../player/PlayerActivity.js';
 import { applyBroomMaterials, BroomWeapon } from './BroomWeapon.js';
 import { placeBristleAnchor } from './bristleAnchor.js';
 import { FlamingBroomVFX } from './FlamingBroomVFX.js';
+import { StorePalette } from '../theme/storePalette.js';
 
 // Local to the stand's original broom node, so the upgraded mesh sits in the same hooks.
 const STAND_BROOM = {
@@ -44,7 +45,7 @@ export class WeaponStation {
     const disc = new THREE.Mesh(
       new THREE.CircleGeometry(this.zoneRadius * 0.78, 32),
       new THREE.MeshBasicMaterial({
-        color: 0xffca45,
+        color: StorePalette.upgradeMarker,
         transparent: true,
         opacity: 0.16,
         depthWrite: false,
@@ -57,7 +58,7 @@ export class WeaponStation {
     const ring = new THREE.Mesh(
       new THREE.RingGeometry(this.zoneRadius * 0.78, this.zoneRadius, 40),
       new THREE.MeshBasicMaterial({
-        color: 0xffca45,
+        color: StorePalette.upgradeMarker,
         transparent: true,
         opacity: 0.9,
         depthWrite: false,
@@ -238,7 +239,7 @@ export class WeaponStation {
     this.time += dt;
     const pulse = 1 + Math.sin(this.time * 3) * 0.035;
     this.ring.scale.set(pulse, pulse, 1);
-    this.ring.material.color.setHex(this.playerInside() ? 0xffd15c : 0xe08a2c);
+    this.ring.material.color.setHex(this.playerInside() ? 0xffe7b0 : StorePalette.upgradeMarker);
     if (this.standFlames) {
       const show = this.level >= 3 && this.standUpgrade?.visible === true;
       this.standFlames.setActive(show);

@@ -1,6 +1,13 @@
 import * as THREE from 'three';
 import { paletteHex, StorePalette } from '../theme/storePalette.js';
 
+function colorWithAlpha(color, alpha) {
+  const red = (color >> 16) & 255;
+  const green = (color >> 8) & 255;
+  const blue = color & 255;
+  return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+}
+
 function titleLines(name) {
   const words = String(name || 'BUY').toUpperCase().split(' ').filter(Boolean);
   if (words.length <= 2) {
@@ -74,13 +81,7 @@ export class PurchaseSquare {
   }
 
   setState(paid, price, mode) {
-    if (mode === 'paused') {
-      this.outline.material.color.setHex(StorePalette.danger);
-    } else if (mode === 'paying') {
-      this.outline.material.color.setHex(StorePalette.uiGold);
-    } else {
-      this.outline.material.color.setHex(this.accent);
-    }
+    this.outline.material.color.setHex(mode === 'paused' ? StorePalette.danger : this.accent);
     this.paint(paid, price, mode);
     this.mode = mode;
   }
@@ -108,12 +109,12 @@ export class PurchaseSquare {
 
     const progress = price > 0 ? Math.max(0, Math.min(1, paid / price)) : 1;
     if (progress > 0) {
-      ctx.fillStyle = mode === 'paused' ? 'rgba(244, 126, 121, 0.9)' : 'rgba(255, 202, 69, 0.92)';
+      ctx.fillStyle = mode === 'paused' ? 'rgba(244, 126, 121, 0.9)' : colorWithAlpha(this.accent, 0.92);
       const fillHeight = height * progress;
       ctx.fillRect(0, height - fillHeight, width, fillHeight);
     }
 
-    ctx.strokeStyle = paletteHex(mode === 'paused' ? StorePalette.danger : StorePalette.uiGold);
+    ctx.strokeStyle = paletteHex(mode === 'paused' ? StorePalette.danger : this.accent);
     ctx.lineWidth = 28;
     ctx.strokeRect(18, 18, width - 36, height - 36);
 
@@ -128,7 +129,7 @@ export class PurchaseSquare {
       }
       if (progress <= 0) {
         ctx.font = '800 48px system-ui, sans-serif';
-        ctx.fillStyle = paletteHex(StorePalette.uiGold);
+        ctx.fillStyle = paletteHex(this.accent);
         ctx.fillText('STAND', width / 2, height * 0.74);
       }
       this.texture.needsUpdate = true;
@@ -161,7 +162,7 @@ export class PurchaseSquare {
         ctx.fillStyle = paletteHex(StorePalette.uiText);
         ctx.fillText(`${paid} / ${price}`, width / 2, height * 0.72);
       } else {
-        ctx.fillStyle = paletteHex(mode === 'paused' ? StorePalette.danger : StorePalette.uiGold);
+        ctx.fillStyle = paletteHex(mode === 'paused' ? StorePalette.danger : this.accent);
         ctx.fillText(`$${price}`, width / 2, height * 0.72);
       }
     }

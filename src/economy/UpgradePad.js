@@ -135,7 +135,7 @@ export class UpgradePad {
     }
     geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
     const material = new THREE.LineBasicMaterial({
-      color: StorePalette.uiGold,
+      color: StorePalette.upgradeMarker,
       transparent: true,
       opacity: 0.42
     });
@@ -256,7 +256,7 @@ export class UpgradePad {
     this.labelSignature = '';
     this.finishTimer = 0;
     if (this.outline?.material?.color) {
-      this.outline.material.color.setHex(this.hired ? StorePalette.success : StorePalette.uiGold);
+      this.outline.material.color.setHex(this.hired ? StorePalette.success : StorePalette.upgradeMarker);
       this.outline.material.opacity = this.hired ? 0.8 : 0.42;
     }
     if (this.signMaterial) {
@@ -295,7 +295,7 @@ export class UpgradePad {
     ctx.clearRect(0, 0, width, height);
     ctx.fillStyle = paletteHex(StorePalette.uiBackground);
     ctx.fillRect(0, 0, width, height);
-    ctx.strokeStyle = paletteHex(StorePalette.uiGold);
+    ctx.strokeStyle = paletteHex(StorePalette.upgradeMarker);
     ctx.lineWidth = 28;
     if (this.circular) {
       ctx.beginPath();
@@ -337,13 +337,13 @@ export class UpgradePad {
     ctx.fillStyle = paletteHex(StorePalette.uiBackgroundSecondary);
     ctx.fillRect(barX, barY, barW, barH);
     const progress = cost > 0 ? invested / cost : 1;
-    ctx.fillStyle = paletteHex(StorePalette.uiGold);
+    ctx.fillStyle = paletteHex(StorePalette.upgradeMarker);
     ctx.fillRect(barX, barY, Math.max(0, barW * progress), barH);
 
     if (this.showCostLabel) {
       const label = invested > 0 ? `${invested} / ${cost}` : `$${cost}`;
       ctx.font = '800 84px system-ui, sans-serif';
-      ctx.fillStyle = paletteHex(StorePalette.uiGold);
+      ctx.fillStyle = paletteHex(StorePalette.upgradeMarker);
       ctx.fillText(label, width / 2, height * 0.82);
     }
     this.texture.needsUpdate = true;

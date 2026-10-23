@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { UpgradeInvestment } from './UpgradeInvestment.js';
 import { PurchaseSquare } from './PurchaseSquare.js';
+import { StorePalette } from '../theme/storePalette.js';
 import {
   fixtureById,
   sectionEast,
@@ -122,7 +123,7 @@ export class PurchaseManager {
       halfX: EXPANSION_HALF_X,
       halfZ: EXPANSION_HALF_Z,
       half: Math.max(EXPANSION_HALF_X, EXPANSION_HALF_Z),
-      accent: 0xffca45
+      accent: StorePalette.expansionMarker
     });
   }
 
@@ -153,7 +154,7 @@ export class PurchaseManager {
       halfX: FURNITURE_HALF,
       halfZ: FURNITURE_HALF,
       half: FURNITURE_HALF,
-      accent: section?.accent ?? 0x3a78d0
+      accent: StorePalette.shelfMarker
     });
   }
 
