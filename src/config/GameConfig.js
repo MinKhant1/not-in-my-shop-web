@@ -1,5 +1,5 @@
 export const GameConfig = {
-  debug: true,
+  debug: false,
   background: 0xc7e3f6,
   graphics: {
     shadows: false,
@@ -203,7 +203,7 @@ export const GameConfig = {
   },
   weapons: {
     debugWeapons: false,
-    debugBroomGrip: true,
+    debugBroomGrip: false,
     model: '/models/objects/low_poly_broom.glb',
     // Local to RightHandWeaponSocket, which is parented to the right-hand bone (Fist.R).
     broomEquipPosition: { x: 0, y: 0, z: 0.04 },

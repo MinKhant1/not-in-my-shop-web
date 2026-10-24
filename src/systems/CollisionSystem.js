@@ -3,7 +3,7 @@ import * as THREE from 'three';
 export class CollisionSystem {
   constructor(config) {
     this.padding = config.collision.padding;
-    this.debug = config.debug;
+    this.debug = config.debugCollision === true;
     this.boxes = [];
     this.debugRoot = null;
     this.debugMaterial = null;
