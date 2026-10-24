@@ -284,19 +284,19 @@ export class Diorama {
     const northWalk = bounds.backNorth - bounds.sidewalk;
     const southWalkEnd = bounds.shopSouth + bounds.southWalk;
     const contentNorth = Math.min(bounds.contentNorth, bounds.streetNorth);
+    const streetWest = bounds.streetWest ?? bounds.shopWest;
 
     this.collectTiles(pavement, bounds.shopEast, eastWalk, bounds.north, bounds.south);
     this.collectTiles(pavement, bounds.shopWest, bounds.shopEast, bounds.shopSouth, southWalkEnd);
     this.collectTiles(pavement, bounds.shopWest, bounds.shopEast, northWalk, bounds.backNorth);
+    this.collectContinuedTiles(pavement, bounds.west, streetWest, bounds.streetSouth, southWalkEnd);
     if (bounds.missingNorthPad && bounds.northPad) {
       const pad = bounds.northPad;
       this.collectTiles(pavement, pad.minX, pad.maxX, pad.minZ, pad.maxZ);
     }
     this.addTileMesh(bounds.tile, bounds.pavementMaterial, pavement);
 
-    const streetWest = bounds.streetWest ?? bounds.shopWest;
     const streetEast = bounds.streetEast ?? bounds.shopWest;
-    this.addSlab(bounds.west, streetWest, bounds.streetSouth, southWalkEnd, this.materials.filler, 0.06, 0.03);
     this.addSlab(bounds.shopEast, bounds.east, bounds.north, bounds.south, this.materials.filler, 0.04, -0.01);
     this.addSlab(bounds.shopWest, bounds.shopEast, bounds.north, northWalk, this.materials.filler, 0.04, -0.01);
     this.addSlab(bounds.west, bounds.east, southWalkEnd, bounds.south, this.materials.filler, 0.04, -0.01);
@@ -351,6 +351,29 @@ export class Diorama {
       return;
     }
     this.addBox(material, maxX - minX, height, 0.14, (minX + maxX) * 0.5, y, z);
+  }
+
+  collectContinuedTiles(list, minX, maxX, minZ, maxZ) {
+    if (!(maxX - minX > 0.2) || !(maxZ - minZ > 0.2)) {
+      return;
+    }
+    const xs = [];
+    let edgeX = maxX;
+    while (edgeX - 0.5 > minX - 0.05) {
+      xs.push(edgeX - 0.5);
+      edgeX -= 1;
+    }
+    const zs = [];
+    let edgeZ = minZ;
+    while (edgeZ + 0.5 < maxZ + 0.49) {
+      zs.push(edgeZ + 0.5);
+      edgeZ += 1;
+    }
+    for (let x = 0; x < xs.length; x += 1) {
+      for (let z = 0; z < zs.length; z += 1) {
+        list.push(xs[x], zs[z]);
+      }
+    }
   }
 
   collectTiles(list, minX, maxX, minZ, maxZ) {
