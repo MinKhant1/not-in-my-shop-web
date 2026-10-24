@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { SECTION_WIDTH, sectionEast, sectionIndexAt } from '../world/StoreSections.js';
+import { fixtureById, SECTION_WIDTH, sectionEast, sectionIndexAt } from '../world/StoreSections.js';
 
 function node(id, x, z, kind, look = null) {
   return { id, x, z, kind, look };
@@ -152,6 +152,8 @@ export class ShopperNavigation {
       this.addLink(leave[i][0], leave[i][1], true);
     }
     this.openSections = 0;
+    this.westChain = new Map();
+    this.backChain = new Map();
   }
 
   syncUnlocked(maxUnlocked) {
@@ -181,6 +183,8 @@ export class ShopperNavigation {
     this.linkBoth(frontWest, frontEast);
     // The broom stand sits on this lane (local x 6.05, z 2.15). Step west around it.
     this.linkAroundBroom(index, backEast, frontEast, right, frontZ);
+    this.westChain.set(index, [backWest, frontWest]);
+    this.backChain.set(index, [backWest, backEast]);
     if (index === 1) {
       this.addNode(node('grocery-east-back', 3.15, backZ, 'lane'));
       this.linkBoth('backRight', 'grocery-east-back');
@@ -230,17 +234,175 @@ export class ShopperNavigation {
     }
 
     const tailId = slotIds[slotIds.length - 1];
-    const approachId = `lane-${safe}-approach`;
-    this.addNode(node(approachId, anchor.x, headZ, 'approach'));
-    this.linkBoth(anchorId, approachId);
-    this.linkBoth(approachId, tailId);
+    // Enter from the aisle, not from a node sitting on the line. A node on the
+    // line makes a repath walk back to the tail and around the register.
+    this.linkBoth(anchorId, tailId);
     for (let i = 0; i < slotIds.length; i += 1) {
-      this.addLink(slotIds[i], approachId, true);
+      this.addLink(slotIds[i], anchorId, true);
       if (i > 0) {
         this.addLink(slotIds[i - 1], slotIds[i], false);
       }
     }
     return { slotIds, zoneX, zoneZ };
+  }
+
+  syncShelfPicks(ids) {
+    const owned = new Set(Array.isArray(ids) ? ids : []);
+    for (const fixture of fixtureById.values()) {
+      if (this.isStockFixture(fixture) && owned.has(fixture.id)) {
+        this.enableShelf(fixture);
+      }
+    }
+    for (const entry of this.nodes.values()) {
+      if (entry.fixtureId) {
+        entry.stocked = owned.has(entry.fixtureId);
+      }
+    }
+  }
+
+  enableShelf(idOrFixture) {
+    const fixture = typeof idOrFixture === 'string' ? fixtureById.get(idOrFixture) : idOrFixture;
+    if (!this.isStockFixture(fixture)) {
+      return;
+    }
+    this.syncUnlocked(sectionIndexAt(fixture.position[0]));
+    const spot = this.shelfNode(fixture.id);
+    if (spot) {
+      spot.stocked = true;
+      return;
+    }
+    this.addShelfPick(fixture);
+  }
+
+  shelfNode(fixtureId) {
+    const named = this.nodes.get(`pick-${fixtureId}`);
+    if (named) {
+      return named;
+    }
+    for (const entry of this.nodes.values()) {
+      if (entry.fixtureId === fixtureId) {
+        return entry;
+      }
+    }
+    return null;
+  }
+
+  isStockFixture(fixture) {
+    if (!fixture?.position || fixture.sectionId === 'grocery') {
+      return false;
+    }
+    if (String(fixture.id).includes('cash_register')) {
+      return false;
+    }
+    return sectionIndexAt(fixture.position[0]) >= 1;
+  }
+
+  addShelfPick(fixture) {
+    const index = sectionIndexAt(fixture.position[0]);
+    const west = sectionEast(index) - SECTION_WIDTH;
+    const east = sectionEast(index);
+    const aisleX = west + 0.95;
+    const fx = fixture.position[0];
+    const fz = fixture.position[2];
+    const fw = fixture.footprint?.[0] ?? 0.8;
+    const fd = fixture.footprint?.[1] ?? 0.6;
+    let standX = fx;
+    let standZ = fz + fd * 0.5 + 0.85;
+    let onBack = false;
+    if (fz < -3.1) {
+      standX = Math.min(east - 1.15, Math.max(west + 1.15, fx));
+      standZ = -2.7;
+      onBack = true;
+    } else if (standZ > 2.15) {
+      standZ = Math.min(fz, 2.05);
+      standX = fx - fw * 0.5 - 0.85;
+    }
+    const toward = standX - aisleX;
+    if (!onBack && Math.abs(toward) > 1.7) {
+      standX = aisleX + Math.sign(toward || 1) * 1.7;
+    }
+    standX = Math.min(east - 0.8, Math.max(west + 0.7, standX));
+    standZ = Math.min(2.15, Math.max(-3.3, standZ));
+    const pickId = `pick-${fixture.id}`;
+    const aisleId = onBack
+      ? this.spliceChain(this.backChain, index, standX, standZ, 'x')
+      : this.spliceChain(this.westChain, index, aisleX, standZ, 'z');
+    if (!aisleId) {
+      return;
+    }
+    const aisle = this.nodes.get(aisleId);
+    const corner = aisleId.endsWith('-back') || aisleId.endsWith('-front');
+    const taken = aisle.fixtureId && aisle.fixtureId !== fixture.id;
+    if (!corner && !taken && Math.hypot(standX - aisle.x, standZ - aisle.z) < 0.3) {
+      aisle.kind = 'pick';
+      aisle.look = [fx, fz];
+      aisle.stocked = true;
+      aisle.fixtureId = fixture.id;
+      if (!this.pickIds.includes(aisleId)) {
+        this.pickIds.push(aisleId);
+      }
+      return;
+    }
+    if (this.nodes.has(pickId)) {
+      return;
+    }
+    this.addNode(node(pickId, standX, standZ, 'pick', [fx, fz]));
+    const spot = this.nodes.get(pickId);
+    spot.stocked = true;
+    spot.fixtureId = fixture.id;
+    this.linkBoth(aisleId, pickId);
+  }
+
+  spliceChain(chains, index, x, z, axis) {
+    const chain = chains.get(index);
+    if (!chain || chain.length < 2) {
+      return null;
+    }
+    const coord = axis === 'x' ? x : z;
+    for (let i = 0; i < chain.length; i += 1) {
+      const existing = this.nodes.get(chain[i]);
+      const value = axis === 'x' ? existing.x : existing.z;
+      if (Math.abs(value - coord) < 0.34 && Math.abs((axis === 'x' ? existing.z : existing.x) - (axis === 'x' ? z : x)) < 0.34) {
+        return chain[i];
+      }
+    }
+    const id = `section${index}-${axis}-${chain.length}-${Math.round(coord * 10)}`;
+    this.addNode(node(id, x, z, 'lane'));
+    let insertAt = chain.length;
+    for (let i = 0; i < chain.length; i += 1) {
+      const existing = this.nodes.get(chain[i]);
+      const value = axis === 'x' ? existing.x : existing.z;
+      if (coord < value) {
+        insertAt = i;
+        break;
+      }
+    }
+    const prev = chain[insertAt - 1];
+    const next = chain[insertAt];
+    if (prev && next) {
+      this.unlink(prev, next);
+      this.unlink(next, prev);
+    }
+    if (prev) {
+      this.linkBoth(prev, id);
+    }
+    if (next) {
+      this.linkBoth(id, next);
+    }
+    chain.splice(insertAt, 0, id);
+    return id;
+  }
+
+  unlink(fromId, toId) {
+    const edges = this.links.get(fromId);
+    if (!edges) {
+      return;
+    }
+    for (let i = edges.length - 1; i >= 0; i -= 1) {
+      if (edges[i].id === toId) {
+        edges.splice(i, 1);
+      }
+    }
   }
 
   linkAroundBroom(index, backId, frontId, eastX, frontZ) {
@@ -325,7 +487,7 @@ export class ShopperNavigation {
     let bestDistance = Infinity;
     for (let i = 0; i < this.nodeList.length; i += 1) {
       const entry = this.nodeList[i];
-      if (avoidQueue && entry.kind === 'queue') {
+      if (avoidQueue && (entry.kind === 'queue' || entry.id.startsWith('lane-'))) {
         continue;
       }
       const dx = entry.x - x;
@@ -344,7 +506,7 @@ export class ShopperNavigation {
     if (target?.kind === 'queue' && target.id.includes('-q')) {
       return this.routeCheckoutSlot(x, z, target);
     }
-    const start = this.nearest(x, z, avoidQueue && target?.kind !== 'queue');
+    const start = this.nearest(x, z, target?.kind === 'queue' ? avoidQueue : true);
     const ids = this.findPath(start.id, targetId, avoidQueue) ?? [targetId];
     const path = ids.map((id) => this.nodes.get(id)).filter(Boolean);
     return this.trimBacktrack(path, x, z);
@@ -354,22 +516,49 @@ export class ShopperNavigation {
     const split = target.id.lastIndexOf('-q');
     const prefix = split >= 0 ? target.id.slice(0, split) : '';
     const index = Number(target.id.slice(split + 2));
-    const slots = [];
+    const line = [];
     if (prefix && Number.isFinite(index)) {
-      for (let i = index + 8; i >= index; i -= 1) {
+      for (let i = 0; i < index + 8; i += 1) {
         const slot = this.nodes.get(`${prefix}-q${i}`);
-        if (slot) {
-          slots.push(slot);
+        if (!slot) {
+          break;
         }
+        line.push(slot);
       }
     }
-    if (!slots.length) {
-      slots.push(target);
+    if (!line.length) {
+      line.push(target);
     }
-    const approach = prefix ? this.nodes.get(`${prefix}-approach`) : null;
+    const goalIndex = Math.min(index, line.length - 1);
+    let nearIndex = 0;
+    let nearDistance = Infinity;
+    for (let i = 0; i < line.length; i += 1) {
+      const dx = line[i].x - x;
+      const dz = line[i].z - z;
+      const distance = dx * dx + dz * dz;
+      if (distance < nearDistance) {
+        nearDistance = distance;
+        nearIndex = i;
+      }
+    }
+    // Already beside this register: walk only toward the assigned spot.
+    // Restarting from the aisle is what made them circle the counter.
+    if (nearDistance < 1.4 * 1.4) {
+      const path = [];
+      const from = Math.max(nearIndex, goalIndex);
+      for (let i = from; i >= goalIndex; i -= 1) {
+        path.push(line[i]);
+      }
+      return path;
+    }
+    const slots = [];
+    for (let i = line.length - 1; i >= goalIndex; i -= 1) {
+      slots.push(line[i]);
+    }
     const outside = this.nearest(x, z, true);
-    const approachId = approach?.id ?? outside.id;
-    const into = this.findPath(outside.id, approachId, false) ?? [approachId];
+    const anchor = this.nodes.get(target.id) ? this.laneAnchor(target) : null;
+    const approachId = anchor?.id ?? outside.id;
+    const into = this.findPath(outside.id, approachId, true) ?? [approachId];
     const path = [];
     for (let i = 0; i < into.length; i += 1) {
       const point = this.nodes.get(into[i]);
@@ -377,15 +566,17 @@ export class ShopperNavigation {
         path.push(point);
       }
     }
-    if (approach && path[path.length - 1]?.id !== approach.id) {
-      path.push(approach);
-    }
     for (let i = 0; i < slots.length; i += 1) {
       if (path[path.length - 1]?.id !== slots[i].id) {
         path.push(slots[i]);
       }
     }
     return this.trimBacktrack(path, x, z);
+  }
+
+  laneAnchor(slot) {
+    const index = sectionIndexAt(slot.x);
+    return this.nodes.get(`section${index}-west-front`) ?? null;
   }
 
   trimBacktrack(path, x, z) {
@@ -455,9 +646,16 @@ export class ShopperNavigation {
   }
 
   randomPick(exceptId) {
-    const pool = this.pickIds.length > 1
-      ? this.pickIds.filter((id) => id !== exceptId)
-      : this.pickIds;
+    const stocked = [];
+    for (let i = 0; i < this.pickIds.length; i += 1) {
+      const id = this.pickIds[i];
+      const spot = this.nodes.get(id);
+      if (!spot || spot.stocked === false || id === exceptId) {
+        continue;
+      }
+      stocked.push(id);
+    }
+    const pool = stocked.length ? stocked : this.pickIds.filter((id) => this.nodes.get(id)?.stocked !== false);
     return pool[Math.floor(Math.random() * pool.length)];
   }
 
@@ -646,8 +844,7 @@ export class ShopperRoute {
           this.draw();
           return 'moving';
         }
-        if (this.giveUpBlockedQueue(position, collision, radius) || distance <= 1.35) {
-          this.index = this.path.length;
+        if (this.giveUpBlockedQueue(position, collision, radius)) {
           return 'arrived';
         }
         this.recover(position, collision, radius);

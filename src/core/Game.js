@@ -130,6 +130,7 @@ export class Game {
     this.applyPlayLimits(store.playLimits());
     this.store = store;
     this.shoppers.syncSections(store.maxUnlocked);
+    this.shoppers.syncShelfPicks(ownedFixtures);
     store.onSectionUnlocked = (count) => {
       this.shoppers.syncSections(count);
       this.cameras?.syncCameras();
@@ -153,6 +154,7 @@ export class Game {
       this.occlusion.track(object, id);
       this.sceneOverrides.noteSpawned(object);
       this.cashiers?.syncLayout();
+      this.shoppers.addShelf(id);
     };
 
     this.player = new Player(this.loader, this.input, this.collision, this.config);
@@ -650,6 +652,7 @@ export class Game {
     this.store.maxUnlocked = 0;
     this.store.syncUnlock();
     this.shoppers.syncSections(0);
+    this.shoppers.syncShelfPicks([]);
     this.shoppers.setSpawningEnabled(false);
     for (let i = 0; i < fixtures.length; i += 1) {
       this.store.concealFixture(fixtures[i]);

@@ -45,6 +45,14 @@ export class ShopperManager {
     this.navigation.syncUnlocked(maxUnlocked);
   }
 
+  syncShelfPicks(ids) {
+    this.navigation.syncShelfPicks(ids);
+  }
+
+  addShelf(id) {
+    this.navigation.enableShelf(id);
+  }
+
   async load() {
     const models = this.config.models;
     try {
