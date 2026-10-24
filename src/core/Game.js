@@ -46,6 +46,7 @@ import { IntercomSystem } from '../security/IntercomSystem.js';
 import { RollerSkates } from '../player/RollerSkates.js';
 import { findSceneObject } from './findSceneObject.js';
 import { MainMenu } from '../menu/MainMenu.js';
+import { TutorialPad } from '../ui/TutorialPad.js';
 
 export class Game {
   constructor(canvas, app) {
@@ -138,6 +139,7 @@ export class Game {
       this.broomStations?.syncUnlocked();
     };
     this.mainMenu = new MainMenu(this);
+    this.tutorial = new TutorialPad(this);
     this.hotdog = new HotdogStand(this.scene, this.loader, this.collision, this.outside, this.config);
     await this.hotdog.load();
     this.pets = new StreetPets(this.scene, this.loader, this.collision, this.outside, this.config);
@@ -561,7 +563,8 @@ export class Game {
       this.lighting.update(dt);
       this.shopSign?.update(this.lighting.night);
       this.outside?.diorama?.setNight(this.lighting.night);
-      this.player.movementLocked = this.mainMenu.state === 'MODAL';
+      this.tutorial?.update(dt);
+      this.player.movementLocked = this.mainMenu.state === 'MODAL' || this.tutorial?.open === true;
       this.player.update(dt);
       this.followCamera.update(dt);
       this.occlusion.update(dt);
@@ -576,7 +579,8 @@ export class Game {
     this.sceneOverrides?.applyLightLocks();
     this.phaseHud.update(dt);
     const playing = !this.dayNight.blocksPlay();
-    this.player.movementLocked = !playing;
+    this.tutorial?.update(dt);
+    this.player.movementLocked = !playing || this.tutorial?.open === true;
     this.player.update(dt);
     this.upgradeManager?.update(dt);
     this.weaponStation.setUpgradeMode(this.upgrades.canPurchase());

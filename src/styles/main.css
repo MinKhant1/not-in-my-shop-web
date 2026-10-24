@@ -1062,3 +1062,118 @@ body.is-naming #joystick-zone {
   background: var(--ui-disabled);
   opacity: 1;
 }
+
+#tutorial-modal {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 14;
+  box-sizing: border-box;
+  width: min(480px, calc(100vw - 24px));
+  max-height: min(92dvh, 760px);
+  margin: 0;
+  padding: 14px 14px 12px;
+  overflow: auto;
+  transform: translate(-50%, -50%);
+  border: 2px solid var(--ui-gold);
+  border-radius: 16px;
+  color: var(--ui-text);
+  background: var(--ui-bg);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+  font-family: "Segoe UI", system-ui, sans-serif;
+}
+
+#tutorial-modal[hidden] {
+  display: none;
+}
+
+#tutorial-modal h2,
+#tutorial-modal p {
+  margin: 0;
+}
+
+.tutorial-kicker {
+  color: var(--ui-gold);
+  font: 700 12px/1 system-ui, sans-serif;
+  letter-spacing: 0.08em;
+  text-align: center;
+}
+
+#tutorial-modal h2 {
+  margin-top: 4px;
+  color: var(--ui-text);
+  font: 800 20px/1.1 system-ui, sans-serif;
+  text-align: center;
+}
+
+#tutorial-modal img {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-top: 10px;
+  border-radius: 10px;
+}
+
+#tutorial-modal p:not(.tutorial-kicker) {
+  margin-top: 8px;
+  font: 14px/1.35 system-ui, sans-serif;
+  text-align: center;
+}
+
+.tutorial-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: 8px;
+  color: var(--ui-text);
+  background: transparent;
+  font: 700 12px/1 system-ui, sans-serif;
+}
+
+.tutorial-dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.tutorial-dots button {
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.tutorial-dots button.is-on {
+  background: var(--ui-gold);
+}
+
+.tutorial-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.tutorial-actions button {
+  flex: 1;
+  padding: 10px 8px;
+  border: 0;
+  border-radius: 10px;
+  color: var(--ui-bg);
+  background: var(--ui-gold);
+  font: 800 14px/1 system-ui, sans-serif;
+}
+
+.tutorial-actions button.is-quiet {
+  color: var(--ui-text);
+  background: transparent;
+  border: 1px solid rgba(255, 246, 228, 0.35);
+}
+
+.tutorial-actions button:disabled {
+  opacity: 0.4;
+}
