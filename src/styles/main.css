@@ -878,15 +878,11 @@ body {
 
 .cctv-alert {
   position: absolute;
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
+  width: 64px;
+  height: 64px;
   transform: translate(-50%, -50%);
-  background: var(--ui-danger);
-  color: var(--ui-text);
-  font: 800 22px/34px system-ui, sans-serif;
-  text-align: center;
-  box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.4);
+  object-fit: contain;
+  pointer-events: none;
 }
 
 #load-error {

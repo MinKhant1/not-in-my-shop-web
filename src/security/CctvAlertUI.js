@@ -2,7 +2,7 @@ import * as THREE from 'three';
 
 const EDGE_MARGIN = 54;
 
-// Screen-edge "!" marks for thieves the cameras are tracking.
+// Screen-edge thief icons for cameras tracking someone outside the current view.
 // A mark is shown only while that thief is outside the current view.
 export class CctvAlertUI {
   constructor(parent) {
@@ -90,9 +90,10 @@ export class CctvAlertUI {
     if (mark) {
       return mark;
     }
-    mark = document.createElement('div');
+    mark = document.createElement('img');
     mark.className = 'cctv-alert';
-    mark.textContent = '!';
+    mark.src = '/assets/ui/hud/thief_cctv.png';
+    mark.alt = '';
     mark.setAttribute('aria-hidden', 'true');
     this.root.appendChild(mark);
     this.marks.set(id, mark);

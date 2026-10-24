@@ -42,24 +42,7 @@ function getThiefIconMaterial() {
   if (thiefIconMaterial) {
     return thiefIconMaterial;
   }
-  const canvas = document.createElement('canvas');
-  canvas.width = 128;
-  canvas.height = 128;
-  const context = canvas.getContext('2d');
-  context.clearRect(0, 0, 128, 128);
-  context.fillStyle = '#e23d3d';
-  context.beginPath();
-  context.arc(64, 64, 54, 0, Math.PI * 2);
-  context.fill();
-  context.lineWidth = 8;
-  context.strokeStyle = '#fff7f2';
-  context.stroke();
-  context.fillStyle = '#fff7f2';
-  context.font = 'bold 84px sans-serif';
-  context.textAlign = 'center';
-  context.textBaseline = 'middle';
-  context.fillText('!', 64, 70);
-  const texture = new THREE.CanvasTexture(canvas);
+  const texture = new THREE.TextureLoader().load('/assets/ui/hud/thief_head.png');
   texture.colorSpace = THREE.SRGBColorSpace;
   thiefIconMaterial = new THREE.SpriteMaterial({
     map: texture,
@@ -281,8 +264,8 @@ export class ShopperVisuals {
     this.thiefMaterials = applyThiefEffect(this.model);
     const icon = new THREE.Sprite(getThiefIconMaterial());
     icon.name = 'thief-icon';
-    icon.position.y = 1.38;
-    icon.scale.set(0.34, 0.34, 1);
+    icon.position.y = 2.28;
+    icon.scale.set(0.7, 0.7, 1);
     this.group.add(icon);
     this.icon = icon;
   }
