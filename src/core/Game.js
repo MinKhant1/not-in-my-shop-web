@@ -16,6 +16,7 @@ import { STREETLIGHT_MODEL } from '../world/Diorama.js';
 import { PrefabLibrary } from '../editor/PrefabLibrary.js';
 import { Player } from '../entities/Player.js';
 import { ShopperManager } from '../shoppers/ShopperManager.js';
+import { countExpansionShelves } from '../shoppers/customerQuota.js';
 import { PlayerOcclusionManager } from '../systems/PlayerOcclusionManager.js';
 import { MoneyManager } from '../economy/MoneyManager.js';
 import { ShopUpgrades } from '../economy/ShopUpgrades.js';
@@ -220,6 +221,12 @@ export class Game {
     );
     this.purchases.restoreOwned(ownedFixtures);
     this.purchases.syncOffers();
+    this.shoppers.setCustomerSources({
+      day: () => this.dayNight.dayNumber,
+      dayRemaining: () => this.dayNight.remaining,
+      dayDuration: () => this.dayNight.dayDuration,
+      shelves: () => countExpansionShelves(this.purchases.owned)
+    });
     this.debugMoney = new DebugMoneyUI(
       this.app,
       this.money,
@@ -647,6 +654,7 @@ export class Game {
     for (let i = 0; i < fixtures.length; i += 1) {
       this.store.concealFixture(fixtures[i]);
     }
+    this.cashiers?.syncLayout();
     this.purchases?.owned.clear();
     this.purchases?.syncOffers();
     this.registerEditorAnchors();
@@ -682,7 +690,7 @@ export class Game {
     const fps = Math.round(this.fpsFrames / this.fpsTime);
     const shopperLine = this.config.shoppers?.debugNavigation ? ` ${this.shoppers.describe()}` : '';
     const checkoutLine = this.config.checkout?.debugCheckout
-      ? ` ${this.shoppers.checkoutQueue.describe()} ${this.checkout.describe()}`
+      ? ` ${this.shoppers.lanes.describe()} ${this.checkout.describe()}`
       : '';
     const weaponLine = this.config.weapons?.debugWeapons
       ? ` ${this.weapons.describe()} ${this.drops.describe()}`

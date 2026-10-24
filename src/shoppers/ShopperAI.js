@@ -58,7 +58,7 @@ function randomInt(min, max) {
 let nextShopperId = 1;
 
 export class ShopperAI {
-  constructor({ asset, modelUrl, config, navigation, collision, checkoutQueue, checkoutConfig, weaponsConfig, toonFactory, debug }) {
+  constructor({ asset, modelUrl, config, navigation, collision, checkoutQueue, checkoutLanes, checkoutConfig, weaponsConfig, toonFactory, debug }) {
     this.id = nextShopperId;
     nextShopperId += 1;
     this.modelUrl = modelUrl;
@@ -66,6 +66,7 @@ export class ShopperAI {
     this.navigation = navigation;
     this.collision = collision;
     this.checkoutQueue = checkoutQueue;
+    this.checkoutLanes = checkoutLanes ?? null;
     this.checkoutConfig = checkoutConfig;
     this.weaponsConfig = weaponsConfig;
     this.debug = debug;
@@ -335,7 +336,7 @@ export class ShopperAI {
       this.checkoutConfig.minCustomerPayment,
       this.checkoutConfig.maxCustomerPayment
     );
-    const index = this.checkoutQueue.join(this);
+    const index = this.checkoutLanes ? this.checkoutLanes.join(this) : this.checkoutQueue.join(this);
     if (index < 0) {
       this.pause(0.4, () => this.decide());
     }
@@ -776,11 +777,15 @@ export class ShopperAI {
         this.checkoutConfig.queueArrivalDistance ?? 0.45,
         this.config.waypointReachDistance
       );
-      if (dx * dx + dz * dz > arrival * arrival) {
+      if (dx * dx + dz * dz > 1.15 * 1.15) {
         this.hasReachedQueueSlot = false;
         this.state = ShopperState.GOING_TO_QUEUE;
         this.goTo(target.id);
         return;
+      }
+      if (dx * dx + dz * dz > arrival * arrival) {
+        this.group.position.x = target.x;
+        this.group.position.z = target.z;
       }
     }
     this.hasReachedQueueSlot = true;
@@ -819,7 +824,7 @@ export class ShopperAI {
   waitForPlayer() {
     this.hasReachedQueueSlot = true;
     this.state = ShopperState.WAITING_FOR_CHECKOUT;
-    this.faceNode(this.navigation.nodes.get('queue0'));
+    this.faceQueueFront();
     this.moving = false;
     this.refreshDebug();
   }
@@ -829,7 +834,7 @@ export class ShopperAI {
       return;
     }
     this.state = ShopperState.CHECKING_OUT;
-    this.faceNode(this.navigation.nodes.get('queue0'));
+    this.faceQueueFront();
     this.moving = false;
     this.refreshDebug();
   }
@@ -892,6 +897,14 @@ export class ShopperAI {
     this.state = ShopperState.DESPAWNED;
     this.moving = false;
     this.route.clear();
+  }
+
+  faceQueueFront() {
+    const id = this.checkoutQueue?.slotId(0);
+    const slot = id ? this.navigation.nodes.get(id) : null;
+    if (slot) {
+      this.faceNode(slot);
+    }
   }
 
   faceNode(node) {

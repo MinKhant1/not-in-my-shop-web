@@ -197,8 +197,8 @@ export const GameConfig = {
     angerReactTime: 0.65,
     queueSpacing: 0.78,
     queueSlots: 6,
-    queueOrigin: [1.2, 3.7],
-    zonePosition: [2.28, 3.7],
+    queueOrigin: [1.2, 4.055],
+    zonePosition: [2.28, 4.055],
     zoneRadius: 0.48
   },
   weapons: {

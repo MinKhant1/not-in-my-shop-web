@@ -34,7 +34,7 @@ function createFaceTexture() {
 }
 
 export class CheckoutProgressUI {
-  constructor(scene, camera) {
+  constructor(scene, camera, register = null) {
     this.camera = camera;
     this.target = 0;
     this.display = 0;
@@ -76,11 +76,12 @@ export class CheckoutProgressUI {
     this.root.add(fill);
     this.face = face;
     this.fill = fill;
-    this.attach(scene);
+    this.attach(scene, register);
   }
 
-  attach(scene) {
-    const register = findSceneObject(scene, 'cash-register');
+  attach(scene, register = null) {
+    const target = register || findSceneObject(scene, 'cash-register');
+    register = target;
     if (!register) {
       this.root.position.set(2.15, 1.2, 2.55);
       scene.add(this.root);

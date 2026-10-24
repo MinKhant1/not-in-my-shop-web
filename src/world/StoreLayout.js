@@ -67,7 +67,7 @@ function buildLayout() {
     entry('display-fruit', '/models/store/display-fruit.glb', [-0.4, 0, 1.05], [0, 0, 0], true),
     entry('display-bread', '/models/store/display-bread.glb', [0.45, 0, 1.05], [0, 0, 0], true),
 
-    entry('cash-register', '/models/store/cash-register.glb', [2.15, 0, 2.55], [0, Math.PI, 0], true),
+    entry('cash-register', '/models/store/cash-register.glb', [2.15, 0, 2.989], [0, Math.PI, 0], true),
 
     {
       id: 'weapon-station',

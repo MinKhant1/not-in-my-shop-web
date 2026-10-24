@@ -77,6 +77,7 @@ export class CashierHire {
         this.layout(this.stations[i]);
       }
     }
+    this.shoppers?.openRegisters?.(this.stations, this.checkout);
     this.applyAutomation();
   }
 
@@ -164,7 +165,7 @@ export class CashierHire {
     const registerZ = this.world.z;
     const basis = this.standOffset();
     const standX = station.servesMainQueue ? this.checkout.zoneX : registerX + basis.x;
-    const standZ = station.servesMainQueue ? this.checkout.zoneZ : registerZ + basis.z;
+    const standZ = this.checkout.zoneZ;
     let forwardX = standX - registerX;
     let forwardZ = standZ - registerZ;
     const length = Math.hypot(forwardX, forwardZ);
@@ -178,6 +179,8 @@ export class CashierHire {
     const leftX = -forwardZ;
     const leftZ = forwardX;
     const gap = this.config.padGap ?? 1.2;
+    station.registerX = registerX;
+    station.registerZ = registerZ;
     station.standX = standX;
     station.standZ = standZ;
     const face = this.faceOffset();
@@ -226,9 +229,14 @@ export class CashierHire {
   }
 
   applyAutomation() {
-    const primary = this.primary();
-    const hired = primary?.cashier?.hired === true;
-    this.checkout.setAutomated(this.shift && hired);
+    for (let i = 0; i < this.stations.length; i += 1) {
+      const station = this.stations[i];
+      const id = station.servesMainQueue
+        ? 'cash-register'
+        : (station.register.userData?.editorId || station.register.name);
+      const hired = station.cashier?.hired === true;
+      this.checkout.setLaneAutomated(id, this.shift && hired);
+    }
   }
 
   update(dt) {
