@@ -236,7 +236,13 @@ export class ShopperManager {
     }
 
     const models = this.config.models;
-    const modelUrl = models[Math.floor(Math.random() * models.length)];
+    const inUse = new Set();
+    for (let i = 0; i < this.shoppers.length; i += 1) {
+      inUse.add(this.shoppers[i].modelUrl);
+    }
+    const unused = models.filter((url) => !inUse.has(url));
+    const pool = unused.length ? unused : models;
+    const modelUrl = pool[Math.floor(Math.random() * pool.length)];
     const generation = this.spawnGeneration;
     this.spawning = true;
     this.pendingSpawns += 1;

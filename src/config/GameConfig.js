@@ -255,7 +255,13 @@ export const GameConfig = {
     models: [
       '/models/characters/Chef_Male.gltf',
       '/models/characters/OldClassy_Male.gltf',
-      '/models/characters/Suit_Male.gltf'
+      '/models/characters/Suit_Male.gltf',
+      '/models/outside/Chef_Female.gltf',
+      '/models/outside/Cowboy_Female.gltf',
+      '/models/outside/Cowboy_Male.gltf',
+      '/models/outside/Doctor_Female_Old.gltf',
+      '/models/outside/Doctor_Female_Young.gltf',
+      '/models/outside/OldClassy_Female.gltf'
     ]
   }
 };
