@@ -82,7 +82,7 @@ const FIXTURE_SPECS = {
     { id: 'electronics_cash_register', name: 'Cash Register', asset: '/models/store/cash-register.glb', price: 40, local: [3.5, 0, 2.989], rotation: [0, Math.PI, 0], footprint: [0.8, 0.55], keepColor: false }
   ],
   sports: [
-    { id: 'sports_bike_wall_rack', name: 'Bike Wall Rack', asset: '/models/store/bike_wall_rack.glb', price: 50, local: [3.5, 0, -3.98], scale: [2.2, 1.2, 1.15], footprint: [2.1, 0.36] },
+    { id: 'sports_bike_wall_rack', name: 'Bike Wall Rack', asset: '/models/store/bike_wall_rack.glb', price: 50, local: [3.5, 0, -3.98], scale: [1.2, 1.2, 1.2], footprint: [1.2, 0.4] },
     { id: 'sports_shoe_rack', name: 'Shoe Rack', asset: '/models/store/shoe_rack.glb', price: 35, local: [3.5, 0, -1.45], scale: [1.35, 1.35, 1.35], footprint: [1.05, 0.8] },
     { id: 'sports_ball_rack', name: 'Ball Rack', asset: '/models/store/ball_rack.glb', price: 25, local: [3.5, 0, 0.25], scale: [1.35, 1.35, 1.35], footprint: [1.1, 0.6] },
     { id: 'sports_cash_register', name: 'Cash Register', asset: '/models/store/cash-register.glb', price: 40, local: [3.5, 0, 2.989], rotation: [0, Math.PI, 0], footprint: [0.8, 0.55], keepColor: false }

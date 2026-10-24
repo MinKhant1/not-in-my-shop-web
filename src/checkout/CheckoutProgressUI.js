@@ -7,10 +7,11 @@ const PLANE_W = 0.86;
 const PLANE_H = 0.43;
 const TRACK = { x: 22, y: 62, w: 212, h: 42 };
 const FILL_LERP = 16;
-const _world = new THREE.Vector3();
-const _up = new THREE.Vector3(0, 1, 0);
-const _yaw = new THREE.Quaternion();
-const _parent = new THREE.Quaternion();
+// Fixed lean toward the usual south view. The bar does not follow the camera.
+const BAR_TILT = 0.48;
+const _worldPose = new THREE.Quaternion();
+const _parentPose = new THREE.Quaternion();
+const _tilt = new THREE.Euler(-BAR_TILT, 0, 0, 'YXZ');
 
 function createFaceTexture() {
   const canvas = document.createElement('canvas');
@@ -39,7 +40,6 @@ function createFaceTexture() {
 
 export class CheckoutProgressUI {
   constructor(scene, camera, register = null) {
-    this.camera = camera;
     this.target = 0;
     this.display = 0;
     this.root = new THREE.Group();
@@ -89,6 +89,7 @@ export class CheckoutProgressUI {
     if (!register) {
       this.root.position.set(2.15, 1.2, 2.55);
       scene.add(this.root);
+      this.pose();
       return;
     }
 
@@ -106,6 +107,19 @@ export class CheckoutProgressUI {
     }
     this.root.position.copy(anchor);
     register.add(this.root);
+    this.pose();
+  }
+
+  pose() {
+    _worldPose.setFromEuler(_tilt);
+    const parent = this.root.parent;
+    if (!parent) {
+      this.root.quaternion.copy(_worldPose);
+      return;
+    }
+    parent.updateWorldMatrix(true, false);
+    _parentPose.setFromRotationMatrix(parent.matrixWorld).invert();
+    this.root.quaternion.copy(_parentPose).multiply(_worldPose);
   }
 
   show() {
@@ -136,29 +150,6 @@ export class CheckoutProgressUI {
       this.display = this.target;
     }
     this.fill.scale.x = Math.max(this.display, 0.0001);
-    this.standUpright();
-  }
-
-  // Yaw toward the camera only. A full lookAt pitches the bar up at the high camera.
-  standUpright() {
-    if (!this.camera) {
-      return;
-    }
-    this.root.updateWorldMatrix(true, false);
-    _world.setFromMatrixPosition(this.root.matrixWorld);
-    const dx = this.camera.position.x - _world.x;
-    const dz = this.camera.position.z - _world.z;
-    if (dx * dx + dz * dz < 1e-8) {
-      return;
-    }
-    _yaw.setFromAxisAngle(_up, Math.atan2(dx, dz));
-    const parent = this.root.parent;
-    if (parent) {
-      _parent.setFromRotationMatrix(parent.matrixWorld).invert();
-      this.root.quaternion.copy(_parent).multiply(_yaw);
-    } else {
-      this.root.quaternion.copy(_yaw);
-    }
   }
 
   dispose() {
