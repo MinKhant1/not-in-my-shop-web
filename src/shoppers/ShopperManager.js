@@ -36,6 +36,9 @@ export class ShopperManager {
     this.customerSources = null;
     this.dayStats = null;
     this.audio = null;
+    this.trashRules = null;
+    this.isInsideShop = null;
+    this.onDropTrash = null;
     this.ready = false;
     if (this.debug) {
       window.__shoppers = this;
@@ -273,6 +276,10 @@ export class ShopperManager {
       if (!this.spawningEnabled || generation !== this.spawnGeneration || this.shoppers.length >= this.config.maxActive) {
         return;
       }
+      const day = this.customerSources?.day?.() ?? 1;
+      const rules = this.trashRules ?? {};
+      const startDay = rules.startDay ?? 3;
+      const chance = day >= startDay ? (rules.chance ?? 0.1) : 0;
       const shopper = new ShopperAI({
         asset,
         modelUrl,
@@ -285,6 +292,9 @@ export class ShopperManager {
         weaponsConfig: this.weaponsConfig,
         toonFactory: this.toonFactory,
         theftAllowed: () => this.theftAllowed(),
+        dropsTrash: chance > 0 && Math.random() < chance,
+        isInsideShop: (x, z) => this.isInsideShop?.(x, z) === true,
+        onDropTrash: (x, z) => this.onDropTrash?.(x, z),
         debug: this.debug || this.checkoutConfig?.debugCheckout === true || this.weaponsConfig?.debugWeapons === true
       });
       const z = door.z + randomBetween(-0.22, 0.22);

@@ -49,6 +49,7 @@ import { findSceneObject } from './findSceneObject.js';
 import { MainMenu } from '../menu/MainMenu.js';
 import { TutorialPad } from '../ui/TutorialPad.js';
 import { EntranceGuide } from '../ui/EntranceGuide.js';
+import { TrashManager } from '../world/TrashManager.js';
 
 export class Game {
   constructor(canvas, app) {
@@ -86,6 +87,7 @@ export class Game {
       setSpawning: (enabled) => this.shoppers.setSpawningEnabled(enabled),
       prepareNextDay: () => {
         this.shoppers.prepareNextDay();
+        this.trash?.clear();
         this.dayStats.reset();
         this.dayStartMoney = this.money.getMoney();
         this.intercom?.resetCooldown();
@@ -174,7 +176,18 @@ export class Game {
     this.mainMenu.placePlayer();
     this.dayNight.holdMenu();
     this.mainMenu.syncPresentation();
-    await this.shoppers.load();
+    this.trash = new TrashManager({
+      scene: this.scene,
+      loader: this.loader,
+      collision: this.collision,
+      config: this.config.trash ?? {},
+      toonFactory: this.shoppers.toonFactory,
+      floorEast: () => this.store?.playLimits()?.floorEast ?? 3
+    });
+    this.shoppers.trashRules = this.config.trash ?? {};
+    this.shoppers.isInsideShop = (x, z) => this.trash.isInside(x, z);
+    this.shoppers.onDropTrash = (x, z) => this.trash.spawn(x, z);
+    await Promise.all([this.shoppers.load(), this.trash.load()]);
 
     const debugView = this.collision.createDebugVisuals();
     if (debugView) {
@@ -419,6 +432,7 @@ export class Game {
     this.upgradeManager.pads.push(this.broomUpgrade.pad);
     this.weaponStation.onZoneMove = (x, z) => this.broomUpgrade.pad.setPosition(x, z);
     this.weapons.getBroom = () => this.broomUpgrade.current;
+    this.weapons.trash = this.trash;
     await this.broomUpgrade.restore();
     const stationConfig = upgradeConfig.broomStation ?? {};
     this.broomStations = new BroomStationSet({
@@ -611,6 +625,7 @@ export class Game {
     const position = this.player.group.position;
     this.purchases?.update(dt, playing, position.x, position.z);
     this.shoppers.update(dt);
+    this.trash?.update(dt);
     this.security?.setShift(playing && this.dayNight.displayPhase() === 'DAY');
     this.security?.update(dt);
     const dayShift = playing && this.dayNight.displayPhase() === 'DAY';
@@ -661,6 +676,7 @@ export class Game {
     this.money.setMoney(purse);
     this.dayStats.reset();
     this.drops?.clear();
+    this.trash?.clear();
     this.checkout?.cancel();
     this.intercom?.resetCooldown();
     this.shoppers.clearLive();
@@ -688,6 +704,7 @@ export class Game {
     this.dayNight.applySnapshot(null, false);
     this.dayNight.holdMenu();
     this.dayStats.reset();
+    this.trash?.clear();
     this.rollerSkates?.detach();
     const skateId = this.config.upgrades?.rollerSkate?.id;
     if (skateId) {

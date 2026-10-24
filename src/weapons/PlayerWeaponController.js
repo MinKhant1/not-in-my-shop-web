@@ -12,6 +12,7 @@ export class PlayerWeaponController {
     this.activity = activity;
     this.config = config;
     this.audio = audio ?? null;
+    this.trash = null;
     this.getBroom = null;
     this.target = null;
     this.cooldown = 0;
@@ -57,7 +58,10 @@ export class PlayerWeaponController {
     }
 
     this.retainTarget();
-    if (this.broom.swingTime < 0 && this.cooldown <= 0 && this.target) {
+    const origin = this.player.position;
+    const range = this.config.attackRange;
+    const trashNear = this.trash?.inRange(origin.x, origin.z, range) === true;
+    if (this.broom.swingTime < 0 && this.cooldown <= 0 && (this.target || trashNear)) {
       this.broom.startSwing();
       this.cooldown = this.config.attackCooldown;
       const clipDuration = this.player.attackClipDuration;
@@ -67,7 +71,11 @@ export class PlayerWeaponController {
 
     const swing = this.broom.updateSwing(dt);
     if (swing === 'hit') {
-      this.resolveHit();
+      const struck = this.resolveHit();
+      const cleaned = this.trash?.sweep(origin.x, origin.z, range) === true;
+      if (cleaned && !struck) {
+        this.audio?.hit();
+      }
     }
     if (swing === 'done') {
       this.player.endAttack();
@@ -126,7 +134,7 @@ export class PlayerWeaponController {
   resolveHit() {
     const target = this.target;
     if (!target || !this.isValidTarget(target)) {
-      return;
+      return false;
     }
     const stats = this.broomStats();
     this.audio?.hit();
@@ -141,11 +149,12 @@ export class PlayerWeaponController {
       }
     }
     if (!defeated) {
-      return;
+      return true;
     }
     this.target = null;
     const drops = target.dieOrFlee(this.config.defeatedThiefRunSpeed);
     this.drops.spawn(drops);
+    return true;
   }
 
   syncRangeRing() {

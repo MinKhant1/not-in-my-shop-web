@@ -5,7 +5,7 @@ export const BROOM_UPGRADES = [
     id: 'normal_broom',
     name: 'Normal Broom',
     model: '/models/objects/low_poly_broom.glb',
-    damage: 10,
+    damage: 20,
     cost: 0,
     burnDps: 0,
     burnDuration: 0
@@ -15,7 +15,7 @@ export const BROOM_UPGRADES = [
     id: 'spiked_broom',
     name: 'Spiked Broom',
     model: '/models/objects/broom_2.glb',
-    damage: 20,
+    damage: 30,
     cost: 150,
     burnDps: 0,
     burnDuration: 0

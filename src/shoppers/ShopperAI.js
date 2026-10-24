@@ -65,7 +65,7 @@ function randomInt(min, max) {
 let nextShopperId = 1;
 
 export class ShopperAI {
-  constructor({ asset, modelUrl, config, navigation, collision, checkoutQueue, checkoutLanes, checkoutConfig, weaponsConfig, toonFactory, debug, theftAllowed }) {
+  constructor({ asset, modelUrl, config, navigation, collision, checkoutQueue, checkoutLanes, checkoutConfig, weaponsConfig, toonFactory, debug, theftAllowed, dropsTrash, isInsideShop, onDropTrash }) {
     this.id = nextShopperId;
     nextShopperId += 1;
     this.modelUrl = modelUrl;
@@ -111,6 +111,13 @@ export class ShopperAI {
     this.angerReact = 0;
     this.lookTarget = null;
     this.actionLock = null;
+    this.dropsTrash = dropsTrash === true;
+    this.trashDropped = false;
+    this.wasInside = false;
+    this.lastInsideX = 0;
+    this.lastInsideZ = 0;
+    this.isInsideShop = isInsideShop ?? null;
+    this.onDropTrash = onDropTrash ?? null;
 
     this.route = new ShopperRoute(navigation, {
       moveSpeed: config.moveSpeed + randomBetween(-config.speedJitter, config.speedJitter),
@@ -168,6 +175,7 @@ export class ShopperAI {
       this.stopBurn(true);
       return;
     }
+    this.trackTrash();
     if (this.state === ShopperState.KNOCKED_OUT) {
       this.updateKnockout(dt);
       if (this.state === ShopperState.KNOCKED_OUT) {
@@ -220,6 +228,7 @@ export class ShopperAI {
     const result = this.route.update(dt, this.group, this.collision, this.radius);
     this.moving = result === 'moving';
     this.updateAnimation(this.moving, dt);
+    this.trackTrash();
     if (result === 'arrived') {
       this.onArrived();
     }
@@ -905,7 +914,33 @@ export class ShopperAI {
     this.onEscaped?.();
   }
 
+  trackTrash() {
+    if (!this.dropsTrash || this.trashDropped) {
+      return;
+    }
+    const x = this.group.position.x;
+    const z = this.group.position.z;
+    if (this.isInsideShop?.(x, z) === true) {
+      this.wasInside = true;
+      this.lastInsideX = x;
+      this.lastInsideZ = z;
+      return;
+    }
+    if (this.wasInside) {
+      this.releaseTrash();
+    }
+  }
+
+  releaseTrash() {
+    if (!this.dropsTrash || this.trashDropped || !this.wasInside) {
+      return;
+    }
+    this.trashDropped = true;
+    this.onDropTrash?.(this.lastInsideX, this.lastInsideZ);
+  }
+
   despawn() {
+    this.releaseTrash();
     this.recordEscape();
     if (this.checkoutQueue.queue.includes(this)) {
       this.queueIndex = -1;

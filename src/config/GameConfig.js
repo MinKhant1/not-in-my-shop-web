@@ -262,5 +262,11 @@ export const GameConfig = {
       '/models/outside/Doctor_Female_Young.gltf',
       '/models/outside/OldClassy_Female.gltf'
     ]
+  },
+  trash: {
+    model: '/models/objects/trash_bag.glb',
+    startDay: 3,
+    chance:0.1,
+    height: 0.28
   }
 };
