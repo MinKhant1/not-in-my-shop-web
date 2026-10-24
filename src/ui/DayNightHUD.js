@@ -1,7 +1,6 @@
 import { DayPhase } from '../daynight/DayNightController.js';
 import { formatGameTime } from '../daynight/shopTime.js';
 import moonUrl from '../assets/icons/moon.svg';
-import sunriseUrl from '../assets/icons/sunrise.svg';
 import bugUrl from '../assets/icons/bug.svg';
 import usersUrl from '../assets/icons/users.svg';
 import clipboardUrl from '../assets/icons/clipboard-check.svg';
@@ -137,24 +136,17 @@ export class DayNightHUD {
     this.motionTime = 0;
     this.seenDay = controller.dayNumber;
     this.reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-    this.nextDayButton = document.querySelector('#next-day');
-    this.nextDayIcon = document.querySelector('#next-day-icon');
     this.announcement = document.querySelector('#closing-announcement');
     this.scrim = document.querySelector('#closing-scrim');
     this.panel = document.querySelector('#results-panel');
     this.continueButton = document.querySelector('#results-continue');
 
-    this.nextDayIcon.src = sunriseUrl;
     this.preloadClockArt();
     this.setIcon('#results-moon', moonUrl);
     this.setIcon('#stat-customers-icon', usersUrl);
     this.setIcon('#stat-checkouts-icon', clipboardUrl);
     this.setIcon('#stat-caught-icon', caughtUrl);
     this.setIcon('#stat-escaped-icon', escapedUrl);
-    this.nextDayButton.addEventListener('click', () => {
-      this.controller.startNextDay();
-      this.render();
-    });
     this.continueButton.addEventListener('click', () => this.onContinue());
     this.scrim.addEventListener('click', () => {
       if (this.controller.phase === DayPhase.RESULTS && !this.countDone) {
@@ -440,8 +432,6 @@ export class DayNightHUD {
       this.plaque.textContent = label;
     }
 
-    const showNextDay = this.controller.phase === DayPhase.NIGHT;
-    this.nextDayButton.hidden = !showNextDay;
     if (this.debugButton) {
       const locked = this.controller.phase !== DayPhase.DAY && this.controller.phase !== DayPhase.NIGHT;
       this.debugButton.disabled = locked;

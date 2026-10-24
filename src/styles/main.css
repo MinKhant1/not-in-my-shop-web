@@ -230,7 +230,6 @@ body {
 }
 
 #night-icon,
-#next-day img,
 #debug-phase img,
 #debug-shop img,
 #results-panel img {
@@ -246,7 +245,6 @@ body {
   font-size: 16px;
 }
 
-#next-day,
 #debug-phase,
 #debug-shop {
   pointer-events: auto;
@@ -262,10 +260,6 @@ body {
   background: rgba(20, 24, 28, 0.72);
   font: 700 14px/1 system-ui, sans-serif;
   cursor: pointer;
-}
-
-#next-day[hidden] {
-  display: none;
 }
 
 #debug-phase,
