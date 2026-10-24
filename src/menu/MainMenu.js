@@ -181,6 +181,9 @@ export class MainMenu {
     for (let i = 0; i < this.squares.length; i += 1) {
       this.squares[i].root.visible = showMenu;
     }
+    if (this.game.tutorial) {
+      this.game.tutorial.root.visible = showMenu;
+    }
     this.spawn.visible = this.editing;
     const blocking = !this.editing && this.state !== 'PLAYING';
     this.blocker.visible = this.editing || blocking;
@@ -414,7 +417,7 @@ export class MainMenu {
     try {
       await this.game.resetToNewShop(shopName);
       this.game.dayNight.applySnapshot(null, true);
-      this.beginPlay();
+      this.beginPlay({ fresh: true });
     } catch (error) {
       console.error('Failed to start a new shop', error);
       this.busy = false;
@@ -511,8 +514,13 @@ export class MainMenu {
     }
   }
 
-  beginPlay() {
+  beginPlay(options = {}) {
     this.closeModal();
+    if (options.fresh) {
+      this.game.entranceGuide?.show();
+    } else {
+      this.game.entranceGuide?.hide();
+    }
     this.state = 'PLAYING';
     this.previousState = 'PLAYING';
     document.body.classList.remove('is-main-menu');

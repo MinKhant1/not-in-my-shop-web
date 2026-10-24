@@ -615,11 +615,9 @@ body {
 }
 
 .money-coin {
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 35%, #fff4c4, var(--ui-gold) 58%, #d9a227);
-  box-shadow: inset 0 0 0 2px #fff6d4;
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
 }
 
 #money-gain {

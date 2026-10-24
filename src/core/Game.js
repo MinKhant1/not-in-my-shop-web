@@ -47,6 +47,7 @@ import { RollerSkates } from '../player/RollerSkates.js';
 import { findSceneObject } from './findSceneObject.js';
 import { MainMenu } from '../menu/MainMenu.js';
 import { TutorialPad } from '../ui/TutorialPad.js';
+import { EntranceGuide } from '../ui/EntranceGuide.js';
 
 export class Game {
   constructor(canvas, app) {
@@ -140,6 +141,7 @@ export class Game {
     };
     this.mainMenu = new MainMenu(this);
     this.tutorial = new TutorialPad(this);
+    this.entranceGuide = new EntranceGuide(this.scene);
     this.hotdog = new HotdogStand(this.scene, this.loader, this.collision, this.outside, this.config);
     await this.hotdog.load();
     this.pets = new StreetPets(this.scene, this.loader, this.collision, this.outside, this.config);
@@ -582,6 +584,7 @@ export class Game {
     this.tutorial?.update(dt);
     this.player.movementLocked = !playing || this.tutorial?.open === true;
     this.player.update(dt);
+    this.entranceGuide?.update(dt, this.player.group.position);
     this.upgradeManager?.update(dt);
     this.weaponStation.setUpgradeMode(this.upgrades.canPurchase());
     this.broomStations?.setUpgradeMode(this.upgrades.canPurchase());

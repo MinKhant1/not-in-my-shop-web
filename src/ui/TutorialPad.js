@@ -121,6 +121,11 @@ export class TutorialPad {
   }
 
   update(dt) {
+    if (!this.root.visible) {
+      this.inside = false;
+      this.hold = 0;
+      return;
+    }
     const player = this.game.player;
     if (!player || this.game.editor?.active || this.game.mainMenu?.state === 'MODAL') {
       return;
