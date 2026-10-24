@@ -17,6 +17,137 @@
         }
       }
     },
+    "hotdog-seller": {
+      "nodes": {
+        "Scene/CharacterArmature/Bone/Body_1": {
+          "position": [
+            0.0022,
+            0.9071,
+            0.0193
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ]
+        },
+        "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen": {
+          "rotation": [
+            0.182,
+            0,
+            0
+          ]
+        },
+        "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/Neck": {
+          "rotation": [
+            -0.1666,
+            0,
+            0
+          ]
+        },
+        "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/Neck/Head": {
+          "rotation": [
+            -0.4619,
+            -0.0006,
+            0
+          ]
+        },
+        "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/ShoulderL": {
+          "position": [
+            0.2135,
+            0.216,
+            0.0213
+          ]
+        },
+        "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/ShoulderL/UpperArmL": {
+          "rotation": [
+            -2.3625,
+            -0.554,
+            -2.5803
+          ]
+        },
+        "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/ShoulderL/UpperArmL/LowerArmL": {
+          "rotation": [
+            1.0725,
+            0.3281,
+            -1.2182
+          ]
+        },
+        "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/ShoulderL/UpperArmL/LowerArmL/FistL": {
+          "rotation": [
+            0.0465,
+            -0.5473,
+            -0.146
+          ]
+        },
+        "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/ShoulderR": {
+          "position": [
+            -0.2123,
+            0.216,
+            0.0213
+          ]
+        },
+        "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/ShoulderR/UpperArmR": {
+          "rotation": [
+            -2.7447,
+            0.8551,
+            -3.1286
+          ]
+        },
+        "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/ShoulderR/UpperArmR/LowerArmR": {
+          "rotation": [
+            0.4108,
+            -0.4081,
+            0.7077
+          ]
+        },
+        "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/ShoulderR/UpperArmR/LowerArmR/FistR": {
+          "rotation": [
+            0.0465,
+            0.5473,
+            0.146
+          ]
+        },
+        "Scene/CharacterArmature/Bone/Body_1/UpperLegL": {
+          "position": [
+            0.253,
+            -0.0167,
+            -0.0559
+          ],
+          "rotation": [
+            2.621,
+            0.0051,
+            -0.0181
+          ]
+        },
+        "Scene/CharacterArmature/Bone/Body_1/UpperLegL/LowerLegL": {
+          "rotation": [
+            0.97,
+            0.0166,
+            0.0106
+          ]
+        },
+        "Scene/CharacterArmature/Bone/Body_1/UpperLegR": {
+          "position": [
+            -0.2547,
+            -0.0167,
+            -0.0559
+          ],
+          "rotation": [
+            2.621,
+            -0.0051,
+            0.0181
+          ]
+        },
+        "Scene/CharacterArmature/Bone/Body_1/UpperLegR/LowerLegR": {
+          "rotation": [
+            0.97,
+            -0.0166,
+            -0.0106
+          ]
+        }
+      }
+    },
     "menu-continue": {
       "position": [
         -4.786,
@@ -92,6 +223,13 @@
         19.3868,
         0,
         1.8682
+      ]
+    },
+    "upgrade-roller-skate": {
+      "position": [
+        12.1128,
+        0,
+        0.8864
       ]
     }
   },
