@@ -2,19 +2,23 @@ import { UpgradePad } from './UpgradePad.js';
 import { UpgradeTip } from '../ui/UpgradeTip.js';
 
 export class UpgradeManager {
-  constructor(scene, money, shopUpgrades, getPosition, interval, sectionOpen) {
+  constructor(scene, money, shopUpgrades, getPosition, interval, sectionOpen, audio) {
     this.money = money;
     this.shopUpgrades = shopUpgrades;
     this.getPosition = getPosition;
     this.interval = interval;
     this.sectionOpen = sectionOpen;
+    this.audio = audio ?? null;
     this.scene = scene;
     this.pads = [];
     this.tip = new UpgradeTip(document.querySelector('#app'));
   }
 
   add(spec) {
-    const pad = new UpgradePad(this.scene, this.money, this.shopUpgrades, spec, this.interval);
+    const pad = new UpgradePad(this.scene, this.money, this.shopUpgrades, {
+      ...spec,
+      audio: spec.audio ?? this.audio
+    }, this.interval);
     this.pads.push(pad);
     if (this.shopUpgrades.owns(spec.id)) {
       spec.onPurchase?.();

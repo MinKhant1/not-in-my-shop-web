@@ -35,6 +35,7 @@ export class ShopperManager {
     this.pendingSpawns = 0;
     this.customerSources = null;
     this.dayStats = null;
+    this.audio = null;
     this.ready = false;
     if (this.debug) {
       window.__shoppers = this;
@@ -286,6 +287,7 @@ export class ShopperManager {
         this.dayStats?.recordCaught();
       };
       shopper.onDrops = (drops) => this.onThiefDrops?.(drops);
+      shopper.onScream = () => this.audio?.scream();
       shopper.onEscaped = () => {
         if (shopper.outcomeCounted || !shopper.isThief || shopper.isDefeated) {
           return;

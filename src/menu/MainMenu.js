@@ -425,20 +425,32 @@ export class MainMenu {
   }
 
   showCredits() {
-    const menu = this.game.config.menu ?? {};
-    const developer = typeof menu.developer === 'string' ? menu.developer.trim() : '';
     this.openModal(() => {
+      this.panel.classList.add('is-credits');
       const title = document.createElement('h2');
       title.textContent = 'Credits';
       this.panel.append(title);
-      this.addBlock('Developer', developer || 'Not In My Shop');
-      this.addBlock(
-        'Third-party assets',
-        'Icons by the Lucide Contributors, with portions by Cole Bemis from Feather. Lucide is ISC. Feather portions are MIT.'
-      );
-      this.addBlock('Engine', 'Built with Three.js.');
-      this.addBlock('Acknowledgments', 'Thanks for playing, and for the third-party art that dresses the shop.');
-      this.panel.append(this.button('Close', () => this.closeModal()));
+      this.addBlock('Developed by', [
+        'Team ACE',
+        'Not In My Shop — Digit7 Jam 2026'
+      ]);
+      this.addBlock('3D Assets', [
+        'Kay Lousberg — City Builder Bits',
+        'Eclair Assets — Mini Market GLB Pack',
+        'Stars and Shells Studio — Low Poly Road Pack',
+        'Kenney — City Kit Commercial & Roads',
+        'Styloo — Animals'
+      ]);
+      this.addBlock('Music', 'Cosy Quirky — Pixabay');
+      this.addBlock('UI & Engine', [
+        'Lucide Contributors / Cole Bemis',
+        'Built with Three.js'
+      ]);
+      this.addBlock('Special thanks', 'Digit7s Myanmar and all asset creators.');
+      const signoff = document.createElement('p');
+      signoff.className = 'menu-signoff';
+      signoff.textContent = 'Thank you for playing!';
+      this.panel.append(signoff, this.button('Close', () => this.closeModal()));
     });
   }
 
@@ -470,9 +482,13 @@ export class MainMenu {
   addBlock(heading, text) {
     const title = document.createElement('h3');
     title.textContent = heading;
-    const copy = document.createElement('p');
-    copy.textContent = text;
-    this.panel.append(title, copy);
+    this.panel.append(title);
+    const lines = Array.isArray(text) ? text : [text];
+    for (let i = 0; i < lines.length; i += 1) {
+      const copy = document.createElement('p');
+      copy.textContent = lines[i];
+      this.panel.append(copy);
+    }
   }
 
   button(label, onClick, quiet) {
@@ -497,7 +513,7 @@ export class MainMenu {
   }
 
   closeModal() {
-    this.panel.classList.remove('is-compact');
+    this.panel.classList.remove('is-compact', 'is-credits');
     this.panel.hidden = true;
     this.panel.replaceChildren();
     this.setNaming(false);
@@ -517,6 +533,7 @@ export class MainMenu {
   beginPlay(options = {}) {
     this.closeModal();
     if (options.fresh) {
+      this.game.audio.shopBell();
       this.game.entranceGuide?.show();
     } else {
       this.game.entranceGuide?.hide();

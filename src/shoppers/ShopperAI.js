@@ -79,6 +79,7 @@ export class ShopperAI {
     // Kept by SecurityCameraSystem while a stealing thief is spotted. Cleared when they are caught or leave.
     this.trackedByCCTV = false;
     this.isDefeated = false;
+    this.screamPlayed = false;
     this.knockout = null;
     this.fleeSpeed = 0;
     this.burning = false;
@@ -695,6 +696,10 @@ export class ShopperAI {
   }
 
   beginDefeatedFlee() {
+    if (!this.screamPlayed) {
+      this.screamPlayed = true;
+      this.onScream?.();
+    }
     this.visual.rotation.x = 0;
     this.actionLock = null;
     this.knockout = null;

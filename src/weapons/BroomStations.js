@@ -84,6 +84,7 @@ export class BroomStationSet {
     this.cost = stationConfig.cost ?? 200;
     this.halfSize = stationConfig.halfSize ?? 0.72;
     this.interval = options.interval ?? 0.15;
+    this.audio = options.audio ?? null;
     this.upgradeOpen = false;
     this.stations = expansionSpots().map((spot) => new BroomStation(this, spot));
   }
@@ -170,6 +171,7 @@ class BroomStation {
       retainWhenOwned: true,
       banner: false,
       summary: broomOfferSummary('BROOM STATION'),
+      audio: set.audio ?? null,
       onPurchase: () => this.handlePurchase()
     }, set.interval);
     set.upgradeManager.pads.push(this.pad);

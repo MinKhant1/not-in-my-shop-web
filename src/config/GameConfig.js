@@ -66,8 +66,7 @@ export const GameConfig = {
   },
   menu: {
     holdSeconds: 0.8,
-    feedbackUrl: '',
-    developer: ''
+    feedbackUrl: ''
   },
   upgrades: {
     coinInterval: 0.15,

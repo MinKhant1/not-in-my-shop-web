@@ -24,6 +24,7 @@ export class UpgradePad {
     this.half = spec.halfSize ?? 0.75;
     this.interval = interval;
     this.onPurchase = spec.onPurchase;
+    this.audio = spec.audio ?? null;
     this.circular = spec.circular === true;
     this.retainWhenOwned = spec.retainWhenOwned === true;
     this.hiredText = spec.hiredText === undefined ? 'HIRED' : spec.hiredText;
@@ -207,6 +208,7 @@ export class UpgradePad {
     const broke = this.requireFull && inside && this.money.getMoney() < remaining;
     const result = this.investment.tick(this.money, dt, inside, this.interval, broke);
     if (result === 'purchased') {
+      this.audio?.win();
       if (!this.manual) {
         this.shopUpgrades.markPurchased(this.id);
       }

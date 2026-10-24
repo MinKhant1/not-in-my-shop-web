@@ -22,6 +22,7 @@ export class BroomUpgrade {
       retainWhenOwned: true,
       banner: false,
       summary: broomOfferSummary('BROOM'),
+      audio: options.audio ?? null,
       onPurchase: () => this.purchase()
     }, options.interval);
     this.syncOffer();

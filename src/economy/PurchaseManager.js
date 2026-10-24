@@ -40,6 +40,7 @@ export class PurchaseManager {
     this.save = save;
     this.interval = config?.paymentInterval > 0 ? config.paymentInterval : 0.04;
     this.openShop = config?.openShop ?? null;
+    this.audio = config?.audio ?? null;
     this.offers = [];
     this.fading = [];
     this.heldShelves = [];
@@ -463,6 +464,7 @@ export class PurchaseManager {
       }
     }
 
+    this.audio?.win();
     this.syncOffers();
     this.busy = false;
   }

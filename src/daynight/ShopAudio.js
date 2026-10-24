@@ -1,3 +1,5 @@
+import { takeAudio } from 'virtual:shop-audio';
+
 function readVolume(key, fallback) {
   try {
     const value = Number(localStorage.getItem(key));
@@ -18,8 +20,14 @@ function writeVolume(key, value) {
   }
 }
 
-const MUSIC_URL = '/assets/audio/background.mp3';
 const MUSIC_FADE_SECONDS = 2.4;
+const CLIP_NAMES = ['bell', 'hit', 'scream', 'coin', 'win'];
+// These files peak near full scale. These levels keep them clear under the effects slider.
+const BELL_GAIN = 0.45;
+const HIT_GAIN = 0.6;
+const SCREAM_GAIN = 0.55;
+const COIN_GAIN = 0.48;
+const WIN_GAIN = 0.5;
 
 export class ShopAudio {
   constructor() {
@@ -31,18 +39,23 @@ export class ShopAudio {
     this.sfxGain = null;
     this.musicSource = null;
     this.musicStarted = false;
-    this.musicBytes = fetch(MUSIC_URL)
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error(`Background music failed to load (${response.status})`);
-        }
-        return response.arrayBuffer();
-      })
-      .catch((error) => {
-        console.warn('Background music unavailable', error);
-        return null;
-      });
+    this.musicBytes = this.readClip('background');
+    this.clipBytes = new Map();
+    this.clipBuffers = new Map();
+    this.clipLoading = new Map();
+    for (let i = 0; i < CLIP_NAMES.length; i += 1) {
+      this.clipBytes.set(CLIP_NAMES[i], this.readClip(CLIP_NAMES[i]));
+    }
     window.addEventListener('keydown', () => this.ensure(), { once: true });
+  }
+
+  readClip(name) {
+    try {
+      return Promise.resolve(takeAudio(name));
+    } catch (error) {
+      console.warn('Audio unavailable', error);
+      return Promise.resolve(null);
+    }
   }
 
   ensure() {
@@ -149,6 +162,76 @@ export class ShopAudio {
 
   tick() {
     this.tone(1400, 0.035, 'square', 0.025);
+  }
+
+  shopBell() {
+    this.playClip('bell', BELL_GAIN);
+  }
+
+  hit() {
+    this.playClip('hit', HIT_GAIN);
+  }
+
+  scream() {
+    this.playClip('scream', SCREAM_GAIN);
+  }
+
+  coin() {
+    this.playClip('coin', COIN_GAIN);
+  }
+
+  win() {
+    this.playClip('win', WIN_GAIN);
+  }
+
+  playClip(name, level) {
+    if (!this.ensure()) {
+      return;
+    }
+    this.startClip(name, level);
+  }
+
+  async startClip(name, level) {
+    const buffer = await this.clipBuffer(name);
+    const context = this.context;
+    if (!buffer || !context) {
+      return;
+    }
+    const source = context.createBufferSource();
+    const gain = context.createGain();
+    source.buffer = buffer;
+    gain.gain.setValueAtTime(level, context.currentTime);
+    source.connect(gain);
+    gain.connect(this.sfxGain || context.destination);
+    source.start();
+  }
+
+  clipBuffer(name) {
+    if (this.clipBuffers.has(name)) {
+      return this.clipBuffers.get(name);
+    }
+    if (!this.clipLoading.has(name)) {
+      this.clipLoading.set(name, this.decodeClip(name));
+    }
+    return this.clipLoading.get(name);
+  }
+
+  async decodeClip(name) {
+    const bytes = await this.clipBytes.get(name);
+    const context = this.context;
+    if (!bytes || !context) {
+      this.clipLoading.delete(name);
+      return null;
+    }
+    try {
+      const buffer = await context.decodeAudioData(bytes.slice(0));
+      this.clipBuffers.set(name, buffer);
+      return buffer;
+    } catch (error) {
+      console.warn('Sound could not be decoded', error);
+      this.clipLoading.delete(name);
+      return null;
+    }
   }
 
   bell() {

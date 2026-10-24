@@ -78,6 +78,7 @@ export class Game {
     this.dayStats = new DayStats(this.money, this.config.weapons.itemRecoveryValue ?? 5);
     this.shoppers.setDayStats(this.dayStats);
     this.audio = new ShopAudio();
+    this.shoppers.audio = this.audio;
     this.paused = false;
     this.dayStartMoney = this.save.day()?.purse ?? this.money.getMoney();
     this.pauseMenu = new PauseMenu(this);
@@ -101,7 +102,8 @@ export class Game {
       onClosingStart: () => {
         this.audio.bell();
         this.persistDay();
-      }
+      },
+      onDayOpen: () => this.audio.shopBell()
     });
     this.phaseHud = new DayNightHUD(app, this.dayNight, this.audio, () => this.money.getMoney());
     this.clock = new THREE.Clock();
@@ -192,7 +194,8 @@ export class Game {
       this.shoppers.checkoutQueue,
       this.money,
       this.config.checkout,
-      this.followCamera.camera
+      this.followCamera.camera,
+      this.audio
     );
     this.activity = new PlayerActivityManager();
     this.weaponStation = new WeaponStation(this.scene, this.player, this.config.weapons);
@@ -212,7 +215,8 @@ export class Game {
       (x) => {
         const index = sectionIndexAt(x);
         return index >= 0 && index <= this.store.maxUnlocked;
-      }
+      },
+      this.audio
     );
     const openShop = this.config.dayNight?.openShop ?? { x: -2.5, z: -2, holdSeconds: 1 };
     this.purchases = new PurchaseManager(
@@ -223,6 +227,7 @@ export class Game {
       this.save,
       {
         ...this.config.purchases,
+        audio: this.audio,
         openShop: {
           ...openShop,
           canOpen: () => this.dayNight.displayPhase() === 'NIGHT' && !this.dayNight.blocksPlay(),
@@ -394,7 +399,8 @@ export class Game {
       this.drops,
       this.hitFeedback,
       this.activity,
-      this.config.weapons
+      this.config.weapons,
+      this.audio
     );
     this.shoppers.onThiefDrops = (drops) => this.drops.spawn(drops);
     this.broomUpgrade = new BroomUpgrade({
@@ -406,7 +412,8 @@ export class Game {
       level: this.save.broomLevel(),
       position: [this.weaponStation.zoneX, this.weaponStation.zoneZ],
       halfSize: 0.72,
-      interval: upgradeConfig.coinInterval ?? 0.15
+      interval: upgradeConfig.coinInterval ?? 0.15,
+      audio: this.audio
     });
     this.upgradeManager.pads.push(this.broomUpgrade.pad);
     this.weaponStation.onZoneMove = (x, z) => this.broomUpgrade.pad.setPosition(x, z);
@@ -428,7 +435,8 @@ export class Game {
       onSpawn: (object, id) => this.occlusion.track(object, id),
       weapons: this.config.weapons,
       stationConfig,
-      interval: upgradeConfig.coinInterval ?? 0.15
+      interval: upgradeConfig.coinInterval ?? 0.15,
+      audio: this.audio
     });
     this.broomUpgrade.onChanged = () => this.broomStations.syncFromUpgrade();
     if (this.config.debug || this.config.checkout.debugCheckout || this.config.weapons.debugWeapons || this.config.weapons.debugBroomGrip) {

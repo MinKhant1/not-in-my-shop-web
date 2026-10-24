@@ -977,6 +977,17 @@ body.is-main-menu #debug-shop {
   letter-spacing: 0.08em;
 }
 
+#menu-panel.is-credits {
+  width: min(440px, calc(100vw - 32px));
+}
+
+#menu-panel .menu-signoff {
+  margin-top: 16px;
+  color: var(--ui-gold);
+  font-weight: 700;
+  text-align: center;
+}
+
 #menu-panel form {
   margin: 0;
 }

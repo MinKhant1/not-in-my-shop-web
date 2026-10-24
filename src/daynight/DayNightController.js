@@ -128,6 +128,7 @@ export class DayNightController {
     this.remaining = this.dayDuration;
     this.timerRunning = true;
     this.hooks.prepareNextDay?.();
+    this.hooks.onDayOpen?.();
     this.beginTransition(DayPhase.DAY, false);
     return true;
   }

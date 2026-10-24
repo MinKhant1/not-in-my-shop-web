@@ -3,7 +3,7 @@ import { PlayerActivity } from '../player/PlayerActivity.js';
 import { ShopperState } from '../shoppers/ShopperState.js';
 
 export class PlayerWeaponController {
-  constructor(player, shoppers, broom, drops, feedback, activity, config) {
+  constructor(player, shoppers, broom, drops, feedback, activity, config, audio) {
     this.player = player;
     this.shoppers = shoppers;
     this.broom = broom;
@@ -11,6 +11,7 @@ export class PlayerWeaponController {
     this.feedback = feedback;
     this.activity = activity;
     this.config = config;
+    this.audio = audio ?? null;
     this.getBroom = null;
     this.target = null;
     this.cooldown = 0;
@@ -128,6 +129,7 @@ export class PlayerWeaponController {
       return;
     }
     const stats = this.broomStats();
+    this.audio?.hit();
     const defeated = target.takeDamage(stats.damage);
     const position = target.group.position;
     this.feedback.spawn(position.x, 1.55, position.z, stats.damage);

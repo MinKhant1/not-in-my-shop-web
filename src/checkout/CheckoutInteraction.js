@@ -2,10 +2,11 @@ import * as THREE from 'three';
 import { CheckoutProgressUI } from './CheckoutProgressUI.js';
 
 export class CheckoutInteraction {
-  constructor(scene, player, queue, money, checkout, camera) {
+  constructor(scene, player, queue, money, checkout, camera, audio) {
     this.player = player;
     this.queue = queue;
     this.money = money;
+    this.audio = audio ?? null;
     this.checkoutTime = checkout.checkoutTime;
     this.zoneX = checkout.zonePosition[0];
     this.zoneZ = checkout.zonePosition[1];
@@ -172,11 +173,15 @@ export class CheckoutInteraction {
     }
     lane.completing = true;
     const payment = front.payment ?? 0;
+    const playerServed = this.insideLane(lane) && lane.automated !== true;
     lane.elapsed = 0;
     lane.progress = 0;
     front.finishCheckout();
     this.money.addMoney(payment);
     this.onCheckout?.(payment);
+    if (playerServed) {
+      this.audio?.coin();
+    }
     lane.completing = false;
   }
 

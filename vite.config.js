@@ -85,6 +85,74 @@ function isSceneDocument(value) {
     && value.added.every((item) => item && typeof item.id === 'string');
 }
 
+const AUDIO_SOURCE = {
+  background: 'background.mp3',
+  bell: 'bell.wav',
+  hit: 'hit1.wav',
+  scream: 'scream.wav',
+  coin: 'coin.wav',
+  win: 'win.wav'
+};
+const SHOP_AUDIO_ID = 'virtual:shop-audio';
+const RESOLVED_SHOP_AUDIO_ID = '\0virtual:shop-audio';
+
+function shopAudioModule(root) {
+  const packed = [];
+  for (const [name, file] of Object.entries(AUDIO_SOURCE)) {
+    const full = path.join(root, 'audio-source', file);
+    const data = fs.readFileSync(full).toString('base64');
+    packed.push(`${name}:${JSON.stringify(data)}`);
+  }
+  return `function unpack(data) {
+  const binary = atob(data);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+const packed = {${packed.join(',')}};
+const cache = new Map();
+export function takeAudio(name) {
+  if (!cache.has(name)) {
+    const data = packed[name];
+    if (!data) return null;
+    delete packed[name];
+    cache.set(name, unpack(data));
+  }
+  const bytes = cache.get(name);
+  if (!bytes) return null;
+  return bytes.slice().buffer;
+}
+`;
+}
+
+function shopAudioPlugin() {
+  let rootDir = process.cwd();
+  return {
+    name: 'shop-audio-inline',
+    configResolved(config) {
+      rootDir = config.root;
+    },
+    resolveId(id) {
+      if (id === SHOP_AUDIO_ID) {
+        return RESOLVED_SHOP_AUDIO_ID;
+      }
+      return null;
+    },
+    load(id) {
+      if (id !== RESOLVED_SHOP_AUDIO_ID) {
+        return null;
+      }
+      for (const file of Object.values(AUDIO_SOURCE)) {
+        this.addWatchFile(path.join(rootDir, 'audio-source', file));
+      }
+      return {
+        code: shopAudioModule(rootDir),
+        map: { mappings: '' }
+      };
+    }
+  };
+}
+
 function editorApi() {
   const handle = async (req, res, next, root) => {
     const url = (req.url || '').split('?')[0];
@@ -147,7 +215,7 @@ function editorApi() {
 
 export default defineConfig({
   base: './',
-  plugins: [editorApi()],
+  plugins: [shopAudioPlugin(), editorApi()],
   server: {
     host: true,
     port: 5173
