@@ -22,90 +22,41 @@
         "Scene/CharacterArmature/Bone/Body_1": {
           "position": [
             0.0022,
-            0.9071,
-            0.0193
+            0.9999,
+            0.0249
           ],
           "rotation": [
-            0,
-            0,
-            0
-          ]
-        },
-        "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen": {
-          "rotation": [
-            0.182,
-            0,
+            -0.0002,
+            0.001,
             0
           ]
         },
         "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/Neck": {
           "rotation": [
-            -0.1666,
+            -0.095,
             0,
-            0
-          ]
-        },
-        "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/Neck/Head": {
-          "rotation": [
-            -0.4619,
-            -0.0006,
-            0
+            0.0001
           ]
         },
         "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/ShoulderL": {
           "position": [
-            0.2135,
-            0.216,
-            0.0213
-          ]
-        },
-        "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/ShoulderL/UpperArmL": {
-          "rotation": [
-            -2.3625,
-            -0.554,
-            -2.5803
-          ]
-        },
-        "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/ShoulderL/UpperArmL/LowerArmL": {
-          "rotation": [
-            1.0725,
-            0.3281,
-            -1.2182
+            0.1364,
+            0.1406,
+            0.0136
           ]
         },
         "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/ShoulderL/UpperArmL/LowerArmL/FistL": {
           "rotation": [
-            0.0465,
-            -0.5473,
-            -0.146
+            0.0253,
+            0.0518,
+            -0.0141
           ]
         },
         "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/ShoulderR": {
           "position": [
-            -0.2123,
-            0.216,
-            0.0213
-          ]
-        },
-        "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/ShoulderR/UpperArmR": {
-          "rotation": [
-            -2.7447,
-            0.8551,
-            -3.1286
-          ]
-        },
-        "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/ShoulderR/UpperArmR/LowerArmR": {
-          "rotation": [
-            0.4108,
-            -0.4081,
-            0.7077
-          ]
-        },
-        "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/ShoulderR/UpperArmR/LowerArmR/FistR": {
-          "rotation": [
-            0.0465,
-            0.5473,
-            0.146
+            -0.1369,
+            0.1405,
+            0.0135
           ]
         },
         "Scene/CharacterArmature/Bone/Body_1/UpperLegL": {
@@ -115,16 +66,21 @@
             -0.0559
           ],
           "rotation": [
-            2.621,
-            0.0051,
-            -0.0181
+            2.9264,
+            0.0005,
+            -0.0208
+          ],
+          "scale": [
+            1,
+            1,
+            0.9999
           ]
         },
         "Scene/CharacterArmature/Bone/Body_1/UpperLegL/LowerLegL": {
           "rotation": [
-            0.97,
-            0.0166,
-            0.0106
+            0.4157,
+            0.0085,
+            0.0177
           ]
         },
         "Scene/CharacterArmature/Bone/Body_1/UpperLegR": {
@@ -134,16 +90,21 @@
             -0.0559
           ],
           "rotation": [
-            2.621,
-            -0.0051,
-            0.0181
+            2.927,
+            0.0015,
+            0.0213
+          ],
+          "scale": [
+            1,
+            1,
+            0.9999
           ]
         },
         "Scene/CharacterArmature/Bone/Body_1/UpperLegR/LowerLegR": {
           "rotation": [
-            0.97,
-            -0.0166,
-            -0.0106
+            0.4156,
+            -0.0085,
+            -0.0177
           ]
         }
       }
@@ -183,13 +144,6 @@
         -1.1649
       ]
     },
-    "purchase-unlock_clothing": {
-      "position": [
-        16.45,
-        0,
-        0.3522
-      ]
-    },
     "purchase-unlock_electronics": {
       "position": [
         2.5597,
@@ -220,9 +174,9 @@
     },
     "upgrade-intercom": {
       "position": [
-        19.3868,
+        19.2423,
         0,
-        1.8682
+        1.3197
       ]
     },
     "upgrade-roller-skate": {
