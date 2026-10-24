@@ -7,6 +7,10 @@ const PLANE_W = 0.86;
 const PLANE_H = 0.43;
 const TRACK = { x: 22, y: 62, w: 212, h: 42 };
 const FILL_LERP = 16;
+const _world = new THREE.Vector3();
+const _up = new THREE.Vector3(0, 1, 0);
+const _yaw = new THREE.Quaternion();
+const _parent = new THREE.Quaternion();
 
 function createFaceTexture() {
   const canvas = document.createElement('canvas');
@@ -132,8 +136,28 @@ export class CheckoutProgressUI {
       this.display = this.target;
     }
     this.fill.scale.x = Math.max(this.display, 0.0001);
-    if (this.camera) {
-      this.root.lookAt(this.camera.position);
+    this.standUpright();
+  }
+
+  // Yaw toward the camera only. A full lookAt pitches the bar up at the high camera.
+  standUpright() {
+    if (!this.camera) {
+      return;
+    }
+    this.root.updateWorldMatrix(true, false);
+    _world.setFromMatrixPosition(this.root.matrixWorld);
+    const dx = this.camera.position.x - _world.x;
+    const dz = this.camera.position.z - _world.z;
+    if (dx * dx + dz * dz < 1e-8) {
+      return;
+    }
+    _yaw.setFromAxisAngle(_up, Math.atan2(dx, dz));
+    const parent = this.root.parent;
+    if (parent) {
+      _parent.setFromRotationMatrix(parent.matrixWorld).invert();
+      this.root.quaternion.copy(_parent).multiply(_yaw);
+    } else {
+      this.root.quaternion.copy(_yaw);
     }
   }
 

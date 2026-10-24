@@ -47,6 +47,13 @@ function withoutRootMotion(clip) {
   return copy;
 }
 
+// Some death clips lower the hips through the road, so the thief vanishes on impact.
+function withoutDropping(clip) {
+  const copy = withoutRootMotion(clip);
+  copy.tracks = copy.tracks.filter((track) => !track.name.toLowerCase().endsWith('hips.position'));
+  return copy;
+}
+
 function randomBetween(min, max) {
   return min + Math.random() * (max - min);
 }
@@ -58,7 +65,7 @@ function randomInt(min, max) {
 let nextShopperId = 1;
 
 export class ShopperAI {
-  constructor({ asset, modelUrl, config, navigation, collision, checkoutQueue, checkoutLanes, checkoutConfig, weaponsConfig, toonFactory, debug }) {
+  constructor({ asset, modelUrl, config, navigation, collision, checkoutQueue, checkoutLanes, checkoutConfig, weaponsConfig, toonFactory, debug, theftAllowed }) {
     this.id = nextShopperId;
     nextShopperId += 1;
     this.modelUrl = modelUrl;
@@ -71,6 +78,7 @@ export class ShopperAI {
     this.weaponsConfig = weaponsConfig;
     this.debug = debug;
     this.thiefChance = config.thiefChance;
+    this.theftAllowed = theftAllowed ?? null;
     this.radius = config.radius;
     this.groceryTarget = randomInt(config.minItems, config.maxItems);
 
@@ -329,7 +337,7 @@ export class ShopperAI {
       this.leaveAsThief();
       return;
     }
-    if (Math.random() < this.thiefChance) {
+    if (this.theftAllowed?.() !== false && Math.random() < this.thiefChance) {
       this.becomeThief();
       return;
     }
@@ -345,6 +353,10 @@ export class ShopperAI {
 
   becomeAngryThief() {
     if (this.shopClosed) {
+      return;
+    }
+    if (this.theftAllowed?.() === false) {
+      this.setImpatient(false, 0);
       return;
     }
     if (
@@ -722,11 +734,11 @@ export class ShopperAI {
   }
 
   thiefExitId() {
-    return Math.random() < 0.5 ? 'thiefVanishWest' : 'thiefVanishFar';
+    return this.group.position.z < -3.6 ? 'thiefVanishNorth' : 'thiefVanishSouth';
   }
 
   isThiefExit(id) {
-    return id === 'thiefVanishWest' || id === 'thiefVanishFar';
+    return id === 'thiefVanishNorth' || id === 'thiefVanishSouth';
   }
 
   setQueueIndex(index) {
@@ -971,7 +983,7 @@ export class ShopperAI {
       this.actions.run = action;
     }
     if (deathClip) {
-      const action = this.mixer.clipAction(withoutRootMotion(deathClip));
+      const action = this.mixer.clipAction(withoutDropping(deathClip));
       action.setLoop(THREE.LoopOnce, 1);
       action.clampWhenFinished = true;
       this.actions.death = action;

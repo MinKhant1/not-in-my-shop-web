@@ -239,6 +239,7 @@ export class Game {
     this.purchases.syncOffers();
     this.shoppers.setCustomerSources({
       day: () => this.dayNight.dayNumber,
+      gameMinutes: () => this.dayNight.gameMinutes(),
       dayRemaining: () => this.dayNight.remaining,
       dayDuration: () => this.dayNight.dayDuration,
       shelves: () => countExpansionShelves(this.purchases.owned)

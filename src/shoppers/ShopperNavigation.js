@@ -6,15 +6,21 @@ function node(id, x, z, kind, look = null) {
 }
 
 // Lanes sit in the open floor. The queue is a horizontal line in front of the
-// register. Shoppers join from the far end. A one-way step south lets a thief
-// leave without walking back to the register.
+// register. Shoppers join from the far end. Thieves run off the north or south
+// end of the street before they are removed.
 const NODES = [
   node('entranceOutside', -4.4, -3, 'spawn'),
   node('door', -3.55, -3, 'door'),
   node('entranceInside', -2.55, -3, 'door'),
   node('despawn', -4.95, -3.15, 'exit'),
-  node('thiefVanishWest', -7.621, 0.02, 'vanish'),
-  node('thiefVanishFar', -11.072, 2.451, 'vanish'),
+  // The road runs north–south. Thieves leave off either end, not from the middle.
+  node('streetDoor', -7.62, -3.15, 'street'),
+  node('streetNorth', -7.62, -5.5, 'street'),
+  node('thiefVanishNorth', -7.62, -8.2, 'vanish'),
+  node('streetMid', -7.62, 0.4, 'street'),
+  node('streetSouth', -7.62, 3.6, 'street'),
+  node('streetFar', -7.62, 6.6, 'street'),
+  node('thiefVanishSouth', -7.62, 9.4, 'vanish'),
 
   node('westBack', -2.45, -2.55, 'lane'),
   node('shelfLeftBack', -2.45, -1.75, 'pick', [-1.2, -1.75]),
@@ -146,8 +152,13 @@ export class ShopperNavigation {
       this.addLink(links[i][0], links[i][1], false);
       this.addLink(links[i][1], links[i][0], false);
     }
-    this.addLink('despawn', 'thiefVanishWest', false);
-    this.addLink('despawn', 'thiefVanishFar', false);
+    this.linkBoth('despawn', 'streetDoor');
+    this.linkBoth('streetDoor', 'streetNorth');
+    this.addLink('streetNorth', 'thiefVanishNorth', false);
+    this.linkBoth('streetDoor', 'streetMid');
+    this.linkBoth('streetMid', 'streetSouth');
+    this.linkBoth('streetSouth', 'streetFar');
+    this.addLink('streetFar', 'thiefVanishSouth', false);
     for (let i = 0; i < leave.length; i += 1) {
       this.addLink(leave[i][0], leave[i][1], true);
     }
@@ -487,6 +498,9 @@ export class ShopperNavigation {
     let bestDistance = Infinity;
     for (let i = 0; i < this.nodeList.length; i += 1) {
       const entry = this.nodeList[i];
+      if (entry.kind === 'vanish') {
+        continue;
+      }
       if (avoidQueue && (entry.kind === 'queue' || entry.id.startsWith('lane-'))) {
         continue;
       }
@@ -919,6 +933,9 @@ export class ShopperRoute {
     this.hasAnchor = false;
     this.recoveries += 1;
     const goal = this.navigation.nodes.get(this.targetId);
+    if (goal?.kind === 'vanish') {
+      return;
+    }
     if (goal && !collision.blocksMovement(goal.x, goal.z, Math.min(radius, 0.12))) {
       const dx = goal.x - position.x;
       const dz = goal.z - position.z;

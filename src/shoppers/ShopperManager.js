@@ -113,6 +113,15 @@ export class ShopperManager {
     this.customerSources = sources;
   }
 
+  theftAllowed() {
+    const day = this.customerSources?.day?.() ?? 1;
+    if (day > 2) {
+      return true;
+    }
+    const minutes = this.customerSources?.gameMinutes?.();
+    return Number.isFinite(minutes) && minutes >= 14 * 60;
+  }
+
   customerQuota() {
     const sources = this.customerSources;
     const day = sources?.day?.() ?? 1;
@@ -275,6 +284,7 @@ export class ShopperManager {
         checkoutConfig: this.checkoutConfig,
         weaponsConfig: this.weaponsConfig,
         toonFactory: this.toonFactory,
+        theftAllowed: () => this.theftAllowed(),
         debug: this.debug || this.checkoutConfig?.debugCheckout === true || this.weaponsConfig?.debugWeapons === true
       });
       const z = door.z + randomBetween(-0.22, 0.22);

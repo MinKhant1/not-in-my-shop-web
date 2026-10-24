@@ -21,35 +21,35 @@
       "nodes": {
         "Scene/CharacterArmature/Bone/Body_1": {
           "position": [
-            0.0029,
-            0.9796,
-            0.068
+            0.0027,
+            0.9882,
+            0.0422
           ],
           "rotation": [
-            -0.0007,
-            0.0039,
+            -0.0005,
+            0.0024,
             0
           ]
         },
         "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/Neck": {
           "rotation": [
-            -0.0745,
+            -0.0851,
             0,
             0.0002
           ]
         },
         "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/ShoulderL": {
           "position": [
-            0.141,
-            0.1403,
+            0.1449,
+            0.14,
             0.0136
           ]
         },
         "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/ShoulderL/UpperArmL/LowerArmL/FistL": {
           "rotation": [
-            0.0259,
-            0.2168,
-            -0.02
+            0.0254,
+            0.1159,
+            -0.0164
           ]
         },
         "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/ShoulderR": {
@@ -66,16 +66,21 @@
             -0.0559
           ],
           "rotation": [
-            2.8894,
-            0.0046,
-            -0.019
+            2.8918,
+            0.0029,
+            -0.0197
+          ],
+          "scale": [
+            1,
+            1,
+            0.9999
           ]
         },
         "Scene/CharacterArmature/Bone/Body_1/UpperLegL/LowerLegL": {
           "rotation": [
-            0.5696,
-            0.0111,
-            0.0162
+            0.5145,
+            0.0102,
+            0.0168
           ]
         },
         "Scene/CharacterArmature/Bone/Body_1/UpperLegR": {
@@ -85,16 +90,21 @@
             -0.0559
           ],
           "rotation": [
-            2.8919,
-            0.0035,
-            0.0225
+            2.8932,
+            0.0022,
+            0.022
+          ],
+          "scale": [
+            1,
+            1,
+            0.9999
           ]
         },
         "Scene/CharacterArmature/Bone/Body_1/UpperLegR/LowerLegR": {
           "rotation": [
-            0.5688,
-            -0.0111,
-            -0.0162
+            0.514,
+            -0.0102,
+            -0.0168
           ]
         }
       }
@@ -364,6 +374,270 @@
       "parentId": "store",
       "collision": true,
       "model": "/models/outside/streetlight.glb",
+      "extra": {
+        "title": null,
+        "label": null,
+        "size": null,
+        "caseSize": null,
+        "caseAccent": null,
+        "caseInterior": null
+      },
+      "castShadow": false,
+      "receiveShadow": false
+    },
+    {
+      "id": "placed-mvmvq6bs-8251si",
+      "name": "dumpster",
+      "position": [
+        -12.8719,
+        0.02,
+        -9.4711
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        3,
+        3,
+        3
+      ],
+      "visible": true,
+      "parentId": "store",
+      "collision": true,
+      "model": "/models/outside/dumpster.glb",
+      "extra": {
+        "title": null,
+        "label": null,
+        "size": null,
+        "caseSize": null,
+        "caseAccent": null,
+        "caseInterior": null
+      },
+      "castShadow": false,
+      "receiveShadow": false
+    },
+    {
+      "id": "placed-mvmvqu23-60zdh3",
+      "name": "dumpster Copy",
+      "position": [
+        -10.53,
+        0.02,
+        -9.4711
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        3,
+        3,
+        3
+      ],
+      "visible": true,
+      "parentId": "store",
+      "collision": true,
+      "model": "/models/outside/dumpster.glb",
+      "extra": {
+        "title": null,
+        "label": null,
+        "size": null,
+        "caseSize": null,
+        "caseAccent": null,
+        "caseInterior": null
+      },
+      "castShadow": false,
+      "receiveShadow": false
+    },
+    {
+      "id": "placed-mvmvqx3o-bzz1n3",
+      "name": "dumpster Copy Copy",
+      "position": [
+        -14.7165,
+        0.02,
+        -6.909
+      ],
+      "rotation": [
+        0,
+        1.5708,
+        0
+      ],
+      "scale": [
+        3,
+        3,
+        3
+      ],
+      "visible": true,
+      "parentId": "store",
+      "collision": true,
+      "model": "/models/outside/dumpster.glb",
+      "extra": {
+        "title": null,
+        "label": null,
+        "size": null,
+        "caseSize": null,
+        "caseAccent": null,
+        "caseInterior": null
+      },
+      "castShadow": false,
+      "receiveShadow": false
+    },
+    {
+      "id": "placed-mvmvrs8b-naje1c",
+      "name": "box_A",
+      "position": [
+        -14.6053,
+        0.02,
+        -9.5412
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        3,
+        3,
+        3
+      ],
+      "visible": true,
+      "parentId": "store",
+      "collision": true,
+      "model": "/models/outside/box_A.glb",
+      "extra": {
+        "title": null,
+        "label": null,
+        "size": null,
+        "caseSize": null,
+        "caseAccent": null,
+        "caseInterior": null
+      },
+      "castShadow": false,
+      "receiveShadow": false
+    },
+    {
+      "id": "placed-mvmvs4ly-xbvf5a",
+      "name": "box_B",
+      "position": [
+        -14.4878,
+        0.564,
+        -9.5617
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        3,
+        3,
+        3
+      ],
+      "visible": true,
+      "parentId": "store",
+      "collision": true,
+      "model": "/models/outside/box_B.glb",
+      "extra": {
+        "title": null,
+        "label": null,
+        "size": null,
+        "caseSize": null,
+        "caseAccent": null,
+        "caseInterior": null
+      },
+      "castShadow": false,
+      "receiveShadow": false
+    },
+    {
+      "id": "placed-mvmvt1st-yjqzx3",
+      "name": "box_A Copy",
+      "position": [
+        -15.086,
+        0.02,
+        -8.6963
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        3,
+        3,
+        3
+      ],
+      "visible": true,
+      "parentId": "store",
+      "collision": true,
+      "model": "/models/outside/box_A.glb",
+      "extra": {
+        "title": null,
+        "label": null,
+        "size": null,
+        "caseSize": null,
+        "caseAccent": null,
+        "caseInterior": null
+      },
+      "castShadow": false,
+      "receiveShadow": false
+    },
+    {
+      "id": "placed-mvmvtl4l-uyeniy",
+      "name": "trash_A",
+      "position": [
+        -14.4407,
+        0.02,
+        -8.1283
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        3,
+        3,
+        3
+      ],
+      "visible": true,
+      "parentId": "store",
+      "collision": true,
+      "model": "/models/outside/trash_A.glb",
+      "extra": {
+        "title": null,
+        "label": null,
+        "size": null,
+        "caseSize": null,
+        "caseAccent": null,
+        "caseInterior": null
+      },
+      "castShadow": false,
+      "receiveShadow": false
+    },
+    {
+      "id": "placed-mvmvttya-x2h3gb",
+      "name": "trash_B",
+      "position": [
+        -13.958,
+        0.107,
+        -8.702
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        4,
+        4,
+        4
+      ],
+      "visible": true,
+      "parentId": "store",
+      "collision": true,
+      "model": "/models/outside/trash_B.glb",
       "extra": {
         "title": null,
         "label": null,
