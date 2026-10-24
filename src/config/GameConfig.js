@@ -21,7 +21,7 @@ export const GameConfig = {
     lookAhead: 1.7,
     smoothness: 8,
     fov: 42,
-    portraitFov: 39
+    portraitFov: 45
   },
   diorama: {
     marginNorth: 5.4,

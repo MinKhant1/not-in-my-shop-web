@@ -50,8 +50,8 @@ export class FollowCamera {
     const position = this.player.group.position;
     const aspect = this.camera.aspect || 1;
     const portrait = aspect < 0.8 ? Math.min(1, (0.8 - aspect) / 0.38) : 0;
-    const height = this.height * (1 - portrait * 0.05);
-    const distance = this.distance * (1 - portrait * 0.07);
+    const height = this.height * (1 + portrait * 0.14);
+    const distance = this.distance * (1 + portrait * 0.18);
     this.desiredPosition.set(position.x, height, position.z + distance);
     this.desiredTarget.set(position.x, 0, position.z - this.lookAhead);
     this.clampDesiredX();
