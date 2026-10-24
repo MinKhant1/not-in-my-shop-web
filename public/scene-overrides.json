@@ -21,93 +21,95 @@
       "nodes": {
         "Scene/CharacterArmature/Bone/Body_1": {
           "position": [
-            0.0027,
-            0.9882,
-            0.0422
+            0.003,
+            0.9814,
+            0.0529
           ],
           "rotation": [
-            -0.0005,
-            0.0024,
+            -0.0006,
+            0.0031,
             0
           ]
         },
         "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/Neck": {
           "rotation": [
-            -0.0851,
+            -0.0805,
             0,
             0.0002
           ]
         },
         "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/ShoulderL": {
           "position": [
-            0.1449,
+            0.1454,
             0.14,
             0.0136
           ]
         },
         "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/ShoulderL/UpperArmL/LowerArmL/FistL": {
           "rotation": [
-            0.0254,
-            0.1159,
-            -0.0164
+            0.0256,
+            0.1588,
+            -0.0179
           ]
         },
         "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/ShoulderR": {
           "position": [
-            -0.1469,
-            0.1398,
+            -0.1475,
+            0.1397,
             0.0135
           ]
         },
         "Scene/CharacterArmature/Bone/Body_1/UpperLegL": {
           "position": [
-            0.253,
-            -0.0167,
-            -0.0559
+            0.2529,
+            -0.0556,
+            -0.0798
           ],
           "rotation": [
-            2.8918,
-            0.0029,
-            -0.0197
-          ],
-          "scale": [
-            1,
-            1,
-            0.9999
+            2.723,
+            0.0063,
+            -0.0175
           ]
         },
         "Scene/CharacterArmature/Bone/Body_1/UpperLegL/LowerLegL": {
           "rotation": [
-            0.5145,
-            0.0102,
-            0.0168
+            0.8019,
+            0.0146,
+            0.0132
           ]
         },
         "Scene/CharacterArmature/Bone/Body_1/UpperLegR": {
           "position": [
             -0.2547,
-            -0.0167,
-            -0.0559
+            -0.029,
+            -0.0561
           ],
           "rotation": [
-            2.8932,
-            0.0022,
-            0.022
-          ],
-          "scale": [
-            1,
-            1,
-            0.9999
+            2.8346,
+            0.0017,
+            0.0222
           ]
         },
         "Scene/CharacterArmature/Bone/Body_1/UpperLegR/LowerLegR": {
           "rotation": [
-            0.514,
-            -0.0102,
-            -0.0168
+            0.6452,
+            -0.0123,
+            -0.0153
           ]
         }
-      }
+      },
+      "position": [
+        -11.1708,
+        0.02,
+        5.7925
+      ]
+    },
+    "hotdog-stand": {
+      "position": [
+        -10.3267,
+        0.02,
+        6.0832
+      ]
     },
     "menu-continue": {
       "position": [
@@ -142,6 +144,13 @@
         -6.6265,
         0.06,
         -1.1649
+      ]
+    },
+    "purchase-unlock_clothing": {
+      "position": [
+        16.45,
+        0,
+        -0.2859
       ]
     },
     "purchase-unlock_electronics": {
