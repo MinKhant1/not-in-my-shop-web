@@ -21,91 +21,42 @@
       "nodes": {
         "Scene/CharacterArmature/Bone/Body_1": {
           "position": [
-            0.0022,
-            1.0042,
-            0.0193
+            0.0029,
+            0.9796,
+            0.068
           ],
           "rotation": [
-            0,
-            0,
-            0
-          ]
-        },
-        "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen": {
-          "rotation": [
-            0.182,
-            0,
+            -0.0007,
+            0.0039,
             0
           ]
         },
         "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/Neck": {
           "rotation": [
-            -0.1508,
+            -0.0745,
             0,
-            0
-          ]
-        },
-        "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/Neck/Head": {
-          "rotation": [
-            -0.3408,
-            -0.0006,
-            0
+            0.0002
           ]
         },
         "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/ShoulderL": {
           "position": [
-            0.1778,
-            0.1826,
-            0.0179
-          ]
-        },
-        "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/ShoulderL/UpperArmL": {
-          "rotation": [
-            -1.7889,
-            -0.8984,
-            -2.425
-          ]
-        },
-        "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/ShoulderL/UpperArmL/LowerArmL": {
-          "rotation": [
-            0.1738,
-            0.3563,
-            -0.5151
+            0.141,
+            0.1403,
+            0.0136
           ]
         },
         "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/ShoulderL/UpperArmL/LowerArmL/FistL": {
           "rotation": [
-            0.0465,
-            -0.5473,
-            -0.146
+            0.0259,
+            0.2168,
+            -0.02
           ]
         },
         "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/ShoulderR": {
           "position": [
-            -0.1771,
-            0.1825,
-            0.0178
-          ]
-        },
-        "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/ShoulderR/UpperArmR": {
-          "rotation": [
-            -1.7514,
-            0.8856,
-            2.3946
-          ]
-        },
-        "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/ShoulderR/UpperArmR/LowerArmR": {
-          "rotation": [
-            0.1681,
-            -0.3523,
-            0.5116
-          ]
-        },
-        "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/ShoulderR/UpperArmR/LowerArmR/FistR": {
-          "rotation": [
-            0.0465,
-            0.5473,
-            0.146
+            -0.1469,
+            0.1398,
+            0.0135
           ]
         },
         "Scene/CharacterArmature/Bone/Body_1/UpperLegL": {
@@ -115,21 +66,16 @@
             -0.0559
           ],
           "rotation": [
-            2.9442,
-            -0.0009,
-            -0.0211
-          ],
-          "scale": [
-            1,
-            1,
-            0.9999
+            2.8894,
+            0.0046,
+            -0.019
           ]
         },
         "Scene/CharacterArmature/Bone/Body_1/UpperLegL/LowerLegL": {
           "rotation": [
-            0.3721,
-            0.0077,
-            0.0181
+            0.5696,
+            0.0111,
+            0.0162
           ]
         },
         "Scene/CharacterArmature/Bone/Body_1/UpperLegR": {
@@ -139,21 +85,16 @@
             -0.0559
           ],
           "rotation": [
-            2.9442,
-            0.0009,
-            0.0211
-          ],
-          "scale": [
-            1,
-            1,
-            0.9999
+            2.8919,
+            0.0035,
+            0.0225
           ]
         },
         "Scene/CharacterArmature/Bone/Body_1/UpperLegR/LowerLegR": {
           "rotation": [
-            0.3721,
-            -0.0077,
-            -0.0181
+            0.5688,
+            -0.0111,
+            -0.0162
           ]
         }
       }
@@ -244,6 +185,31 @@
     }
   },
   "added": [
+    {
+      "id": "placed-mvmcm02c-tkl8er",
+      "name": "floor-outside-top-left Copy",
+      "position": [
+        6.7012,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "visible": true,
+      "parentId": "outside-environment",
+      "collision": false,
+      "cloneOf": "floor-outside-top-left",
+      "castShadow": false,
+      "receiveShadow": false
+    },
     {
       "id": "placed-mvj94vwy-sod9yh",
       "name": "firehydrant",
