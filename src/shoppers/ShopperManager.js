@@ -217,6 +217,17 @@ export class ShopperManager {
     }
   }
 
+  clearLive() {
+    this.lanes.clear();
+    this.spawnGeneration += 1;
+    this.pendingSpawns = 0;
+    for (let i = this.shoppers.length - 1; i >= 0; i -= 1) {
+      this.shoppers[i].dispose();
+    }
+    this.shoppers = [];
+    this.prepareNextDay();
+  }
+
   spawn() {
     if (!this.spawningEnabled || this.shoppers.length + this.pendingSpawns >= this.config.maxActive) {
       return false;

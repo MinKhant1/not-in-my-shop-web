@@ -8,7 +8,7 @@
     />
     <meta name="theme-color" content="#c7e3f6" />
     <title>Not In My Shop</title>
-    <link rel="icon" href="data:," />
+    <link rel="icon" href="/assets/ui/favicon.ico" type="image/x-icon" />
   </head>
   <body>
     <div id="app">
@@ -94,6 +94,20 @@
         <span id="money-amount">0</span>
         <span id="money-gain" hidden></span>
       </div>
+      <button id="pause-button" type="button" aria-label="Pause" data-no-joystick>
+        <span></span>
+        <span></span>
+      </button>
+      <section id="pause-modal" hidden data-no-joystick>
+        <h2>Paused</h2>
+        <h3>Music</h3>
+        <input id="pause-music" type="range" min="0" max="100" value="20" aria-label="Music volume" />
+        <h3>Sound Effects</h3>
+        <input id="pause-sfx" type="range" min="0" max="100" value="100" aria-label="Sound effects volume" />
+        <button id="pause-resume" type="button">Resume Game</button>
+        <button id="pause-restart" type="button">Restart Day</button>
+        <button id="pause-main-menu" type="button" class="is-quiet">Main Menu</button>
+      </section>
       <canvas id="game-canvas"></canvas>
       <div id="joystick-zone" aria-hidden="true"></div>
       <div id="debug-overlay" hidden></div>

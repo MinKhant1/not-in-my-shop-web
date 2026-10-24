@@ -24,6 +24,7 @@ import { UpgradeManager } from '../economy/UpgradeManager.js';
 import { StoreSave } from '../economy/StoreSave.js';
 import { PurchaseManager } from '../economy/PurchaseManager.js';
 import { MoneyHUD } from '../ui/MoneyHUD.js';
+import { PauseMenu } from '../ui/PauseMenu.js';
 import { DebugMoneyUI } from '../ui/DebugMoneyUI.js';
 import { DayNightController } from '../daynight/DayNightController.js';
 import { DayNightLighting } from '../daynight/DayNightLighting.js';
@@ -77,11 +78,15 @@ export class Game {
     this.dayStats = new DayStats(this.money, this.config.weapons.itemRecoveryValue ?? 5);
     this.shoppers.setDayStats(this.dayStats);
     this.audio = new ShopAudio();
+    this.paused = false;
+    this.dayStartMoney = this.save.day()?.purse ?? this.money.getMoney();
+    this.pauseMenu = new PauseMenu(this);
     this.dayNight = new DayNightController(this.config.dayNight, {
       setSpawning: (enabled) => this.shoppers.setSpawningEnabled(enabled),
       prepareNextDay: () => {
         this.shoppers.prepareNextDay();
         this.dayStats.reset();
+        this.dayStartMoney = this.money.getMoney();
         this.intercom?.resetCooldown();
         this.persistDay();
       },
@@ -552,12 +557,18 @@ export class Game {
   loop() {
     requestAnimationFrame(this.loop);
     const dt = Math.min(this.clock.getDelta(), 0.05);
-    this.hotdog?.update(dt);
-    this.pets?.update(dt);
+    if (!this.editor?.active && !this.paused) {
+      this.hotdog?.update(dt);
+      this.pets?.update(dt);
+    }
     if (this.editor?.active) {
       this.editor.update(dt);
       this.shopSign?.update(this.lighting.night);
       this.renderer.render(this.scene, this.editor.camera);
+      return;
+    }
+    if (this.paused) {
+      this.renderer.render(this.scene, this.followCamera.camera);
       return;
     }
     if (this.mainMenu?.blocksGameplay()) {
@@ -623,9 +634,34 @@ export class Game {
       return;
     }
     this.save.write({
-      day: this.dayNight.snapshot(),
+      day: this.dayRecord(),
       played: true
     });
+  }
+
+  dayRecord() {
+    return {
+      ...this.dayNight.snapshot(),
+      purse: this.dayStartMoney
+    };
+  }
+
+  restartCurrentDay() {
+    const purse = Number.isFinite(this.dayStartMoney) ? this.dayStartMoney : this.money.getMoney();
+    this.dayStartMoney = purse;
+    this.money.setMoney(purse);
+    this.dayStats.reset();
+    this.drops?.clear();
+    this.checkout?.cancel();
+    this.intercom?.resetCooldown();
+    this.shoppers.clearLive();
+    this.dayNight.applySnapshot({
+      number: this.dayNight.dayNumber,
+      remaining: this.dayNight.dayDuration,
+      phase: 'DAY'
+    }, true);
+    this.phaseHud.update(0);
+    this.persistDay();
   }
 
   async resetToNewShop(shopName) {
@@ -637,6 +673,7 @@ export class Game {
     this.money.persist = null;
     this.money.setMoney(this.config.economy?.startingMoney ?? 0);
     this.money.persist = persist;
+    this.dayStartMoney = this.money.getMoney();
     this.upgrades.purchased.clear();
     this.upgrades.setOpen(false);
     this.dayNight.applySnapshot(null, false);

@@ -1,6 +1,6 @@
 #editor-launch {
   position: absolute;
-  top: max(10px, env(safe-area-inset-top));
+  top: calc(max(12px, env(safe-area-inset-top)) + 56px);
   left: max(10px, env(safe-area-inset-left));
   z-index: 8;
   height: 28px;
@@ -18,6 +18,8 @@ body.editor-mode #editor-launch,
 body.editor-mode #joystick-zone,
 body.editor-mode #shop-clock,
 body.editor-mode #money-hud,
+body.editor-mode #pause-button,
+body.editor-mode #pause-modal,
 body.editor-mode #debug-overlay,
 body.editor-mode #debug-money,
 body.editor-mode #closing-announcement,

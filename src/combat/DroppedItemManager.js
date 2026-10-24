@@ -46,6 +46,18 @@ export class DroppedItemManager {
     }
   }
 
+  clear() {
+    for (let i = this.items.length - 1; i >= 0; i -= 1) {
+      const item = this.items[i];
+      item.mesh.removeFromParent();
+      const materials = Array.isArray(item.mesh.material) ? item.mesh.material : [item.mesh.material];
+      for (let m = 0; m < materials.length; m += 1) {
+        materials[m].dispose();
+      }
+    }
+    this.items = [];
+  }
+
   describe() {
     if (this.items.length === 0) {
       return 'Dropped: 0';

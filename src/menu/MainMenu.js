@@ -534,10 +534,25 @@ export class MainMenu {
     this.game.shoppers.setSpawningEnabled(playingDay);
     this.game.save.write({
       played: true,
-      day: day.snapshot()
+      day: this.game.dayRecord()
     });
     this.busy = false;
     this.playFade();
+  }
+
+  exitToMenu() {
+    this.game.persistDay();
+    this.game.pauseMenu?.close(false);
+    this.game.paused = false;
+    this.game.dayNight.holdMenu();
+    this.state = 'MAIN_MENU';
+    this.previousState = 'MAIN_MENU';
+    document.body.classList.add('is-main-menu');
+    this.placePlayer();
+    this.syncPresentation();
+    this.game.input.suspended = false;
+    this.game.input.keys.clear();
+    this.game.input.joystick?.reset?.();
   }
 
   playFade() {

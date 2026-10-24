@@ -116,7 +116,8 @@ export class StoreSave {
     return {
       number,
       remaining: Number.isFinite(remaining) ? remaining : null,
-      phase: day.phase === 'NIGHT' ? 'NIGHT' : 'DAY'
+      phase: day.phase === 'NIGHT' ? 'NIGHT' : 'DAY',
+      purse: Number.isFinite(Number(day.purse)) ? Number(day.purse) : null
     };
   }
 
