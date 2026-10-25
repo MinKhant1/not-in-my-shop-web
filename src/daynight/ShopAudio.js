@@ -39,7 +39,7 @@ export class ShopAudio {
     this.sfxGain = null;
     this.musicSource = null;
     this.musicStarting = false;
-    this.musicBytes = this.readClip('background');
+    this.musicBytes = null;
     this.clipBytes = new Map();
     this.clipBuffers = new Map();
     this.clipLoading = new Map();
@@ -50,7 +50,6 @@ export class ShopAudio {
     window.addEventListener('pointerdown', this.onUnlock);
     window.addEventListener('keydown', this.onUnlock);
     window.addEventListener('touchend', this.onUnlock);
-    this.ensure();
   }
 
   clearUnlock() {
@@ -120,8 +119,27 @@ export class ShopAudio {
     });
   }
 
+  fetchMusic() {
+    return fetch(new URL('audio/background.mp3', document.baseURI)).then((response) => {
+      if (!response.ok) {
+        throw new Error(`Background music failed to load (${response.status})`);
+      }
+      return response.arrayBuffer();
+    });
+  }
+
   async playMusic() {
-    const bytes = await this.musicBytes;
+    if (!this.musicBytes) {
+      this.musicBytes = this.fetchMusic();
+    }
+    let bytes;
+    try {
+      bytes = await this.musicBytes;
+    } catch (error) {
+      console.warn('Background music could not be loaded', error);
+      this.musicBytes = null;
+      return;
+    }
     const context = this.context;
     if (!bytes || !context || !this.musicGain || this.musicSource || context.state !== 'running') {
       return;

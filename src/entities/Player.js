@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { ToonMaterialFactory } from '../rendering/ToonMaterial.js';
 import { WeaponId } from '../player/PlayerActivity.js';
 
-const PLAYER_MODEL = '/models/characters/Casual_Male.gltf';
+const PLAYER_MODEL = '/models/characters/Casual_Male.glb';
 const ROOT_POSITION_TRACKS = new Set([
   'Bone.position',
   'CharacterArmature.position'

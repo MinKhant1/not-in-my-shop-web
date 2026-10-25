@@ -204,17 +204,17 @@ export class DayNightHUD {
       preload.decoding = 'async';
       preload.src = url;
     };
-    assign(this.skyDay, 'sky_day.png');
-    assign(this.skyEvening, 'sky_evening.png');
-    assign(this.skyNight, 'sky_night.png');
-    assign(this.sun, 'sun.png');
-    assign(this.moon, 'moon.png');
-    assign(this.mountains, 'mountains.png');
-    assign(this.town, 'town.png');
-    assign(this.wood, 'frame.png');
-    assign(this.plaqueArt, 'plaque.png');
-    const cloud1 = `${CLOCK_ART}/cloud_1.png`;
-    const cloud2 = `${CLOCK_ART}/cloud_2.png`;
+    assign(this.skyDay, 'sky_day.webp');
+    assign(this.skyEvening, 'sky_evening.webp');
+    assign(this.skyNight, 'sky_night.webp');
+    assign(this.sun, 'sun.webp');
+    assign(this.moon, 'moon.webp');
+    assign(this.mountains, 'mountains.webp');
+    assign(this.town, 'town.webp');
+    assign(this.wood, 'frame.webp');
+    assign(this.plaqueArt, 'plaque.webp');
+    const cloud1 = `${CLOCK_ART}/cloud_1.webp`;
+    const cloud2 = `${CLOCK_ART}/cloud_2.webp`;
     this.cloud1.querySelectorAll('img').forEach((img) => { img.src = cloud1; });
     this.cloud2.querySelectorAll('img').forEach((img) => { img.src = cloud2; });
     const stars = new Image();
@@ -225,7 +225,7 @@ export class DayNightHUD {
       ctx.clearRect(0, 0, this.stars.width, this.stars.height);
       ctx.drawImage(cleaned, 0, 0, this.stars.width, this.stars.height);
     };
-    stars.src = `${CLOCK_ART}/stars.png`;
+    stars.src = `${CLOCK_ART}/stars.webp`;
   }
 
   setOpacity(element, value) {

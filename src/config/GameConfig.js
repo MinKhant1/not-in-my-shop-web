@@ -75,7 +75,7 @@ export const GameConfig = {
       cost: 80,
       position: [2.55, -3.15],
       halfSize: 0.72,
-      model: '/models/characters/BlueSoldier_Male.gltf',
+      model: '/models/characters/BlueSoldier_Male.glb',
       modelScale: 0.36,
       modelYOffset: 0.03,
       home: [2.45, -2.55],
@@ -99,7 +99,7 @@ export const GameConfig = {
       position: [-2.05, 2.35],
       halfSize: 0.72,
       cooldown: 60,
-      icon: '/assets/ui/ability/intercom_ability_icon.png',
+      icon: '/assets/ui/ability/intercom_ability_icon.webp',
       micModel: '/models/objects/intercom_mic_stand.glb',
       speakerModel: '/models/objects/wall_pa_speaker.glb',
       micScale: 0.58,
@@ -143,7 +143,7 @@ export const GameConfig = {
       cost: 60,
       halfSize: 0.72,
       padGap: 1.2,
-      model: '/models/characters/Casual2_Female.gltf',
+      model: '/models/characters/Casual2_Female.glb',
       modelScale: 0.36,
       modelYOffset: 0.03
     }
@@ -254,15 +254,15 @@ export const GameConfig = {
     modelScale: 0.36,
     modelYOffset: 0.03,
     models: [
-      '/models/characters/Chef_Male.gltf',
-      '/models/characters/OldClassy_Male.gltf',
-      '/models/characters/Suit_Male.gltf',
-      '/models/outside/Chef_Female.gltf',
-      '/models/outside/Cowboy_Female.gltf',
-      '/models/outside/Cowboy_Male.gltf',
-      '/models/outside/Doctor_Female_Old.gltf',
-      '/models/outside/Doctor_Female_Young.gltf',
-      '/models/outside/OldClassy_Female.gltf'
+      '/models/characters/Chef_Male.glb',
+      '/models/characters/OldClassy_Male.glb',
+      '/models/characters/Suit_Male.glb',
+      '/models/outside/Chef_Female.glb',
+      '/models/outside/Cowboy_Female.glb',
+      '/models/outside/Cowboy_Male.glb',
+      '/models/outside/Doctor_Female_Old.glb',
+      '/models/outside/Doctor_Female_Young.glb',
+      '/models/outside/OldClassy_Female.glb'
     ]
   },
   // One shelf thief per day. speedScale 0.4 is 60% slower than a normal thief.

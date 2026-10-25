@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 
 const MINI_MARKET_TEXTURE = '/models/textures/variation-a.png';
@@ -21,6 +22,7 @@ export class AssetLoader {
     this.manager = new THREE.LoadingManager();
     this.manager.setURLModifier(redirectMissingColormap);
     this.loader = new GLTFLoader(this.manager);
+    this.loader.setMeshoptDecoder(MeshoptDecoder);
     this.textureLoader = new THREE.TextureLoader(this.manager);
     this.cache = new Map();
     this.textureCache = new Map();

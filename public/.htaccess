@@ -1,0 +1,4 @@
+AddType model/gltf-binary .glb
+AddType image/webp .webp
+AddType audio/mpeg .mp3
+AddType application/wasm .wasm

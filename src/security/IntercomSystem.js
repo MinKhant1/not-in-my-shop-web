@@ -17,7 +17,7 @@ export class IntercomSystem {
     this.getUnlockedIndex = options.getUnlockedIndex;
     const config = options.config ?? {};
     this.cooldownDuration = config.cooldown > 0 ? config.cooldown : 60;
-    this.iconUrl = config.icon || '/assets/ui/ability/intercom_ability_icon.png';
+    this.iconUrl = config.icon || '/assets/ui/ability/intercom_ability_icon.webp';
     this.micUrl = config.micModel;
     this.speakerUrl = config.speakerModel;
     this.micScale = config.micScale ?? 0.58;

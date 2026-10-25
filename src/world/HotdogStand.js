@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { createToonMaterialFromImported, getSharedToonGradientMap } from '../rendering/ToonMaterial.js';
 
 const STAND_URL = '/models/outside/hotdog_stand.glb';
-const SELLER_URL = '/models/characters/OldClassy_Male.gltf';
+const SELLER_URL = '/models/characters/OldClassy_Male.glb';
 const ROOT_POSITION_TRACKS = new Set(['Bone.position', 'CharacterArmature.position']);
 
 // The cart file is Z-up. This pitch stands it up in Three's Y-up space.

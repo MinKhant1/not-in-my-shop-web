@@ -92,7 +92,7 @@ export class CctvAlertUI {
     }
     mark = document.createElement('img');
     mark.className = 'cctv-alert';
-    mark.src = '/assets/ui/hud/thief_cctv.png';
+    mark.src = '/assets/ui/hud/thief_cctv.webp';
     mark.alt = '';
     mark.setAttribute('aria-hidden', 'true');
     this.root.appendChild(mark);

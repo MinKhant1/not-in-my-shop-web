@@ -349,7 +349,7 @@ body {
   aspect-ratio: 1024 / 1536;
   margin: 0;
   transform: translate(-50%, -50%);
-  background: url('/assets/ui/hud/shop-complete-background.png') center / 100% 100% no-repeat;
+  background: url('/assets/ui/hud/shop-complete-background.webp') center / 100% 100% no-repeat;
   filter: drop-shadow(0 18px 22px rgba(0, 0, 0, 0.4));
   pointer-events: auto;
 }

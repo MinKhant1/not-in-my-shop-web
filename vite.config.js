@@ -86,7 +86,6 @@ function isSceneDocument(value) {
 }
 
 const AUDIO_SOURCE = {
-  background: 'background.mp3',
   bell: 'bell.wav',
   hit: 'hit1.wav',
   scream: 'scream.wav',

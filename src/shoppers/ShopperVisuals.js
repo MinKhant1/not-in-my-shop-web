@@ -42,7 +42,7 @@ function getThiefIconMaterial() {
   if (thiefIconMaterial) {
     return thiefIconMaterial;
   }
-  const texture = new THREE.TextureLoader().load('/assets/ui/hud/thief_head.png');
+  const texture = new THREE.TextureLoader().load('/assets/ui/hud/thief_head.webp');
   texture.colorSpace = THREE.SRGBColorSpace;
   thiefIconMaterial = new THREE.SpriteMaterial({
     map: texture,

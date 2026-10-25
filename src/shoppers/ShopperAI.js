@@ -147,7 +147,7 @@ export class ShopperAI {
     this.group.userData.shopper = this;
 
     const model = asset.scene;
-    model.name = modelUrl.split('/').pop().replace('.gltf', '');
+    model.name = modelUrl.split('/').pop().replace(/\.(gltf|glb)$/i, '');
     this.modelName = model.name;
     this.shortName = model.name.replace(/_Male$/, '');
     this.visual = new THREE.Group();
