@@ -12,6 +12,7 @@ import { cleanShopName, ShopSign } from '../world/ShopSign.js';
 import { OutsideEnvironment } from '../world/OutsideEnvironment.js';
 import { HotdogStand } from '../world/HotdogStand.js';
 import { StreetPets } from '../world/StreetPets.js';
+import { StreetBall } from '../world/StreetBall.js';
 import { STREETLIGHT_MODEL } from '../world/Diorama.js';
 import { PrefabLibrary } from '../editor/PrefabLibrary.js';
 import { Player } from '../entities/Player.js';
@@ -163,6 +164,8 @@ export class Game {
     await this.hotdog.load();
     this.pets = new StreetPets(this.scene, this.loader, this.collision, this.outside, this.config);
     await this.pets.load();
+    this.football = new StreetBall(this.scene, this.loader, this.collision, this.outside, this.config);
+    await this.football.load();
     this.sceneOverrides = new SceneOverrides(this);
     await this.sceneOverrides.loadAndApply();
     store.applyStolen(this.save.data.stolenShelves);
@@ -530,6 +533,11 @@ export class Game {
     this.purchases?.presentForEditor(editing);
     this.upgradeManager?.presentForEditor(editing);
     this.registerEditorAnchors();
+    if (editing) {
+      this.football?.showSpawn();
+    } else if (this.football?.anchored) {
+      this.football.captureSpawn();
+    }
   }
 
   registerEditorAnchors() {
@@ -557,6 +565,12 @@ export class Game {
       overrides.adoptAnchor(open);
       this.purchases.syncSquare(open);
     }
+    const ball = this.football?.group;
+    if (ball && !this.football.anchored) {
+      overrides.adoptAnchor(ball);
+      this.football.captureSpawn();
+      this.football.anchored = true;
+    }
   }
 
   syncEditorAnchor(object) {
@@ -574,6 +588,9 @@ export class Game {
     }
     if (object.userData.editorKind === 'purchase') {
       this.purchases?.syncSquare(object);
+    }
+    if (object.userData.editorKind === 'football') {
+      this.football?.setSpawn(object.position.x, object.position.z, false);
     }
   }
 
@@ -622,6 +639,7 @@ export class Game {
       this.tutorial?.update(dt);
       this.player.movementLocked = this.mainMenu.state === 'MODAL' || this.tutorial?.open === true;
       this.player.update(dt);
+      this.football?.update(dt, this.player);
       this.followCamera.update(dt);
       this.occlusion.update(dt);
       this.updateDebug(dt);
@@ -638,6 +656,7 @@ export class Game {
     this.tutorial?.update(dt);
     this.player.movementLocked = !playing || this.tutorial?.open === true;
     this.player.update(dt);
+    this.football?.update(dt, this.player);
     this.entranceGuide?.update(dt, this.player.group.position);
     this.upgradeManager?.update(dt);
     this.weaponStation.setUpgradeMode(this.upgrades.canPurchase());

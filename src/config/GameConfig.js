@@ -266,7 +266,7 @@ export const GameConfig = {
   // One shelf thief per day. speedScale 0.4 is 60% slower than a normal thief.
   shelfThief: {
     startDay: 2,
-    health: 150,
+    health: 180,
     speedScale: 0.4,
     fromMinute: 12 * 60,
     toMinute: 16 * 60
