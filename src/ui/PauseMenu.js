@@ -18,9 +18,11 @@ export class PauseMenu {
     });
     this.music?.addEventListener('input', () => {
       this.game.audio.setMusicVolume(Number(this.music.value) / 100);
+      this.game.settings?.syncSliders();
     });
     this.sfx?.addEventListener('input', () => {
       this.game.audio.setSfxVolume(Number(this.sfx.value) / 100);
+      this.game.settings?.syncSliders();
     });
     this.sfx?.addEventListener('change', () => {
       this.game.audio.tick();
@@ -29,7 +31,7 @@ export class PauseMenu {
       if (event.code !== 'Escape' || event.repeat) {
         return;
       }
-      if (this.game.editor?.active || this.game.mainMenu?.state !== 'PLAYING') {
+      if (this.game.editor?.active || this.game.mainMenu?.state !== 'PLAYING' || this.game.settings?.isOpen()) {
         return;
       }
       event.preventDefault();

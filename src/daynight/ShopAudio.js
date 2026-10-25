@@ -33,12 +33,12 @@ export class ShopAudio {
   constructor() {
     this.context = null;
     this.lastTick = null;
-    this.musicVolume = readVolume('not-in-my-shop-music', 0.2);
-    this.sfxVolume = readVolume('not-in-my-shop-sfx', 1);
+    this.musicVolume = readVolume('not-in-my-shop-music', 0.5);
+    this.sfxVolume = readVolume('not-in-my-shop-sfx', 0.5);
     this.musicGain = null;
     this.sfxGain = null;
     this.musicSource = null;
-    this.musicStarted = false;
+    this.musicStarting = false;
     this.musicBytes = this.readClip('background');
     this.clipBytes = new Map();
     this.clipBuffers = new Map();
@@ -46,7 +46,17 @@ export class ShopAudio {
     for (let i = 0; i < CLIP_NAMES.length; i += 1) {
       this.clipBytes.set(CLIP_NAMES[i], this.readClip(CLIP_NAMES[i]));
     }
-    window.addEventListener('keydown', () => this.ensure(), { once: true });
+    this.onUnlock = () => this.ensure();
+    window.addEventListener('pointerdown', this.onUnlock);
+    window.addEventListener('keydown', this.onUnlock);
+    window.addEventListener('touchend', this.onUnlock);
+    this.ensure();
+  }
+
+  clearUnlock() {
+    window.removeEventListener('pointerdown', this.onUnlock);
+    window.removeEventListener('keydown', this.onUnlock);
+    window.removeEventListener('touchend', this.onUnlock);
   }
 
   readClip(name) {
@@ -59,24 +69,23 @@ export class ShopAudio {
   }
 
   ensure() {
-    if (this.context) {
-      if (this.context.state === 'suspended') {
-        this.context.resume();
+    if (!this.context) {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) {
+        return null;
       }
-      this.startMusic();
+      this.context = new AudioCtx();
+      this.sfxGain = this.context.createGain();
+      this.sfxGain.gain.value = this.sfxVolume;
+      this.sfxGain.connect(this.context.destination);
+      this.musicGain = this.context.createGain();
+      this.musicGain.gain.value = this.musicVolume;
+      this.musicGain.connect(this.context.destination);
+    }
+    if (this.context.state === 'suspended') {
+      this.context.resume().then(() => this.startMusic()).catch(() => {});
       return this.context;
     }
-    const AudioCtx = window.AudioContext || window.webkitAudioContext;
-    if (!AudioCtx) {
-      return null;
-    }
-    this.context = new AudioCtx();
-    this.sfxGain = this.context.createGain();
-    this.sfxGain.gain.value = this.sfxVolume;
-    this.sfxGain.connect(this.context.destination);
-    this.musicGain = this.context.createGain();
-    this.musicGain.gain.value = this.musicVolume;
-    this.musicGain.connect(this.context.destination);
     this.startMusic();
     return this.context;
   }
@@ -99,20 +108,22 @@ export class ShopAudio {
   }
 
   startMusic() {
-    if (this.musicStarted || !this.context || !this.musicGain) {
+    if (this.musicSource || this.musicStarting || !this.context || !this.musicGain) {
       return;
     }
-    this.musicStarted = true;
-    this.playMusic();
+    if (this.context.state !== 'running') {
+      return;
+    }
+    this.musicStarting = true;
+    this.playMusic().finally(() => {
+      this.musicStarting = false;
+    });
   }
 
   async playMusic() {
     const bytes = await this.musicBytes;
     const context = this.context;
-    if (!bytes || !context || !this.musicGain || this.musicSource) {
-      if (!bytes) {
-        this.musicStarted = false;
-      }
+    if (!bytes || !context || !this.musicGain || this.musicSource || context.state !== 'running') {
       return;
     }
     let buffer;
@@ -120,10 +131,9 @@ export class ShopAudio {
       buffer = await context.decodeAudioData(bytes.slice(0));
     } catch (error) {
       console.warn('Background music could not be decoded', error);
-      this.musicStarted = false;
       return;
     }
-    if (this.musicSource || this.context !== context) {
+    if (this.musicSource || this.context !== context || context.state !== 'running') {
       return;
     }
     const source = context.createBufferSource();
@@ -137,6 +147,7 @@ export class ShopAudio {
     fade.connect(this.musicGain);
     source.start(now);
     this.musicSource = source;
+    this.clearUnlock();
   }
 
   tone(frequency, duration, type, gainValue) {

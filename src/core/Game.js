@@ -25,6 +25,7 @@ import { StoreSave } from '../economy/StoreSave.js';
 import { PurchaseManager } from '../economy/PurchaseManager.js';
 import { MoneyHUD } from '../ui/MoneyHUD.js';
 import { PauseMenu } from '../ui/PauseMenu.js';
+import { SettingsMenu } from '../ui/SettingsMenu.js';
 import { DebugMoneyUI } from '../ui/DebugMoneyUI.js';
 import { DayNightController } from '../daynight/DayNightController.js';
 import { DayNightLighting } from '../daynight/DayNightLighting.js';
@@ -83,6 +84,7 @@ export class Game {
     this.paused = false;
     this.dayStartMoney = this.save.day()?.purse ?? this.money.getMoney();
     this.pauseMenu = new PauseMenu(this);
+    this.settings = new SettingsMenu(this);
     this.dayNight = new DayNightController(this.config.dayNight, {
       setSpawning: (enabled) => this.shoppers.setSpawningEnabled(enabled),
       prepareNextDay: () => {

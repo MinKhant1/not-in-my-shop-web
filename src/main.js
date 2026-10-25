@@ -1,7 +1,7 @@
 import './styles/main.css';
 import { Game } from './core/Game.js';
 
-const SCROLLABLE = '#menu-panel, #pause-modal, #tutorial-modal, #results-panel';
+const SCROLLABLE = '#menu-panel, #pause-modal, #settings-modal, #tutorial-modal, #results-panel';
 
 function allowsPageGesture(target) {
   return target instanceof Element && Boolean(target.closest(`input, textarea, select, ${SCROLLABLE}`));
