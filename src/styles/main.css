@@ -1098,12 +1098,17 @@ body.is-naming #joystick-zone {
   cursor: pointer;
 }
 
-#pause-button {
+#pause-button,
+#settings-button {
   right: max(12px, env(safe-area-inset-right));
 }
 
 #settings-button {
-  right: calc(max(12px, env(safe-area-inset-right)) + 56px);
+  visibility: hidden;
+}
+
+body.is-main-menu #settings-button {
+  visibility: visible;
 }
 
 #settings-button svg {

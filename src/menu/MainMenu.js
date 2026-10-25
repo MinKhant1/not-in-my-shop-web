@@ -540,6 +540,7 @@ export class MainMenu {
     }
     this.state = 'PLAYING';
     this.previousState = 'PLAYING';
+    this.game.settings?.close();
     document.body.classList.remove('is-main-menu');
     for (let i = 0; i < this.squares.length; i += 1) {
       this.release(this.squares[i]);

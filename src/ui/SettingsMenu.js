@@ -53,7 +53,7 @@ export class SettingsMenu {
   }
 
   open() {
-    if (!this.root || this.game.editor?.active) {
+    if (!this.root || this.game.editor?.active || this.game.mainMenu?.state === 'PLAYING') {
       return;
     }
     this.syncSliders();
