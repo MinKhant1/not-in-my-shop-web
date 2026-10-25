@@ -16,7 +16,8 @@ const NODES = [
   // The road runs north–south. Thieves leave off either end, not from the middle.
   node('streetDoor', -7.62, -3.15, 'street'),
   node('streetNorth', -7.62, -5.5, 'street'),
-  node('thiefVanishNorth', -7.62, -8.2, 'vanish'),
+  // North buildings start at z = -6.35. Despawn on the road, just before that face.
+  node('thiefVanishNorth', -7.62, -6.05, 'vanish'),
   node('streetMid', -7.62, 0.4, 'street'),
   node('streetSouth', -7.62, 3.6, 'street'),
   node('streetFar', -7.62, 4.7, 'street'),
@@ -110,11 +111,13 @@ function appendQueue(nodes, links, leave, checkout) {
     ['queueApproach', `queue${count - 1}`]
   );
 
+  // South wall inner face is z = 5.2. This lane stays north of it so a leaving customer can pass.
+  const sideZ = Math.min(originZ + 0.68, 4.75);
   let previousSide = null;
   for (let i = 0; i < count; i += 1) {
     const sideId = `queueSide${i}`;
     const x = originX - i * spacing;
-    nodes.push(node(sideId, x, originZ + 0.95, 'approach'));
+    nodes.push(node(sideId, x, sideZ, 'approach'));
     leave.push([`queue${i}`, sideId]);
     if (previousSide) {
       links.push([previousSide, sideId]);
@@ -122,7 +125,7 @@ function appendQueue(nodes, links, leave, checkout) {
     previousSide = sideId;
   }
 
-  nodes.push(node('queueExit', Math.min(tailX + 0.35, -2.45), originZ + 0.95, 'approach'));
+  nodes.push(node('queueExit', Math.min(tailX + 0.35, -2.45), sideZ, 'approach'));
   links.push(
     [previousSide, 'queueExit'],
     ['queueExit', 'westFront']
@@ -192,9 +195,10 @@ export class ShopperNavigation {
     this.addNode(node(frontEast, right, frontZ, 'lane'));
     this.linkBoth(backWest, frontWest);
     this.linkBoth(backWest, backEast);
-    this.linkBoth(frontWest, frontEast);
     // The broom stand sits on this lane (local x 6.05, z 2.15). Step west around it.
+    // The old front crossing ran through the register and back into that stand.
     this.linkAroundBroom(index, backEast, frontEast, right, frontZ);
+    this.linkSouthOfCounter(index, frontWest, left);
     this.westChain.set(index, [backWest, frontWest]);
     this.backChain.set(index, [backWest, backEast]);
     if (index === 1) {
@@ -430,6 +434,19 @@ export class ShopperNavigation {
     this.linkBoth(southId, westSouthId);
     this.linkBoth(westSouthId, westNorthId);
     this.linkBoth(westNorthId, frontId);
+  }
+
+  // South of the register (z 2.99) and the broom stand (local x 6.05).
+  // Customers reach the cashier from here instead of crossing either one.
+  linkSouthOfCounter(index, frontWestId, aisleX) {
+    const southZ = 4.55;
+    const westId = `section${index}-south-west`;
+    const eastId = `section${index}-south-east`;
+    this.addNode(node(westId, aisleX, southZ, 'lane'));
+    this.addNode(node(eastId, aisleX + 3.95, southZ, 'lane'));
+    this.linkBoth(frontWestId, westId);
+    this.linkBoth(westId, eastId);
+    this.linkBoth(eastId, `section${index}-broom-west-north`);
   }
 
   addNode(entry) {

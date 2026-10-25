@@ -21,54 +21,103 @@
       "nodes": {
         "Scene/CharacterArmature/Bone/Body_1": {
           "position": [
-            0.0027,
-            0.9877,
-            0.0429
+            0.0022,
+            1.0042,
+            0.0193
           ],
           "rotation": [
-            -0.0005,
-            0.0025,
+            0,
+            0,
+            0
+          ]
+        },
+        "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen": {
+          "rotation": [
+            0.182,
+            0,
             0
           ]
         },
         "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/Neck": {
           "rotation": [
-            -0.0848,
+            -0.1666,
             0,
-            0.0002
+            0
+          ]
+        },
+        "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/Neck/Head": {
+          "rotation": [
+            -0.4619,
+            -0.0006,
+            0
           ]
         },
         "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/ShoulderL": {
           "position": [
-            0.1451,
-            0.14,
-            0.0136
+            0.2135,
+            0.216,
+            0.0213
+          ]
+        },
+        "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/ShoulderL/UpperArmL": {
+          "rotation": [
+            -2.9192,
+            -0.9015,
+            2.9024
+          ]
+        },
+        "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/ShoulderL/UpperArmL/LowerArmL": {
+          "rotation": [
+            0.2529,
+            0.3796,
+            -0.5858
           ]
         },
         "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/ShoulderL/UpperArmL/LowerArmL/FistL": {
           "rotation": [
-            0.0255,
-            0.1189,
-            -0.0165
+            0.0465,
+            -0.5473,
+            -0.146
           ]
         },
         "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/ShoulderR": {
           "position": [
-            -0.147,
-            0.1398,
-            0.0135
+            -0.2123,
+            0.216,
+            0.0213
+          ]
+        },
+        "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/ShoulderR/UpperArmR": {
+          "rotation": [
+            -2.9192,
+            0.9015,
+            -2.9024
+          ]
+        },
+        "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/ShoulderR/UpperArmR/LowerArmR": {
+          "rotation": [
+            0.2529,
+            -0.3796,
+            0.5858
+          ]
+        },
+        "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/ShoulderR/UpperArmR/LowerArmR/FistR": {
+          "rotation": [
+            0.0465,
+            0.5473,
+            0.146
           ]
         },
         "Scene/CharacterArmature/Bone/Body_1/UpperLegL": {
           "position": [
             0.253,
-            -0.0171,
-            -0.0562
+            -0.0167,
+            -0.0559
           ],
           "rotation": [
-            2.8885,
-            0.003,
-            -0.0196
+            2.9442,
+            -0.0009,
+            -0.0211
           ],
           "scale": [
             1,
@@ -78,21 +127,21 @@
         },
         "Scene/CharacterArmature/Bone/Body_1/UpperLegL/LowerLegL": {
           "rotation": [
-            0.5214,
-            0.0103,
-            0.0167
+            0.3721,
+            0.0077,
+            0.0181
           ]
         },
         "Scene/CharacterArmature/Bone/Body_1/UpperLegR": {
           "position": [
             -0.2547,
-            -0.0168,
+            -0.0167,
             -0.0559
           ],
           "rotation": [
-            2.8918,
-            0.0022,
-            0.022
+            2.9442,
+            0.0009,
+            0.0211
           ],
           "scale": [
             1,
@@ -102,9 +151,9 @@
         },
         "Scene/CharacterArmature/Bone/Body_1/UpperLegR/LowerLegR": {
           "rotation": [
-            0.5182,
-            -0.0103,
-            -0.0168
+            0.3721,
+            -0.0077,
+            -0.0181
           ]
         }
       },
@@ -198,6 +247,17 @@
         2.2733
       ]
     },
+    "upgrade-cashier_upgrade_01": {
+      "nodes": {
+        "groundVisual": {
+          "scale": [
+            0.9747,
+            0.9747,
+            1
+          ]
+        }
+      }
+    },
     "upgrade-intercom": {
       "position": [
         19.2423,
@@ -211,6 +271,19 @@
         0,
         0.8864
       ]
+    },
+    "weapon-station": {
+      "nodes": {
+        "object/world/Sketchfab_model/f0d21e3ef769409da9e46e571e9b5fabfbx/RootNode/Broom/Broom_Brush_0": {
+          "visible": false
+        },
+        "object/world/Sketchfab_model/f0d21e3ef769409da9e46e571e9b5fabfbx/RootNode/Broom/Broom_Handle_0": {
+          "visible": false
+        },
+        "object/world/Sketchfab_model/f0d21e3ef769409da9e46e571e9b5fabfbx/RootNode/Broom/Broom_Ring_0": {
+          "visible": false
+        }
+      }
     }
   },
   "added": [
@@ -311,7 +384,7 @@
       "position": [
         -4.954,
         0.02,
-        -2.8265
+        -4.7531
       ],
       "rotation": [
         0,
@@ -344,7 +417,7 @@
       "position": [
         -10.384,
         0.02,
-        -2.826
+        -4.753
       ],
       "rotation": [
         0,
