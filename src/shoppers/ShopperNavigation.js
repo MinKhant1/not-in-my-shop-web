@@ -19,8 +19,9 @@ const NODES = [
   node('thiefVanishNorth', -7.62, -8.2, 'vanish'),
   node('streetMid', -7.62, 0.4, 'street'),
   node('streetSouth', -7.62, 3.6, 'street'),
-  node('streetFar', -7.62, 6.6, 'street'),
-  node('thiefVanishSouth', -7.62, 9.4, 'vanish'),
+  node('streetFar', -7.62, 4.7, 'street'),
+  // South barrier face is z = 5.8. This spot is just before it, inside the thief's radius.
+  node('thiefVanishSouth', -7.62, 5.45, 'vanish'),
 
   node('westBack', -2.45, -2.55, 'lane'),
   node('shelfLeftBack', -2.45, -1.75, 'pick', [-1.2, -1.75]),
@@ -810,6 +811,9 @@ export class ShopperRoute {
     const position = group.position;
     const point = this.path[this.index];
     if (!point) {
+      if (this.path.length > 0 && this.index >= this.path.length) {
+        return 'arrived';
+      }
       return 'idle';
     }
 
@@ -858,10 +862,9 @@ export class ShopperRoute {
           this.draw();
           return 'moving';
         }
-        if (this.giveUpBlockedQueue(position, collision, radius)) {
+        if (this.giveUpBlockedQueue(position, collision, radius) || this.recover(position, collision, radius)) {
           return 'arrived';
         }
-        this.recover(position, collision, radius);
       }
     } else {
       this.anchorX = position.x;
@@ -933,8 +936,11 @@ export class ShopperRoute {
     this.hasAnchor = false;
     this.recoveries += 1;
     const goal = this.navigation.nodes.get(this.targetId);
+    // Vanish points sit past the map edge. A blocked thief used to stand on the road forever.
     if (goal?.kind === 'vanish') {
-      return;
+      this.index = this.path.length;
+      this.recoveries = 0;
+      return true;
     }
     if (goal && !collision.blocksMovement(goal.x, goal.z, Math.min(radius, 0.12))) {
       const dx = goal.x - position.x;
@@ -945,7 +951,7 @@ export class ShopperRoute {
         position.y = 0;
         this.index = this.path.length;
         this.recoveries = 0;
-        return;
+        return true;
       }
     }
     this.path = this.navigation.route(position.x, position.z, this.targetId, this.avoidQueue);
@@ -953,6 +959,7 @@ export class ShopperRoute {
     this.recoveries = 0;
     this.skipReached(position.x, position.z);
     this.draw();
+    return false;
   }
 
   face(group, nx, nz, dt) {
