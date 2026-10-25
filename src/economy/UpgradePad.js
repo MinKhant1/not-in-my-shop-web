@@ -26,6 +26,8 @@ export class UpgradePad {
     this.onPurchase = spec.onPurchase;
     this.audio = spec.audio ?? null;
     this.circular = spec.circular === true;
+    this.markerColor = spec.color ?? StorePalette.upgradeMarker;
+    this.filled = Number.isFinite(spec.color);
     this.retainWhenOwned = spec.retainWhenOwned === true;
     this.hiredText = spec.hiredText === undefined ? 'HIRED' : spec.hiredText;
     this.brokeText = spec.brokeText || '';
@@ -33,6 +35,9 @@ export class UpgradePad {
     this.detail = spec.detail || '';
     this.summary = spec.summary || '';
     this.showFloorTitle = spec.showFloorTitle === true;
+    this.floorLines = Array.isArray(spec.floorLines) ? spec.floorLines : null;
+    this.closed = false;
+    this.closedLines = Array.isArray(spec.closedLines) ? spec.closedLines : ['NOT HUNGRY', 'TONIGHT'];
     this.showCostLabel = spec.showCostLabel !== false;
     this.requireFull = spec.requireFull === true;
     this.banner = spec.banner === true;
@@ -137,7 +142,7 @@ export class UpgradePad {
     }
     geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
     const material = new THREE.LineBasicMaterial({
-      color: StorePalette.upgradeMarker,
+      color: this.markerColor,
       transparent: true,
       opacity: 0.42
     });
@@ -147,7 +152,7 @@ export class UpgradePad {
   }
 
   covers(x, z) {
-    if (!this.circular || !this.root.visible || this.removed) {
+    if (!this.circular || !this.root.visible || this.removed || this.closed) {
       return false;
     }
     const dx = x - this.x;
@@ -171,6 +176,14 @@ export class UpgradePad {
     if (this.editorReveal) {
       this.root.visible = true;
       this.triggerEnabled = false;
+      return;
+    }
+    if (this.closed) {
+      this.triggerEnabled = false;
+      this.root.visible = accepting === true;
+      if (this.root.visible) {
+        this.paintClosed();
+      }
       return;
     }
     if (this.hired) {
@@ -266,12 +279,13 @@ export class UpgradePad {
     }
     this.investment = new UpgradeInvestment(cost ?? this.investment.cost, PAY_SECONDS);
     this.hired = hired === true;
+    this.closed = false;
     this.removed = false;
     this.signature = '';
     this.labelSignature = '';
     this.finishTimer = 0;
     if (this.outline?.material?.color) {
-      this.outline.material.color.setHex(this.hired ? StorePalette.success : StorePalette.upgradeMarker);
+      this.outline.material.color.setHex(this.hired ? StorePalette.success : this.markerColor);
       this.outline.material.opacity = this.hired ? 0.8 : 0.42;
     }
     if (this.signMaterial) {
@@ -308,9 +322,9 @@ export class UpgradePad {
     const width = this.canvas.width;
     const height = this.canvas.height;
     ctx.clearRect(0, 0, width, height);
-    ctx.fillStyle = paletteHex(StorePalette.uiBackground);
+    ctx.fillStyle = paletteHex(this.filled ? this.markerColor : StorePalette.uiBackground);
     ctx.fillRect(0, 0, width, height);
-    ctx.strokeStyle = paletteHex(StorePalette.upgradeMarker);
+    ctx.strokeStyle = this.filled ? '#ffffff' : paletteHex(this.markerColor);
     ctx.lineWidth = 28;
     if (this.circular) {
       ctx.beginPath();
@@ -324,14 +338,21 @@ export class UpgradePad {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     if (!this.circular || this.showFloorTitle) {
-      const lines = titleLines(this.name);
+      const lines = this.floorLines?.length ? this.floorLines : titleLines(this.name);
       const stacked = lines.length > 2;
       const fontSize = this.circular ? (stacked ? 52 : 58) : 78;
       ctx.font = `800 ${fontSize}px system-ui, sans-serif`;
       const titleTop = stacked ? 0.22 : lines.length > 1 ? 0.28 : 0.34;
       const step = stacked ? 0.12 : 0.14;
       for (let i = 0; i < lines.length; i += 1) {
-        ctx.fillText(lines[i], width / 2, height * (titleTop + i * step));
+        const y = height * (titleTop + i * step);
+        if (this.filled) {
+          ctx.lineWidth = 8;
+          ctx.strokeStyle = '#1b2233';
+          ctx.strokeText(lines[i], width / 2, y);
+          ctx.fillStyle = '#ffffff';
+        }
+        ctx.fillText(lines[i], width / 2, y);
       }
     }
     if (this.detail) {
@@ -341,25 +362,91 @@ export class UpgradePad {
         size -= 2;
         ctx.font = `700 ${size}px system-ui, sans-serif`;
       }
-      ctx.fillStyle = paletteHex(StorePalette.woodHighlight);
-      ctx.fillText(this.detail, width / 2, height * 0.5);
+      ctx.fillStyle = this.filled ? '#ffffff' : paletteHex(StorePalette.woodHighlight);
+      const detailY = height * (this.floorLines?.length ? 0.56 : 0.5);
+      if (this.filled) {
+        ctx.lineWidth = 8;
+        ctx.strokeStyle = '#1b2233';
+        ctx.strokeText(this.detail, width / 2, detailY);
+      }
+      ctx.fillText(this.detail, width / 2, detailY);
     }
 
     const barX = 64;
     const barY = height * 0.62;
     const barW = width - 128;
     const barH = 46;
-    ctx.fillStyle = paletteHex(StorePalette.uiBackgroundSecondary);
+    ctx.fillStyle = this.filled ? 'rgba(27, 34, 51, 0.35)' : paletteHex(StorePalette.uiBackgroundSecondary);
     ctx.fillRect(barX, barY, barW, barH);
     const progress = cost > 0 ? invested / cost : 1;
-    ctx.fillStyle = paletteHex(StorePalette.upgradeMarker);
+    ctx.fillStyle = this.filled ? '#ffffff' : paletteHex(this.markerColor);
     ctx.fillRect(barX, barY, Math.max(0, barW * progress), barH);
 
     if (this.showCostLabel) {
       const label = invested > 0 ? `${invested} / ${cost}` : `$${cost}`;
       ctx.font = '800 84px system-ui, sans-serif';
-      ctx.fillStyle = paletteHex(StorePalette.upgradeMarker);
+      ctx.fillStyle = this.filled ? '#ffffff' : paletteHex(this.markerColor);
+      if (this.filled) {
+        ctx.lineWidth = 10;
+        ctx.strokeStyle = '#1b2233';
+        ctx.strokeText(label, width / 2, height * 0.82);
+      }
       ctx.fillText(label, width / 2, height * 0.82);
+    }
+    this.texture.needsUpdate = true;
+  }
+
+  markClosed() {
+    this.closed = true;
+    this.removed = false;
+    this.triggerEnabled = false;
+    this.finishTimer = 0;
+    this.signature = '';
+    if (this.signMaterial) {
+      this.signMaterial.opacity = 1;
+    }
+    this.sign?.scale.set(1, 1, 1);
+  }
+
+  paintClosed() {
+    const signature = 'closed';
+    if (signature === this.signature) {
+      return;
+    }
+    this.signature = signature;
+    const ctx = this.canvas.getContext('2d');
+    const width = this.canvas.width;
+    const height = this.canvas.height;
+    ctx.clearRect(0, 0, width, height);
+    ctx.fillStyle = paletteHex(this.markerColor);
+    ctx.fillRect(0, 0, width, height);
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 28;
+    if (this.circular) {
+      ctx.beginPath();
+      ctx.arc(width / 2, height / 2, width / 2 - 20, 0, Math.PI * 2);
+      ctx.stroke();
+    } else {
+      ctx.strokeRect(18, 18, width - 36, height - 36);
+    }
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#ffffff';
+    ctx.lineWidth = 8;
+    ctx.strokeStyle = '#1b2233';
+    const nameLines = this.floorLines?.length ? this.floorLines : titleLines(this.name);
+    ctx.font = '800 58px system-ui, sans-serif';
+    for (let i = 0; i < nameLines.length; i += 1) {
+      const y = height * (0.28 + i * 0.14);
+      ctx.strokeText(nameLines[i], width / 2, y);
+      ctx.fillText(nameLines[i], width / 2, y);
+    }
+    const note = this.closedLines;
+    ctx.font = '800 46px system-ui, sans-serif';
+    for (let i = 0; i < note.length; i += 1) {
+      const y = height * (0.62 + i * 0.14);
+      ctx.strokeText(note[i], width / 2, y);
+      ctx.fillText(note[i], width / 2, y);
     }
     this.texture.needsUpdate = true;
   }

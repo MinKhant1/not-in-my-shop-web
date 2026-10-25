@@ -21,54 +21,103 @@
       "nodes": {
         "Scene/CharacterArmature/Bone/Body_1": {
           "position": [
-            0.0025,
-            0.9937,
-            0.038
+            0.0026,
+            0.992,
+            0.0387
           ],
           "rotation": [
-            -0.0004,
-            0.0021,
+            -0.0003,
+            0.0017,
+            0
+          ]
+        },
+        "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen": {
+          "rotation": [
+            0.1646,
+            0,
             0
           ]
         },
         "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/Neck": {
           "rotation": [
-            -0.0871,
+            -0.0612,
             0,
-            0.0002
+            0.0001
+          ]
+        },
+        "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/Neck/Head": {
+          "rotation": [
+            0.059,
+            -0.0006,
+            0
           ]
         },
         "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/ShoulderL": {
           "position": [
-            0.143,
-            0.1402,
-            0.0136
+            0.1476,
+            0.1479,
+            0.0144
+          ]
+        },
+        "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/ShoulderL/UpperArmL": {
+          "rotation": [
+            -0.9508,
+            0.2174,
+            -1.7998
+          ]
+        },
+        "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/ShoulderL/UpperArmL/LowerArmL": {
+          "rotation": [
+            0.0003,
+            0.3725,
+            -0.3234
           ]
         },
         "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/ShoulderL/UpperArmL/LowerArmL/FistL": {
           "rotation": [
-            0.0254,
-            0.0996,
-            -0.0158
+            0.0335,
+            0.0262,
+            -0.035
           ]
         },
         "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/ShoulderR": {
           "position": [
-            -0.1446,
-            0.14,
-            0.0135
+            -0.1487,
+            0.1477,
+            0.0143
+          ]
+        },
+        "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/ShoulderR/UpperArmR": {
+          "rotation": [
+            -0.9441,
+            -0.2246,
+            1.8003
+          ]
+        },
+        "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/ShoulderR/UpperArmR/LowerArmR": {
+          "rotation": [
+            0.0059,
+            -0.3823,
+            0.3248
+          ]
+        },
+        "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/ShoulderR/UpperArmR/LowerArmR/FistR": {
+          "rotation": [
+            0.0345,
+            -0.103,
+            0.0382
           ]
         },
         "Scene/CharacterArmature/Bone/Body_1/UpperLegL": {
           "position": [
             0.253,
-            -0.0167,
-            -0.0559
+            -0.0373,
+            -0.0685
           ],
           "rotation": [
-            2.9111,
-            0.0021,
-            -0.0202
+            2.8305,
+            0.0031,
+            -0.0193
           ],
           "scale": [
             1,
@@ -78,20 +127,20 @@
         },
         "Scene/CharacterArmature/Bone/Body_1/UpperLegL/LowerLegL": {
           "rotation": [
-            0.4697,
-            0.0094,
-            0.0172
+            0.5967,
+            0.0116,
+            0.0159
           ]
         },
         "Scene/CharacterArmature/Bone/Body_1/UpperLegR": {
           "position": [
             -0.2547,
-            -0.0167,
-            -0.0559
+            -0.0266,
+            -0.056
           ],
           "rotation": [
-            2.9124,
-            0.0022,
+            2.8782,
+            0.0012,
             0.0217
           ],
           "scale": [
@@ -102,23 +151,23 @@
         },
         "Scene/CharacterArmature/Bone/Body_1/UpperLegR/LowerLegR": {
           "rotation": [
-            0.4695,
-            -0.0094,
-            -0.0172
+            0.5348,
+            -0.0105,
+            -0.0166
           ]
         }
       },
       "position": [
-        -11.1708,
+        -12.3424,
         0.02,
-        5.7925
+        5.6723
       ]
     },
     "hotdog-stand": {
       "position": [
-        -10.3267,
+        -11.4961,
         0.02,
-        6.0832
+        5.6408
       ]
     },
     "menu-continue": {

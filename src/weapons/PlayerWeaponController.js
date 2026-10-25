@@ -16,6 +16,10 @@ export class PlayerWeaponController {
     this.getBroom = null;
     this.target = null;
     this.cooldown = 0;
+    this.baseAttackSpeed = config.playerAttackSpeed ?? 0.8;
+    this.attackSpeed = this.baseAttackSpeed;
+    this.critChance = 0;
+    this.broom.swingScale = this.attackSpeed;
     this.rangeRing = null;
     if (config.debugWeapons) {
       this.rangeRing = this.createRangeRing();
@@ -63,9 +67,11 @@ export class PlayerWeaponController {
     const trashNear = this.trash?.inRange(origin.x, origin.z, range) === true;
     if (this.broom.swingTime < 0 && this.cooldown <= 0 && (this.target || trashNear)) {
       this.broom.startSwing();
-      this.cooldown = this.config.attackCooldown;
+      this.broom.swingScale = this.attackSpeed;
+      const speed = this.attackSpeed > 0 ? this.attackSpeed : 0.8;
+      this.cooldown = this.config.attackCooldown / speed;
       const clipDuration = this.player.attackClipDuration;
-      const timeScale = clipDuration > 0 ? clipDuration / this.config.attackSwingDuration : 1;
+      const timeScale = clipDuration > 0 ? clipDuration / (this.config.attackSwingDuration / speed) : 1;
       this.player.playAttack(timeScale);
     }
 
@@ -138,9 +144,11 @@ export class PlayerWeaponController {
     }
     const stats = this.broomStats();
     this.audio?.hit();
-    const defeated = target.takeDamage(stats.damage);
+    const crit = this.critChance > 0 && Math.random() < this.critChance;
+    const damage = crit ? stats.damage * 2 : stats.damage;
+    const defeated = target.takeDamage(damage);
     const position = target.group.position;
-    this.feedback.spawn(position.x, 1.55, position.z, stats.damage);
+    this.feedback.spawn(position.x, 1.55, position.z, damage);
     if (stats.burnDps > 0) {
       this.broom.burstFlames(position.x, position.y + 1.05, position.z);
       if (!defeated && stats.burnDuration > 0) {
@@ -164,6 +172,14 @@ export class PlayerWeaponController {
     this.rangeRing.visible = this.player.hasBroomEquipped;
     this.rangeRing.position.x = this.player.position.x;
     this.rangeRing.position.z = this.player.position.z;
+  }
+
+  setHotdogBuffs(spicyCount, cheeseCount) {
+    const spicy = Math.max(0, spicyCount);
+    const cheese = Math.max(0, cheeseCount);
+    this.attackSpeed = this.baseAttackSpeed * (1 + 0.05 * spicy);
+    this.critChance = 0.05 * cheese;
+    this.broom.swingScale = this.attackSpeed;
   }
 
   broomStats() {

@@ -42,6 +42,7 @@ export class BroomWeapon {
     this.equipped = false;
     this.swingTime = -1;
     this.hitSent = false;
+    this.swingScale = 1;
   }
 
   async load(loader, toonFactory) {
@@ -186,11 +187,13 @@ export class BroomWeapon {
     }
     const previous = this.swingTime;
     this.swingTime += dt;
-    const duration = this.config.attackSwingDuration;
+    const scale = this.swingScale > 0 ? this.swingScale : 1;
+    const duration = this.config.attackSwingDuration / scale;
+    const hitAt = this.config.attackHitDelay / scale;
     const progress = Math.min(1, this.swingTime / duration);
     this.pivot.rotation.z = Math.sin(progress * Math.PI) * this.config.swingAngle;
 
-    if (!this.hitSent && previous < this.config.attackHitDelay && this.swingTime >= this.config.attackHitDelay) {
+    if (!this.hitSent && previous < hitAt && this.swingTime >= hitAt) {
       this.hitSent = true;
       return 'hit';
     }

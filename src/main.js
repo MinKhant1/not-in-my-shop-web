@@ -1,5 +1,6 @@
 import './styles/main.css';
 import { Game } from './core/Game.js';
+import { LoadingScreen } from './ui/LoadingScreen.js';
 
 const SCROLLABLE = '#menu-panel, #pause-modal, #settings-modal, #tutorial-modal, #results-panel';
 const DOUBLE_TAP_MS = 300;
@@ -66,12 +67,17 @@ document.addEventListener('gesturechange', (event) => event.preventDefault(), { 
 
 const app = document.querySelector('#app');
 const canvas = document.querySelector('#game-canvas');
+const loading = new LoadingScreen();
 const game = new Game(canvas, app);
 
-game.init().catch((error) => {
+loading.attach(game.loader.manager);
+game.input.suspended = true;
+game.init().then(async () => {
+  game.input.suspended = true;
+  await loading.finish();
+  game.input.suspended = false;
+}).catch((error) => {
   console.error('Failed to start Not In My Shop', error);
-  const note = document.createElement('p');
-  note.id = 'load-error';
-  note.textContent = 'The store failed to load. Check the browser console for details.';
-  app.appendChild(note);
+  game.input.suspended = true;
+  loading.fail();
 });

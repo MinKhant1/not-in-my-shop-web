@@ -213,6 +213,8 @@ export const GameConfig = {
     thiefMaxHP: 100,
     broomDamage: 20,
     attackRange: 1.5,
+    // Player swings at this fraction of the times below. 0.8 is 20% slower. The guard keeps the raw times.
+    playerAttackSpeed: 0.8,
     attackCooldown: 0.6,
     attackHitDelay: 0.16,
     attackSwingDuration: 0.45,

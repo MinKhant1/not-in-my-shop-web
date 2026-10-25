@@ -9,9 +9,162 @@
     <meta name="theme-color" content="#c7e3f6" />
     <title>Not In My Shop</title>
     <link rel="icon" href="/assets/ui/favicon.ico" type="image/x-icon" />
+    <style>
+      #boot-screen {
+        position: absolute;
+        inset: 0;
+        z-index: 40;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0;
+        box-sizing: border-box;
+        padding: max(24px, env(safe-area-inset-top)) 22px max(28px, env(safe-area-inset-bottom));
+        background:
+          radial-gradient(ellipse at 50% 38%, #34405c 0%, #20283e 62%);
+        color: #ffffff;
+        font-family: system-ui, sans-serif;
+        text-align: center;
+        opacity: 1;
+        transition: opacity 0.45s ease;
+      }
+
+      #boot-screen.is-done {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      #boot-logo {
+        width: min(58vw, 220px);
+        height: auto;
+        aspect-ratio: 1;
+        object-fit: contain;
+        animation: boot-float 2.6s ease-in-out infinite;
+        filter: drop-shadow(0 12px 0 rgba(32, 40, 62, 0.35));
+      }
+
+      #boot-status {
+        margin: 22px 0 0;
+        font-size: clamp(15px, 4.2vw, 20px);
+        font-weight: 800;
+        letter-spacing: 0.08em;
+      }
+
+      #boot-bar {
+        width: min(100%, 280px);
+        height: 16px;
+        margin-top: 16px;
+        border: 3px solid #ffca45;
+        border-radius: 999px;
+        background: #20283e;
+        overflow: hidden;
+        box-shadow: inset 0 2px 0 rgba(0, 0, 0, 0.25);
+      }
+
+      #boot-bar span {
+        display: block;
+        height: 100%;
+        width: 0%;
+        border-radius: inherit;
+        background: linear-gradient(180deg, #ffe08a 0%, #ffca45 100%);
+        transition: width 0.18s linear;
+      }
+
+      #boot-bar.is-indeterminate span {
+        width: 38%;
+        transition: none;
+        animation: boot-slide 1.05s ease-in-out infinite;
+      }
+
+      #boot-percent {
+        margin: 10px 0 0;
+        min-height: 1.2em;
+        font-size: clamp(18px, 5vw, 22px);
+        font-weight: 800;
+        color: #ffca45;
+      }
+
+      #boot-tip {
+        max-width: 34rem;
+        margin: 28px 0 0;
+        font-size: clamp(14px, 3.8vw, 16px);
+        font-weight: 700;
+        line-height: 1.35;
+      }
+
+      #boot-tip b {
+        color: #ffca45;
+      }
+
+      #boot-tip-text {
+        display: inline;
+        opacity: 1;
+        transition: opacity 0.28s ease;
+      }
+
+      #boot-tip-text.is-out {
+        opacity: 0;
+      }
+
+      #boot-error {
+        margin-top: 18px;
+      }
+
+      #boot-error p {
+        margin: 0 0 14px;
+        font-weight: 700;
+      }
+
+      #boot-retry {
+        appearance: none;
+        border: 3px solid #20283e;
+        border-radius: 999px;
+        background: #ffca45;
+        color: #20283e;
+        font: 800 16px system-ui, sans-serif;
+        letter-spacing: 0.06em;
+        padding: 10px 28px;
+        cursor: pointer;
+      }
+
+      #boot-screen.is-failed #boot-status,
+      #boot-screen.is-failed #boot-bar,
+      #boot-screen.is-failed #boot-percent,
+      #boot-screen.is-failed #boot-tip {
+        display: none;
+      }
+
+      @keyframes boot-float {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-8px); }
+      }
+
+      @keyframes boot-slide {
+        0% { transform: translateX(-130%); }
+        100% { transform: translateX(280%); }
+      }
+
+      @media (min-width: 800px) {
+        #boot-logo {
+          width: 240px;
+        }
+      }
+    </style>
   </head>
   <body>
     <div id="app">
+      <div id="boot-screen" role="status" aria-live="polite" aria-busy="true">
+        <img id="boot-logo" src="%BASE_URL%assets/ui/hud/no_in_shop_icon.png" alt="Not In My Shop" draggable="false" />
+        <p id="boot-status">PREPARING YOUR SHOP...</p>
+        <div id="boot-bar" class="is-indeterminate"><span></span></div>
+        <p id="boot-percent" hidden>0%</p>
+        <p id="boot-tip"><b>TIP:</b> <span id="boot-tip-text"></span></p>
+        <div id="boot-error" hidden>
+          <p>The shop couldn't be prepared.</p>
+          <button id="boot-retry" type="button">RETRY</button>
+        </div>
+      </div>
       <div id="shop-clock">
         <div id="clock-day">DAY 1</div>
         <div id="clock-frame">
@@ -128,6 +281,33 @@
         </clipPath>
       </defs>
     </svg>
+    <script>
+      (function () {
+        var tips = [
+          "Keep an eye on suspicious customers. They might be thieves!",
+          "Catch thieves with your broom before they escape!",
+          "Serve customers quickly to keep your shop running smoothly!",
+          "Upgrade your broom to become a better thief catcher!",
+          "Every thief who escapes costs you money. Stay alert!"
+        ];
+        var text = document.getElementById('boot-tip-text');
+        var root = document.getElementById('boot-screen');
+        if (!text || !root) return;
+        var index = Math.floor(Math.random() * tips.length);
+        text.textContent = tips[index];
+        setInterval(function () {
+          if (root.classList.contains('is-done') || root.classList.contains('is-failed') || root.hidden) return;
+          var pick = Math.floor(Math.random() * (tips.length - 1));
+          if (pick >= index) pick += 1;
+          index = pick;
+          text.classList.add('is-out');
+          setTimeout(function () {
+            text.textContent = tips[index];
+            text.classList.remove('is-out');
+          }, 280);
+        }, 4000);
+      })();
+    </script>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>

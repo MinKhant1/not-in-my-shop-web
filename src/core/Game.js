@@ -11,6 +11,7 @@ import { reservedSpot, sectionIndexAt } from '../world/StoreSections.js';
 import { cleanShopName, ShopSign } from '../world/ShopSign.js';
 import { OutsideEnvironment } from '../world/OutsideEnvironment.js';
 import { HotdogStand } from '../world/HotdogStand.js';
+import { HotdogMenu } from '../world/HotdogMenu.js';
 import { StreetPets } from '../world/StreetPets.js';
 import { StreetBall } from '../world/StreetBall.js';
 import { STREETLIGHT_MODEL } from '../world/Diorama.js';
@@ -96,7 +97,10 @@ export class Game {
         this.intercom?.resetCooldown();
         this.persistDay();
       },
-      setUpgradesOpen: (open) => this.upgrades.setOpen(open),
+      setUpgradesOpen: (open) => {
+        this.upgrades.setOpen(open);
+        this.hotdogs?.syncNight(open);
+      },
       dismissShoppers: () => {
         this.checkout?.cancel();
         this.shoppers.resolveOpenThieves();
@@ -439,6 +443,21 @@ export class Game {
       this.config.weapons,
       this.audio
     );
+    this.hotdogs = new HotdogMenu({
+      scene: this.scene,
+      money: this.money,
+      shopUpgrades: this.upgrades,
+      save: this.save,
+      stand: this.hotdog,
+      player: this.player,
+      weapons: this.weapons,
+      tip: this.upgradeManager.tip,
+      feedback: this.hitFeedback,
+      audio: this.audio,
+      dayNumber: () => this.dayNight.dayNumber,
+      coinInterval: upgradeConfig.coinInterval ?? 0.15
+    });
+    this.hotdogs.syncNight(this.upgrades.canPurchase());
     this.shoppers.onThiefDrops = (drops) => this.drops.spawn(drops);
     this.broomUpgrade = new BroomUpgrade({
       scene: this.scene,
@@ -525,6 +544,8 @@ export class Game {
     }
 
     this.clock.start();
+    const camera = this.editor?.active ? this.editor.camera : this.followCamera.camera;
+    this.renderer.render(this.scene, camera);
     this.loop();
   }
 
@@ -623,6 +644,7 @@ export class Game {
     }
     if (this.editor?.active) {
       this.editor.update(dt);
+      this.hotdogs?.place();
       this.shopSign?.update(this.lighting.night);
       this.renderer.render(this.scene, this.editor.camera);
       return;
@@ -659,6 +681,7 @@ export class Game {
     this.football?.update(dt, this.player);
     this.entranceGuide?.update(dt, this.player.group.position);
     this.upgradeManager?.update(dt);
+    this.hotdogs?.update(dt);
     this.weaponStation.setUpgradeMode(this.upgrades.canPurchase());
     this.broomStations?.setUpgradeMode(this.upgrades.canPurchase());
     const position = this.player.group.position;
@@ -777,6 +800,7 @@ export class Game {
     if (skateId) {
       this.player.setSpeedModifier(skateId, 1);
     }
+    this.hotdogs?.reset();
     this.security?.dismiss();
     this.cameras?.deactivate();
     this.intercom?.deactivate();
@@ -810,6 +834,7 @@ export class Game {
       purchasedFixtures: [],
       stolenShelves: [],
       shelfThiefDay: 0,
+      hotdogs: this.hotdogs?.snapshot() ?? { spicy: 0, cheese: 0, classic: 0, eatenNight: 0 },
       pendingPurchase: null,
       played: false,
       day: this.dayNight.snapshot(),

@@ -701,9 +701,12 @@ export class OutsideEnvironment {
 
   placeSouthBarrier() {
     const thickness = 0.4;
+    // The southern hotdog circle sits past the shop's south edge. This shift
+    // lets the player stand on it without moving the street or the buildings.
+    const reach = 1.55;
     const geometry = new THREE.BoxGeometry(90, 3, thickness);
     const dummy = new THREE.Mesh(geometry);
-    dummy.position.set(0, 1.5, STREET_SOUTH + thickness * 0.5);
+    dummy.position.set(0, 1.5, STREET_SOUTH + thickness * 0.5 + reach);
     dummy.updateWorldMatrix(true, true);
     this.collision.addObject(dummy, { id: 'outside-south-barrier', group: 'outside-barrier' });
     geometry.dispose();

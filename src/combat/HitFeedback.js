@@ -49,19 +49,63 @@ export class HitFeedback {
     sprite.scale.set(0.46, 0.23, 1);
     sprite.name = 'hit-number';
     this.scene.add(sprite);
-    this.entries.push({ sprite, age: 0 });
+    this.entries.push({ sprite, age: 0, life: 0.7 });
+  }
+
+  spawnLine(x, y, z, text) {
+    const font = 'bold 32px sans-serif';
+    const measure = document.createElement('canvas').getContext('2d');
+    measure.font = font;
+    const textWidth = Math.ceil(measure.measureText(text).width);
+    const width = textWidth + 28;
+    const height = 48;
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext('2d');
+    context.clearRect(0, 0, width, height);
+    context.font = font;
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    context.lineWidth = 5;
+    context.strokeStyle = '#1b2233';
+    context.strokeText(text, width / 2, height / 2);
+    context.fillStyle = '#ffe08a';
+    context.fillText(text, width / 2, height / 2);
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.generateMipmaps = false;
+    texture.minFilter = THREE.LinearFilter;
+    texture.magFilter = THREE.LinearFilter;
+    texture.needsUpdate = true;
+    const material = new THREE.SpriteMaterial({
+      map: texture,
+      transparent: true,
+      depthTest: false
+    });
+    const sprite = new THREE.Sprite(material);
+    sprite.position.set(x, y, z);
+    const worldHeight = 0.16;
+    sprite.scale.set(worldHeight * (width / height), worldHeight, 1);
+    sprite.name = 'hit-number';
+    this.scene.add(sprite);
+    this.entries.push({ sprite, age: 0, life: 1.25, disposeMap: true });
   }
 
   update(dt) {
     for (let i = this.entries.length - 1; i >= 0; i -= 1) {
       const entry = this.entries[i];
+      const life = entry.life > 0 ? entry.life : 0.7;
       entry.age += dt;
       entry.sprite.position.y += dt * 0.7;
-      entry.sprite.material.opacity = Math.max(0, 1 - entry.age / 0.7);
-      if (entry.age < 0.7) {
+      entry.sprite.material.opacity = Math.max(0, 1 - entry.age / life);
+      if (entry.age < life) {
         continue;
       }
       entry.sprite.removeFromParent();
+      if (entry.disposeMap) {
+        entry.sprite.material.map?.dispose();
+      }
       entry.sprite.material.dispose();
       this.entries.splice(i, 1);
     }
