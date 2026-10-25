@@ -526,20 +526,7 @@ export class ShopperAI {
     this.impatient = false;
     this.angerTimer = 0;
 
-    const origin = new THREE.Vector3();
-    this.group.getWorldPosition(origin);
-    const released = this.inventory.releaseAll();
-    const drops = [];
-    for (let i = 0; i < released.length; i += 1) {
-      const angle = released.length === 1 ? 0 : (i / released.length) * Math.PI * 2;
-      drops.push({
-        mesh: released[i],
-        x: origin.x + Math.cos(angle) * 0.28,
-        z: origin.z + Math.sin(angle) * 0.28,
-        angle,
-        value: released[i].userData.value
-      });
-    }
+    const drops = this.releaseDrops();
 
     if (this.checkoutQueue.queue.includes(this)) {
       this.checkoutQueue.complete(this);
@@ -710,10 +697,32 @@ export class ShopperAI {
     this.queueIndex = -1;
     this.hasReachedQueueSlot = false;
     this.route.clear();
+    const drops = this.releaseDrops();
+    if (drops.length > 0) {
+      this.onDrops?.(drops);
+    }
     this.fleeSpeed = this.weaponsConfig?.defeatedThiefRunSpeed ?? 3.6;
     this.beginDefeatedFlee();
     this.refreshDebug();
     return true;
+  }
+
+  releaseDrops() {
+    const origin = new THREE.Vector3();
+    this.group.getWorldPosition(origin);
+    const released = this.inventory.releaseAll();
+    const drops = [];
+    for (let i = 0; i < released.length; i += 1) {
+      const angle = released.length === 1 ? 0 : (i / released.length) * Math.PI * 2;
+      drops.push({
+        mesh: released[i],
+        x: origin.x + Math.cos(angle) * 0.28,
+        z: origin.z + Math.sin(angle) * 0.28,
+        angle,
+        value: released[i].userData.value
+      });
+    }
+    return drops;
   }
 
   beginDefeatedFlee() {

@@ -235,7 +235,7 @@ export const GameConfig = {
     maxActive: 8,
     spawnInterval: 5,
     firstSpawnDelay: 1.4,
-    thiefChance: 0.5,
+    thiefChance: 0.4,
     minItems: 1,
     maxItems: 4,
     moveSpeed: 1.35,
