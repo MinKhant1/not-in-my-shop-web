@@ -21,80 +21,90 @@
       "nodes": {
         "Scene/CharacterArmature/Bone/Body_1": {
           "position": [
-            0.003,
-            0.9814,
-            0.0529
+            0.0027,
+            0.9877,
+            0.0429
           ],
           "rotation": [
-            -0.0006,
-            0.0031,
+            -0.0005,
+            0.0025,
             0
           ]
         },
         "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/Neck": {
           "rotation": [
-            -0.0805,
+            -0.0848,
             0,
             0.0002
           ]
         },
         "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/ShoulderL": {
           "position": [
-            0.1454,
+            0.1451,
             0.14,
             0.0136
           ]
         },
         "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/ShoulderL/UpperArmL/LowerArmL/FistL": {
           "rotation": [
-            0.0256,
-            0.1588,
-            -0.0179
+            0.0255,
+            0.1189,
+            -0.0165
           ]
         },
         "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/ShoulderR": {
           "position": [
-            -0.1475,
-            0.1397,
+            -0.147,
+            0.1398,
             0.0135
           ]
         },
         "Scene/CharacterArmature/Bone/Body_1/UpperLegL": {
           "position": [
-            0.2529,
-            -0.0556,
-            -0.0798
+            0.253,
+            -0.0171,
+            -0.0562
           ],
           "rotation": [
-            2.723,
-            0.0063,
-            -0.0175
+            2.8885,
+            0.003,
+            -0.0196
+          ],
+          "scale": [
+            1,
+            1,
+            0.9999
           ]
         },
         "Scene/CharacterArmature/Bone/Body_1/UpperLegL/LowerLegL": {
           "rotation": [
-            0.8019,
-            0.0146,
-            0.0132
+            0.5214,
+            0.0103,
+            0.0167
           ]
         },
         "Scene/CharacterArmature/Bone/Body_1/UpperLegR": {
           "position": [
             -0.2547,
-            -0.029,
-            -0.0561
+            -0.0168,
+            -0.0559
           ],
           "rotation": [
-            2.8346,
-            0.0017,
-            0.0222
+            2.8918,
+            0.0022,
+            0.022
+          ],
+          "scale": [
+            1,
+            1,
+            0.9999
           ]
         },
         "Scene/CharacterArmature/Bone/Body_1/UpperLegR/LowerLegR": {
           "rotation": [
-            0.6452,
-            -0.0123,
-            -0.0153
+            0.5182,
+            -0.0103,
+            -0.0168
           ]
         }
       },
@@ -647,6 +657,39 @@
       "parentId": "store",
       "collision": true,
       "model": "/models/outside/trash_B.glb",
+      "extra": {
+        "title": null,
+        "label": null,
+        "size": null,
+        "caseSize": null,
+        "caseAccent": null,
+        "caseInterior": null
+      },
+      "castShadow": false,
+      "receiveShadow": false
+    },
+    {
+      "id": "placed-mvnxrs9l-dd6r6i",
+      "name": "brown_brick_wall",
+      "position": [
+        -14.0592,
+        0.02,
+        5.984
+      ],
+      "rotation": [
+        0,
+        1.5708,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "visible": true,
+      "parentId": "store",
+      "collision": true,
+      "model": "/models/outside/brown_brick_wall.glb",
       "extra": {
         "title": null,
         "label": null,
