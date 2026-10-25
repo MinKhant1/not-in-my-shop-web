@@ -1,6 +1,26 @@
 import './styles/main.css';
 import { Game } from './core/Game.js';
 
+const SCROLLABLE = '#menu-panel, #pause-modal, #tutorial-modal, #results-panel';
+
+function allowsPageGesture(target) {
+  return target instanceof Element && Boolean(target.closest(`input, textarea, select, ${SCROLLABLE}`));
+}
+
+function blockBrowserZoom(event) {
+  if (event.touches && event.touches.length > 1) {
+    event.preventDefault();
+    return;
+  }
+  if (!allowsPageGesture(event.target)) {
+    event.preventDefault();
+  }
+}
+
+document.addEventListener('touchmove', blockBrowserZoom, { passive: false });
+document.addEventListener('gesturestart', (event) => event.preventDefault(), { passive: false });
+document.addEventListener('gesturechange', (event) => event.preventDefault(), { passive: false });
+
 const app = document.querySelector('#app');
 const canvas = document.querySelector('#game-canvas');
 const game = new Game(canvas, app);

@@ -57,8 +57,8 @@ export class VirtualJoystick {
       this.reset();
     };
 
-    zone.addEventListener('pointerdown', this.onPointerDown);
-    zone.addEventListener('pointermove', this.onPointerMove);
+    zone.addEventListener('pointerdown', this.onPointerDown, { passive: false });
+    zone.addEventListener('pointermove', this.onPointerMove, { passive: false });
     zone.addEventListener('pointerup', this.onPointerUp);
     zone.addEventListener('pointercancel', this.onPointerUp);
     zone.addEventListener('contextmenu', (event) => event.preventDefault());

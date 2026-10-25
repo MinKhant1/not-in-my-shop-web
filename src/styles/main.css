@@ -28,13 +28,24 @@ body {
   overscroll-behavior: none;
 }
 
+#app,
+#app * {
+  touch-action: none;
+}
+
 #app {
   position: relative;
   width: 100%;
   height: 100%;
   height: 100dvh;
   overflow: hidden;
-  touch-action: none;
+}
+
+#app #menu-panel,
+#app #pause-modal,
+#app #tutorial-modal,
+#app #results-panel {
+  touch-action: pan-y;
 }
 
 #game-canvas {
