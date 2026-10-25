@@ -23,6 +23,13 @@ function isFloorModel(url) {
   return typeof url === 'string' && url.endsWith('/floor.glb');
 }
 
+// Grocery aisles are several layout meshes. Every other shelf is one spawned fixture.
+const SHELF_PARTS = {
+  grocery_shelf_1: ['shelf-aisle-1-back', 'shelf-aisle-1-front', 'shelf-aisle-1-end'],
+  grocery_shelf_2: ['shelf-aisle-2-back', 'shelf-aisle-2-front', 'shelf-aisle-2-end'],
+  grocery_fruit_bread: ['display-fruit', 'display-bread']
+};
+
 function isArchitectureModel(url) {
   return typeof url === 'string' && url.startsWith('/models/environment/') && !isFloorModel(url);
 }
@@ -97,6 +104,9 @@ export class Store {
     this.shells = new Map();
     this.markers = [];
     this.spawnedFixtures = new Set();
+    this.stolenShelves = new Set();
+    this.liftedShelves = new Set();
+    this.onShelvesChanged = null;
     this.heldFixtureCollision = new Set();
     this.collidingGroups = new Set();
     this.maxUnlocked = 0;
@@ -202,6 +212,155 @@ export class Store {
     this.heldFixtureCollision.delete(id);
     if (this.collision.setIdEnabled(id, true)) {
       this.collision.rebuildDebug();
+    }
+  }
+
+  isStealableShelf(fixture) {
+    if (!fixture?.id || !fixture.position) {
+      return false;
+    }
+    if (fixture.id.includes('cash_register') || fixture.id.includes('freezer')) {
+      return false;
+    }
+    return true;
+  }
+
+  shelfPartIds(id) {
+    return SHELF_PARTS[id] ? SHELF_PARTS[id] : [id];
+  }
+
+  shelfObjects(id) {
+    const parts = this.shelfPartIds(id);
+    const objects = [];
+    for (let i = 0; i < parts.length; i += 1) {
+      const record = this.records.find((entry) => entry.entry.id === parts[i]);
+      if (record) {
+        objects.push(record.object);
+      }
+    }
+    return objects;
+  }
+
+  isShelfStolen(id) {
+    return this.stolenShelves.has(id);
+  }
+
+  // One shelf the thief can still walk off with. Stolen and in-hand shelves are skipped.
+  availableShelfTargets() {
+    const targets = [];
+    for (const fixture of fixtureById.values()) {
+      if (!this.isStealableShelf(fixture) || !this.isUnlocked(fixture.sectionId)) {
+        continue;
+      }
+      if (this.stolenShelves.has(fixture.id) || this.liftedShelves.has(fixture.id)) {
+        continue;
+      }
+      if (!fixture.existing && !this.spawnedFixtures.has(fixture.id)) {
+        continue;
+      }
+      const objects = this.shelfObjects(fixture.id);
+      if (objects.length !== this.shelfPartIds(fixture.id).length) {
+        continue;
+      }
+      if (objects.some((object) => object.visible !== true)) {
+        continue;
+      }
+      targets.push({ id: fixture.id, x: fixture.position[0], z: fixture.position[2] });
+    }
+    return targets;
+  }
+
+  setShelfShown(id, visible, collision = visible) {
+    const parts = this.shelfPartIds(id);
+    for (let i = 0; i < parts.length; i += 1) {
+      const record = this.records.find((entry) => entry.entry.id === parts[i]);
+      if (record) {
+        record.object.visible = visible;
+      }
+      this.collision.setIdEnabled(parts[i], collision === true);
+    }
+  }
+
+  setShelfCollision(id, enabled) {
+    const parts = this.shelfPartIds(id);
+    for (let i = 0; i < parts.length; i += 1) {
+      this.collision.setIdEnabled(parts[i], enabled === true);
+    }
+  }
+
+  // Hide the shelf and hand back the meshes so the thief can carry clones.
+  takeShelf(id) {
+    const fixture = fixtureById.get(id);
+    if (!this.isStealableShelf(fixture) || this.stolenShelves.has(id) || this.liftedShelves.has(id)) {
+      return null;
+    }
+    const objects = this.shelfObjects(id);
+    if (objects.length !== this.shelfPartIds(id).length || objects.some((object) => object.visible !== true)) {
+      return null;
+    }
+    this.liftedShelves.add(id);
+    this.setShelfShown(id, false, false);
+    return objects;
+  }
+
+  // The thief was stopped. The same shelf goes back on its spot.
+  returnShelf(id) {
+    this.liftedShelves.delete(id);
+    if (!id || this.stolenShelves.has(id)) {
+      return;
+    }
+    this.setShelfShown(id, true, false);
+  }
+
+  // They made the exit. The shelf stays gone until it is bought again.
+  loseShelf(id) {
+    this.liftedShelves.delete(id);
+    const fixture = fixtureById.get(id);
+    if (!this.isStealableShelf(fixture) || this.stolenShelves.has(id)) {
+      return;
+    }
+    this.stolenShelves.add(id);
+    this.spawnedFixtures.delete(id);
+    this.setShelfShown(id, false, false);
+    this.onShelvesChanged?.();
+  }
+
+  // Bought back at night. The mesh returns, but collision waits until the player steps off the pad.
+  restoreStolenShelf(id) {
+    if (!this.stolenShelves.has(id)) {
+      return false;
+    }
+    this.stolenShelves.delete(id);
+    this.liftedShelves.delete(id);
+    this.setShelfShown(id, true, false);
+    const fixture = fixtureById.get(id);
+    if (fixture && !fixture.existing && this.shelfObjects(id).length > 0) {
+      this.spawnedFixtures.add(id);
+    }
+    this.onShelvesChanged?.();
+    return true;
+  }
+
+  applyStolen(ids) {
+    const list = Array.isArray(ids) ? ids : [];
+    this.stolenShelves.clear();
+    for (let i = 0; i < list.length; i += 1) {
+      const id = list[i];
+      if (!this.isStealableShelf(fixtureById.get(id))) {
+        continue;
+      }
+      this.stolenShelves.add(id);
+      this.spawnedFixtures.delete(id);
+      this.setShelfShown(id, false, false);
+    }
+  }
+
+  restoreEveryStolen() {
+    const hidden = new Set([...this.stolenShelves, ...this.liftedShelves]);
+    this.stolenShelves.clear();
+    this.liftedShelves.clear();
+    for (const id of hidden) {
+      this.setShelfShown(id, true, true);
     }
   }
 

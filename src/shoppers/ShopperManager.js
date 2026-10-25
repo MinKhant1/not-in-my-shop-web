@@ -37,6 +37,13 @@ export class ShopperManager {
     this.dayStats = null;
     this.audio = null;
     this.trashRules = null;
+    this.shelfRules = config.shelfThief ?? {};
+    this.store = null;
+    this.shelfPlanDay = null;
+    this.shelfThiefMinute = null;
+    this.shelfThiefDoneDay = 0;
+    this.onShelfThiefSpawned = null;
+    this.onShelfReturned = null;
     this.isInsideShop = null;
     this.onDropTrash = null;
     this.ready = false;
@@ -87,6 +94,7 @@ export class ShopperManager {
           this.spawnTimer = 0.4;
         }
       }
+      this.tryShelfThief();
     }
 
     for (let i = 0; i < this.shoppers.length; i += 1) {
@@ -239,6 +247,151 @@ export class ShopperManager {
     }
     this.shoppers = [];
     this.prepareNextDay();
+  }
+
+  tryShelfThief() {
+    if (!this.store || this.spawning) {
+      return;
+    }
+    const rules = this.shelfRules ?? {};
+    const day = this.customerSources?.day?.() ?? 1;
+    const startDay = rules.startDay ?? 2;
+    if (this.shelfPlanDay !== day) {
+      this.shelfPlanDay = day;
+      this.shelfThiefMinute = null;
+      if (day >= startDay && this.shelfThiefDoneDay !== day) {
+        const start = rules.fromMinute ?? 12 * 60;
+        const end = rules.toMinute ?? 16 * 60;
+        const now = this.customerSources?.gameMinutes?.() ?? start;
+        if (now < end) {
+          const earliest = Math.max(start, now);
+          if (earliest < end) {
+            this.shelfThiefMinute = earliest + Math.random() * (end - earliest);
+          }
+        }
+      }
+    }
+    if (day < startDay || this.shelfThiefDoneDay === day || this.shelfThiefMinute == null) {
+      return;
+    }
+    const now = this.customerSources?.gameMinutes?.() ?? 0;
+    const end = rules.toMinute ?? 16 * 60;
+    if (now < this.shelfThiefMinute || now >= end) {
+      return;
+    }
+    this.spawnShelfThief();
+  }
+
+  spawnShelfThief() {
+    const day = this.customerSources?.day?.() ?? 1;
+    if (!this.store || this.spawning || this.shoppers.length >= this.config.maxActive) {
+      return false;
+    }
+    const targets = this.store.availableShelfTargets();
+    if (targets.length === 0) {
+      this.shelfThiefDoneDay = day;
+      return false;
+    }
+    const door = this.navigation.nodes.get('entranceOutside');
+    if (!door) {
+      return false;
+    }
+    for (let i = 0; i < this.shoppers.length; i += 1) {
+      const position = this.shoppers[i].group.position;
+      const dx = position.x - door.x;
+      const dz = position.z - door.z;
+      if (dx * dx + dz * dz < 0.64) {
+        return false;
+      }
+    }
+    const target = targets[Math.floor(Math.random() * targets.length)];
+    const node = this.navigation.nearest(target.x, target.z, true);
+    if (!node) {
+      return false;
+    }
+
+    const models = this.config.models;
+    const inUse = new Set();
+    for (let i = 0; i < this.shoppers.length; i += 1) {
+      inUse.add(this.shoppers[i].modelUrl);
+    }
+    const unused = models.filter((url) => !inUse.has(url));
+    const pool = unused.length ? unused : models;
+    const modelUrl = pool[Math.floor(Math.random() * pool.length)];
+    const generation = this.spawnGeneration;
+    const rules = this.shelfRules ?? {};
+    this.spawning = true;
+    this.loader.load(modelUrl).then((asset) => {
+      this.spawning = false;
+      if (!this.spawningEnabled || generation !== this.spawnGeneration || this.shoppers.length >= this.config.maxActive) {
+        return;
+      }
+      const stillThere = this.store.availableShelfTargets().some((entry) => entry.id === target.id);
+      if (!stillThere) {
+        return;
+      }
+      const shopper = new ShopperAI({
+        asset,
+        modelUrl,
+        config: this.config,
+        navigation: this.navigation,
+        collision: this.collision,
+        checkoutQueue: this.checkoutQueue,
+        checkoutLanes: this.lanes,
+        checkoutConfig: this.checkoutConfig,
+        weaponsConfig: this.weaponsConfig,
+        toonFactory: this.toonFactory,
+        theftAllowed: () => false,
+        dropsTrash: false,
+        isInsideShop: (x, z) => this.isInsideShop?.(x, z) === true,
+        onDropTrash: (x, z) => this.onDropTrash?.(x, z),
+        debug: this.debug || this.checkoutConfig?.debugCheckout === true || this.weaponsConfig?.debugWeapons === true,
+        shelfThief: true,
+        shelfFixtureId: target.id,
+        shelfNodeId: node.id,
+        shelfX: target.x,
+        shelfZ: target.z,
+        shelfHealth: rules.health ?? 150,
+        shelfSlow: rules.speedScale ?? 0.4,
+        onTakeShelf: (id) => this.store?.takeShelf(id) ?? null,
+        onReturnShelf: (id) => {
+          this.store?.returnShelf(id);
+          if (this.onShelfReturned) {
+            this.onShelfReturned(id);
+          } else {
+            this.store?.setShelfCollision(id, true);
+          }
+        },
+        onLoseShelf: (id) => this.store?.loseShelf(id)
+      });
+      const z = door.z + randomBetween(-0.22, 0.22);
+      shopper.spawn(door.x, z);
+      shopper.onCaught = () => {
+        if (shopper.outcomeCounted) {
+          return;
+        }
+        shopper.outcomeCounted = true;
+        this.dayStats?.recordCaught();
+      };
+      shopper.onDrops = (drops) => this.onThiefDrops?.(drops);
+      shopper.onScream = () => this.audio?.scream();
+      shopper.onEscaped = () => {
+        if (shopper.outcomeCounted || !shopper.isThief || shopper.isDefeated) {
+          return;
+        }
+        shopper.outcomeCounted = true;
+        this.dayStats?.recordEscape(shopper.inventory.count);
+      };
+      this.scene.add(shopper.group);
+      this.shoppers.push(shopper);
+      this.shelfThiefDoneDay = day;
+      this.onShelfThiefSpawned?.(day);
+      this.dayStats?.recordCustomer();
+    }).catch((error) => {
+      this.spawning = false;
+      console.error('Failed to spawn shelf thief', error);
+    });
+    return true;
   }
 
   spawn() {

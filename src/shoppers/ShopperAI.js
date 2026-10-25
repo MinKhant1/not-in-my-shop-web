@@ -65,7 +65,7 @@ function randomInt(min, max) {
 let nextShopperId = 1;
 
 export class ShopperAI {
-  constructor({ asset, modelUrl, config, navigation, collision, checkoutQueue, checkoutLanes, checkoutConfig, weaponsConfig, toonFactory, debug, theftAllowed, dropsTrash, isInsideShop, onDropTrash }) {
+  constructor({ asset, modelUrl, config, navigation, collision, checkoutQueue, checkoutLanes, checkoutConfig, weaponsConfig, toonFactory, debug, theftAllowed, dropsTrash, isInsideShop, onDropTrash, shelfThief, shelfFixtureId, shelfNodeId, shelfX, shelfZ, shelfHealth, shelfSlow, onTakeShelf, onReturnShelf, onLoseShelf }) {
     this.id = nextShopperId;
     nextShopperId += 1;
     this.modelUrl = modelUrl;
@@ -112,6 +112,20 @@ export class ShopperAI {
     this.lookTarget = null;
     this.actionLock = null;
     this.dropsTrash = dropsTrash === true;
+    this.shelfThief = shelfThief === true;
+    this.shelfFixtureId = shelfFixtureId ?? null;
+    this.shelfNodeId = shelfNodeId ?? null;
+    this.shelfX = shelfX ?? 0;
+    this.shelfZ = shelfZ ?? 0;
+    this.shelfHealth = shelfHealth ?? 150;
+    this.shelfSlow = shelfSlow ?? 0.4;
+    this.onTakeShelf = onTakeShelf ?? null;
+    this.onReturnShelf = onReturnShelf ?? null;
+    this.onLoseShelf = onLoseShelf ?? null;
+    this.carryingShelf = false;
+    this.shelfSettled = false;
+    this.carryRig = null;
+    this.combatMaxHP = 0;
     this.trashDropped = false;
     this.wasInside = false;
     this.lastInsideX = 0;
@@ -280,7 +294,21 @@ export class ShopperAI {
 
     if (this.state === ShopperState.ENTERING) {
       this.state = ShopperState.ROAMING;
+      if (this.shelfThief && this.shelfNodeId) {
+        this.pending = 'shelf';
+        this.goTo(this.shelfNodeId);
+        return;
+      }
       this.goPick();
+      return;
+    }
+
+    if (this.shelfThief && this.pending === 'shelf' && !this.carryingShelf) {
+      this.pending = null;
+      this.lookTarget = { x: this.shelfX, z: this.shelfZ };
+      this.playPickup();
+      this.pause(this.config.pickupWait, () => this.grabShelf());
+      this.refreshDebug();
       return;
     }
 
@@ -420,7 +448,7 @@ export class ShopperAI {
     if (this.health) {
       return;
     }
-    const maxHP = this.weaponsConfig?.thiefMaxHP ?? 100;
+    const maxHP = this.combatMaxHP > 0 ? this.combatMaxHP : (this.weaponsConfig?.thiefMaxHP ?? 100);
     this.health = new ThiefHealth(maxHP);
     this.visuals.showHealth(1);
   }
@@ -513,6 +541,7 @@ export class ShopperAI {
     if (this.isDefeated) {
       return [];
     }
+    this.settleShelf(false);
     this.isDefeated = true;
     this.stopBurn(true);
     this.onCaught?.();
@@ -697,6 +726,7 @@ export class ShopperAI {
     this.queueIndex = -1;
     this.hasReachedQueueSlot = false;
     this.route.clear();
+    this.settleShelf(false);
     const drops = this.releaseDrops();
     if (drops.length > 0) {
       this.onDrops?.(drops);
@@ -948,7 +978,91 @@ export class ShopperAI {
     this.onDropTrash?.(this.lastInsideX, this.lastInsideZ);
   }
 
+  grabShelf() {
+    if (this.shelfSettled || this.carryingShelf || this.state === ShopperState.DESPAWNED || this.shopClosed || this.isDefeated) {
+      return;
+    }
+    const sources = this.onTakeShelf?.(this.shelfFixtureId);
+    if (!sources || sources.length === 0) {
+      this.state = ShopperState.EXITING;
+      this.goTo('despawn', true);
+      return;
+    }
+    this.attachShelf(sources);
+    this.carryingShelf = true;
+    this.isThief = true;
+    this.visuals.revealThief();
+    this.combatMaxHP = this.shelfHealth;
+    this.ensureCombatant();
+    this.route.config.moveSpeed *= this.shelfSlow;
+    this.state = ShopperState.THIEF;
+    this.goTo(this.thiefExitId(), true);
+    this.refreshDebug();
+  }
+
+  attachShelf(sources) {
+    this.clearCarryVisual();
+    const rig = new THREE.Group();
+    rig.name = 'carried-shelf';
+    rig.userData.editorIgnore = true;
+    const clones = [];
+    for (let i = 0; i < sources.length; i += 1) {
+      const source = sources[i];
+      source.updateWorldMatrix(true, true);
+      const clone = source.clone(true);
+      clone.matrix.copy(source.matrixWorld);
+      clone.matrix.decompose(clone.position, clone.quaternion, clone.scale);
+      clone.matrixAutoUpdate = true;
+      clone.visible = true;
+      clone.traverse((child) => {
+        child.visible = true;
+        child.userData.editorIgnore = true;
+        child.castShadow = false;
+        child.receiveShadow = false;
+      });
+      rig.add(clone);
+      clones.push(clone);
+    }
+    rig.updateMatrixWorld(true);
+    const box = new THREE.Box3().setFromObject(rig);
+    const center = box.getCenter(new THREE.Vector3());
+    const size = box.getSize(new THREE.Vector3());
+    for (let i = 0; i < clones.length; i += 1) {
+      clones[i].position.sub(center);
+    }
+    rig.scale.set(1, 1, 1);
+    rig.rotation.y = Math.PI / 2;
+    rig.position.set(0, 0.2 + size.y * 0.5, 0.45);
+    this.group.add(rig);
+    this.carryRig = rig;
+  }
+
+  clearCarryVisual() {
+    if (!this.carryRig) {
+      return;
+    }
+    this.carryRig.removeFromParent();
+    this.carryRig = null;
+  }
+
+  // Escaped thieves lose the shelf. Every other ending puts it back.
+  settleShelf(escaped) {
+    if (!this.carryingShelf || this.shelfSettled) {
+      return;
+    }
+    this.shelfSettled = true;
+    this.carryingShelf = false;
+    this.clearCarryVisual();
+    if (escaped) {
+      this.onLoseShelf?.(this.shelfFixtureId);
+    } else {
+      this.onReturnShelf?.(this.shelfFixtureId);
+    }
+  }
+
   despawn() {
+    const escaped = this.carryingShelf && !this.isDefeated && this.isThiefExit(this.destinationId);
+    this.settleShelf(escaped);
     this.releaseTrash();
     this.recordEscape();
     if (this.checkoutQueue.queue.includes(this)) {
@@ -1061,10 +1175,12 @@ export class ShopperAI {
     if (this.actionLock !== 'pickup') {
       let next = 'idle';
       if (moving) {
-        if (this.state === ShopperState.DEFEATED_FLEEING && this.actions.run) {
+        if (this.carryingShelf && this.state === ShopperState.THIEF) {
+          next = this.actions.carry ? 'carry' : 'walk';
+        } else if (this.state === ShopperState.DEFEATED_FLEEING && this.actions.run) {
           next = 'run';
         } else {
-          next = this.inventory.count > 0 && this.actions.carry ? 'carry' : 'walk';
+          next = (this.inventory.count > 0 || this.carryingShelf) && this.actions.carry ? 'carry' : 'walk';
         }
         if (!this.actions[next]) {
           next = this.actions.walk ? 'walk' : 'idle';
@@ -1122,6 +1238,7 @@ export class ShopperAI {
   }
 
   dispose() {
+    this.settleShelf(false);
     this.stopBurn(true);
     if (this.checkoutQueue.queue.includes(this)) {
       this.checkoutQueue.complete(this);

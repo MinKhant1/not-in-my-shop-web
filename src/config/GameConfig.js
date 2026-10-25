@@ -263,6 +263,14 @@ export const GameConfig = {
       '/models/outside/OldClassy_Female.gltf'
     ]
   },
+  // One shelf thief per day. speedScale 0.4 is 60% slower than a normal thief.
+  shelfThief: {
+    startDay: 2,
+    health: 150,
+    speedScale: 0.4,
+    fromMinute: 12 * 60,
+    toMinute: 16 * 60
+  },
   trash: {
     model: '/models/objects/trash_bag.glb',
     startDay: 3,

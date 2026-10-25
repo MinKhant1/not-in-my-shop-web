@@ -142,6 +142,12 @@ export class Game {
     this.outside.trackOccluders(this.occlusion);
     this.applyPlayLimits(store.playLimits());
     this.store = store;
+    store.applyStolen(this.save.data.stolenShelves);
+    this.shoppers.store = store;
+    this.shoppers.shelfThiefDoneDay = Number(this.save.data.shelfThiefDay) || 0;
+    store.onShelvesChanged = () => this.persistStolenShelves();
+    this.shoppers.onShelfThiefSpawned = (day) => this.save.write({ shelfThiefDay: day });
+    this.shoppers.onShelfReturned = (id) => this.purchases?.holdReturnedShelf(id);
     this.shoppers.syncSections(store.maxUnlocked);
     this.shoppers.syncShelfPicks(ownedFixtures);
     store.onSectionUnlocked = (count) => {
@@ -159,12 +165,21 @@ export class Game {
     await this.pets.load();
     this.sceneOverrides = new SceneOverrides(this);
     await this.sceneOverrides.loadAndApply();
+    store.applyStolen(this.save.data.stolenShelves);
     this.shopSign = new ShopSign(this.scene, this.save);
     this.applyPlayLimits(store.playLimits());
     this.outside.diorama?.applySavedPrefab(this.prefabs.get(STREETLIGHT_MODEL));
     this.outside.diorama?.attachPlacedStreetlights(this.scene);
     this.prefabs.applyGeneric(this.scene);
-    store.onVisibilitySynced = () => this.sceneOverrides.reapplyVisibility();
+    store.onVisibilitySynced = () => {
+      this.sceneOverrides.reapplyVisibility();
+      for (const id of this.store.stolenShelves) {
+        this.store.setShelfShown(id, false, false);
+      }
+      for (const id of this.store.liftedShelves) {
+        this.store.setShelfShown(id, false, false);
+      }
+    };
     store.onFixtureSpawned = (object, id) => {
       this.occlusion.track(object, id);
       this.sceneOverrides.noteSpawned(object);
@@ -251,6 +266,9 @@ export class Game {
       }
     );
     this.purchases.restoreOwned(ownedFixtures);
+    for (const id of this.store.stolenShelves) {
+      this.purchases.owned.delete(id);
+    }
     this.purchases.syncOffers();
     this.shoppers.setCustomerSources({
       day: () => this.dayNight.dayNumber,
@@ -691,11 +709,39 @@ export class Game {
     this.persistDay();
   }
 
+  persistStolenShelves() {
+    if (!this.store || !this.purchases) {
+      return;
+    }
+    for (const id of this.store.stolenShelves) {
+      this.purchases.owned.delete(id);
+    }
+    this.save.write({
+      stolenShelves: [...this.store.stolenShelves],
+      purchasedFixtures: this.purchases.purchasedIds()
+    });
+    this.purchases.syncOffers();
+    this.shoppers.syncShelfPicks(this.purchases.purchasedIds());
+  }
+
   async resetToNewShop(shopName) {
     const fixtures = Array.isArray(this.save.data.purchasedFixtures)
       ? [...this.save.data.purchasedFixtures]
       : [];
     this.save.clear();
+    const live = this.shoppers?.getShoppers?.() ?? [];
+    for (let i = 0; i < live.length; i += 1) {
+      live[i].shelfThief = false;
+      live[i].pending = null;
+      live[i].afterWait = null;
+      live[i].settleShelf?.(false);
+    }
+    this.store?.restoreEveryStolen();
+    if (this.shoppers) {
+      this.shoppers.shelfThiefDoneDay = 0;
+      this.shoppers.shelfPlanDay = null;
+      this.shoppers.shelfThiefMinute = null;
+    }
     const persist = this.money.persist;
     this.money.persist = null;
     this.money.setMoney(this.config.economy?.startingMoney ?? 0);
@@ -743,6 +789,8 @@ export class Game {
       purchasedUpgrades: [],
       unlockedSections: this.save.unlockedSections(),
       purchasedFixtures: [],
+      stolenShelves: [],
+      shelfThiefDay: 0,
       pendingPurchase: null,
       played: false,
       day: this.dayNight.snapshot(),

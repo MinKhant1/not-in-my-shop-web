@@ -73,10 +73,11 @@ export class PurchaseManager {
       const fixtures = section.fixtures;
       for (let i = 0; i < fixtures.length; i += 1) {
         const fixture = fixtures[i];
-        if (fixture.existing || fixture.purchasedByDefault || this.owned.has(fixture.id)) {
+        const stolen = this.store.isShelfStolen(fixture.id);
+        if (!stolen && (fixture.existing || fixture.purchasedByDefault || this.owned.has(fixture.id))) {
           continue;
         }
-        if (this.store.spawnedFixtures.has(fixture.id)) {
+        if (!stolen && this.store.spawnedFixtures.has(fixture.id)) {
           continue;
         }
         this.ensureFurniture(fixture, section);
@@ -85,7 +86,10 @@ export class PurchaseManager {
 
     for (let i = this.offers.length - 1; i >= 0; i -= 1) {
       const offer = this.offers[i];
-      const staleFurniture = offer.type === 'furniture' && (this.owned.has(offer.fixtureId) || this.store.spawnedFixtures.has(offer.fixtureId));
+      const stolenOffer = offer.type === 'furniture' && this.store.isShelfStolen(offer.fixtureId);
+      const staleFurniture = offer.type === 'furniture'
+        && !stolenOffer
+        && (this.owned.has(offer.fixtureId) || this.store.spawnedFixtures.has(offer.fixtureId));
       if (!staleFurniture) {
         continue;
       }
@@ -449,7 +453,31 @@ export class PurchaseManager {
         purchasedFixtures: this.purchasedIds()
       });
       const fixture = offer.fixture ?? fixtureById.get(offer.fixtureId);
-      if (fixture) {
+      if (fixture && this.store.isShelfStolen(fixture.id)) {
+        this.store.restoreStolenShelf(fixture.id);
+        if (this.store.shelfObjects(fixture.id).length === 0) {
+          this.store.holdFixtureCollision(fixture.id);
+          this.heldShelves.push({
+            id: fixture.id,
+            x: offer.x,
+            z: offer.z,
+            halfX: offer.halfX ?? offer.half,
+            halfZ: offer.halfZ ?? offer.half
+          });
+          this.store.spawnFixture(fixture).catch((error) => {
+            console.error('Failed to place fixture', offer.fixtureId, error);
+          });
+        } else {
+          this.heldShelves.push({
+            id: fixture.id,
+            parts: this.store.shelfPartIds(fixture.id),
+            x: offer.x,
+            z: offer.z,
+            halfX: offer.halfX ?? offer.half,
+            halfZ: offer.halfZ ?? offer.half
+          });
+        }
+      } else if (fixture) {
         this.store.holdFixtureCollision(fixture.id);
         this.heldShelves.push({
           id: fixture.id,
@@ -469,10 +497,45 @@ export class PurchaseManager {
     this.busy = false;
   }
 
+  // A returned shelf stays walk-through until the player is clear of its spot.
+  holdReturnedShelf(id) {
+    if (this.heldShelves.some((held) => held.id === id && held.parts)) {
+      return;
+    }
+    const fixture = fixtureById.get(id);
+    if (!fixture) {
+      this.store.setShelfCollision(id, true);
+      return;
+    }
+    this.heldShelves.push({
+      id,
+      parts: this.store.shelfPartIds(id),
+      x: fixture.position[0],
+      z: fixture.position[2],
+      halfX: FURNITURE_HALF,
+      halfZ: FURNITURE_HALF
+    });
+  }
+
   releaseHeldShelves(x, z) {
     for (let i = this.heldShelves.length - 1; i >= 0; i -= 1) {
       const held = this.heldShelves[i];
       if (this.contains(held, x, z, true)) {
+        continue;
+      }
+      if (held.parts) {
+        let blocked = false;
+        for (let p = 0; p < held.parts.length; p += 1) {
+          if (this.store.collision.overlapsId(held.parts[p], x, z, this.playerRadius)) {
+            blocked = true;
+            break;
+          }
+        }
+        if (blocked) {
+          continue;
+        }
+        this.store.setShelfCollision(held.id, true);
+        this.heldShelves.splice(i, 1);
         continue;
       }
       const spawned = this.store.collision.boxes.some((box) => box.id === held.id);
