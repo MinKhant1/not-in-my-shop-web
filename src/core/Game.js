@@ -732,6 +732,21 @@ export class Game {
     };
   }
 
+  continueFromSave() {
+    const saved = this.save.day();
+    if (saved?.phase === 'NIGHT') {
+      this.dayNight.applySnapshot(saved, true);
+      return;
+    }
+    if (Number.isFinite(saved?.purse)) {
+      this.dayStartMoney = saved.purse;
+    }
+    if (saved?.number > 0) {
+      this.dayNight.dayNumber = saved.number;
+    }
+    this.restartCurrentDay();
+  }
+
   restartCurrentDay() {
     const purse = Number.isFinite(this.dayStartMoney) ? this.dayStartMoney : this.money.getMoney();
     this.dayStartMoney = purse;
@@ -741,6 +756,7 @@ export class Game {
     this.trash?.clear();
     this.checkout?.cancel();
     this.intercom?.resetCooldown();
+    this.replayShelfThief();
     this.shoppers.clearLive();
     this.dayNight.applySnapshot({
       number: this.dayNight.dayNumber,
@@ -749,6 +765,17 @@ export class Game {
     }, true);
     this.phaseHud.update(0);
     this.persistDay();
+  }
+
+  replayShelfThief() {
+    const day = this.dayNight.dayNumber;
+    if (!this.shoppers || this.shoppers.shelfThiefDoneDay !== day) {
+      return;
+    }
+    this.shoppers.shelfThiefDoneDay = 0;
+    this.shoppers.shelfPlanDay = null;
+    this.shoppers.shelfThiefMinute = null;
+    this.save.write({ shelfThiefDay: 0 });
   }
 
   persistStolenShelves() {

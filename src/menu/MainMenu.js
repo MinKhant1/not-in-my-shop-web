@@ -329,7 +329,7 @@ export class MainMenu {
       if (!this.game.save.hasProgress()) {
         return;
       }
-      this.game.dayNight.applySnapshot(this.game.save.day(), true);
+      this.game.continueFromSave();
       this.beginPlay();
       return;
     }
