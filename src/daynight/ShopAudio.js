@@ -2,7 +2,11 @@ import { takeAudio } from 'virtual:shop-audio';
 
 function readVolume(key, fallback) {
   try {
-    const value = Number(localStorage.getItem(key));
+    const raw = localStorage.getItem(key);
+    if (raw == null || raw === '') {
+      return fallback;
+    }
+    const value = Number(raw);
     if (Number.isFinite(value)) {
       return Math.min(1, Math.max(0, value));
     }
@@ -32,8 +36,8 @@ export class ShopAudio {
   constructor() {
     this.context = null;
     this.lastTick = null;
-    this.musicVolume = readVolume('not-in-my-shop-music', 0.5);
-    this.sfxVolume = readVolume('not-in-my-shop-sfx', 0.5);
+    this.musicVolume = readVolume('not-in-my-shop-music', 0.4);
+    this.sfxVolume = readVolume('not-in-my-shop-sfx', 0.4);
     this.sfxGain = null;
     this.musicEl = null;
     this.clipBytes = new Map();
