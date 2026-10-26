@@ -117,6 +117,7 @@ export class ShopperManager {
     }
     this.spawningEnabled = enabled;
     if (!enabled) {
+      this.spawning = false;
       this.spawnGeneration += 1;
     }
   }
@@ -162,11 +163,18 @@ export class ShopperManager {
   }
 
   prepareNextDay() {
+    this.spawning = false;
     this.spawnedToday = 0;
     this.pendingSpawns = 0;
     this.shelfClaims.clear();
     this.spawnTimer = this.config.firstSpawnDelay;
     this.setSpawningEnabled(true);
+  }
+
+  // Opens a fresh customer wave. A previous day can leave the quota full, or a
+  // model load stuck, which keeps the shop empty after New Shop or Continue.
+  armShift() {
+    this.clearLive();
   }
 
   setDayStats(stats) {
@@ -242,6 +250,7 @@ export class ShopperManager {
 
   clearLive() {
     this.lanes.clear();
+    this.spawning = false;
     this.spawnGeneration += 1;
     this.pendingSpawns = 0;
     for (let i = this.shoppers.length - 1; i >= 0; i -= 1) {
@@ -349,8 +358,20 @@ export class ShopperManager {
     const generation = this.spawnGeneration;
     this.spawning = true;
     this.pendingSpawns += 1;
-    this.loader.load(modelUrl).then((asset) => {
+    let pending;
+    try {
+      pending = this.loader.load(modelUrl);
+    } catch (error) {
       this.spawning = false;
+      this.pendingSpawns = Math.max(0, this.pendingSpawns - 1);
+      this.releaseShelf(role.shelf?.target.id, role.shelf?.claim);
+      console.error('Failed to spawn shopper', error);
+      return false;
+    }
+    pending.then((asset) => {
+      if (generation === this.spawnGeneration) {
+        this.spawning = false;
+      }
       this.pendingSpawns = Math.max(0, this.pendingSpawns - 1);
       if (!this.spawningEnabled || generation !== this.spawnGeneration || this.shoppers.length >= this.config.maxActive) {
         this.releaseShelf(role.shelf?.target.id, role.shelf?.claim);
@@ -432,7 +453,9 @@ export class ShopperManager {
       this.spawnedToday += 1;
       this.dayStats?.recordCustomer();
     }).catch((error) => {
-      this.spawning = false;
+      if (generation === this.spawnGeneration) {
+        this.spawning = false;
+      }
       this.pendingSpawns = Math.max(0, this.pendingSpawns - 1);
       this.releaseShelf(role.shelf?.target.id, role.shelf?.claim);
       console.error('Failed to spawn shopper', error);

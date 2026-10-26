@@ -931,6 +931,8 @@ export class ShopperAI {
     this.pending = null;
     this.impatient = false;
     this.angerTimer = 0;
+    this.angerReact = 0;
+    this.actionLock = null;
     this.visuals.hideCountdown();
     if (this.state === ShopperState.DESPAWNED) {
       return;
@@ -941,23 +943,49 @@ export class ShopperAI {
     this.queueIndex = -1;
     this.hasReachedQueueSlot = false;
     if (
-      this.state === ShopperState.EXITING
-      || this.state === ShopperState.KNOCKED_OUT
+      this.state === ShopperState.KNOCKED_OUT
       || this.state === ShopperState.DEFEATED_FLEEING
-      || (this.state === ShopperState.THIEF && this.isThiefExit(this.destinationId))
     ) {
       this.refreshDebug();
       return;
     }
-    if (this.isThief || this.state === ShopperState.ANGRY || this.state === ShopperState.THIEF) {
-      this.state = ShopperState.THIEF;
-      this.leaveAsThief();
+    const stealing = this.isThief
+      || this.carryingShelf
+      || this.state === ShopperState.ANGRY
+      || this.state === ShopperState.THIEF;
+    if (stealing) {
+      this.dropStolenGoods();
+      this.runToExit();
+      this.refreshDebug();
+      return;
+    }
+    if (this.state === ShopperState.EXITING) {
       this.refreshDebug();
       return;
     }
     this.state = ShopperState.EXITING;
     this.goTo('despawn', true);
     this.refreshDebug();
+  }
+
+  dropStolenGoods() {
+    if (this.carryingShelf) {
+      this.settleShelf(false);
+    }
+    const drops = this.releaseDrops();
+    if (drops.length > 0) {
+      this.onDrops?.(drops);
+    }
+  }
+
+  runToExit() {
+    this.closingRun = true;
+    this.state = ShopperState.THIEF;
+    this.route.config.moveSpeed = this.weaponsConfig?.defeatedThiefRunSpeed ?? 3.6;
+    if (this.actions.run) {
+      this.actions.run.timeScale = 1.25;
+    }
+    this.goTo(this.thiefExitId(), true);
   }
 
   finishCheckout() {
@@ -1195,7 +1223,9 @@ export class ShopperAI {
     if (this.actionLock !== 'pickup') {
       let next = 'idle';
       if (moving) {
-        if (this.carryingShelf && this.state === ShopperState.THIEF) {
+        if (this.closingRun && this.actions.run) {
+          next = 'run';
+        } else if (this.carryingShelf && this.state === ShopperState.THIEF) {
           next = this.actions.carry ? 'carry' : 'walk';
         } else if (this.state === ShopperState.DEFEATED_FLEEING && this.actions.run) {
           next = 'run';

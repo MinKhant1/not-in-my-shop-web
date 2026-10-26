@@ -92,7 +92,6 @@ export class Game {
       setSpawning: (enabled) => this.shoppers.setSpawningEnabled(enabled),
       prepareNextDay: () => {
         this.shoppers.prepareNextDay();
-        this.trash?.clear();
         this.dayStats.reset();
         this.dayStartMoney = this.money.getMoney();
         this.intercom?.resetCooldown();
@@ -666,6 +665,7 @@ export class Game {
       this.renderer.render(this.scene, this.followCamera.camera);
       return;
     }
+    this.mainMenu?.releaseEntrance();
     this.dayNight.update(dt);
     this.lighting.update(dt);
     this.shopSign?.update(this.lighting.night);
@@ -733,6 +733,7 @@ export class Game {
   continueFromSave() {
     const saved = this.save.day();
     if (saved?.phase === 'NIGHT') {
+      this.shoppers.clearLive();
       this.dayNight.applySnapshot(saved, true);
       return;
     }
@@ -791,7 +792,7 @@ export class Game {
     this.shoppers.syncShelfPicks(this.purchases.purchasedIds());
   }
 
-  async resetToNewShop(shopName) {
+  resetToNewShop(shopName) {
     const fixtures = Array.isArray(this.save.data.purchasedFixtures)
       ? [...this.save.data.purchasedFixtures]
       : [];
@@ -832,13 +833,16 @@ export class Game {
     this.cashiers?.dismissAll();
     if (this.broomUpgrade) {
       this.broomUpgrade.level = 1;
-      await this.broomUpgrade.restore();
+      this.broomUpgrade.restore().catch((error) => {
+        console.error('Failed to reset the broom', error);
+      });
     }
     this.broomStations?.syncFromUpgrade();
     this.store.maxUnlocked = 0;
     this.store.syncUnlock();
     this.shoppers.syncSections(0);
     this.shoppers.syncShelfPicks([]);
+    this.shoppers.clearLive();
     this.shoppers.setSpawningEnabled(false);
     for (let i = 0; i < fixtures.length; i += 1) {
       this.store.concealFixture(fixtures[i]);

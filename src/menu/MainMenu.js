@@ -192,6 +192,14 @@ export class MainMenu {
     this.syncBlocker(blocking);
   }
 
+  releaseEntrance() {
+    if (!this.blocker || this.editing || this.state !== 'PLAYING') {
+      return;
+    }
+    this.blocker.visible = false;
+    this.game.collision.removeId(this.blocker.userData.editorId);
+  }
+
   syncBlocker(blocking) {
     const id = this.blocker.userData.editorId;
     this.game.collision.removeId(id);
@@ -408,19 +416,20 @@ export class MainMenu {
     }
   }
 
-  async startNewShop(shopName) {
+  startNewShop(shopName) {
     if (this.busy) {
       return;
     }
     this.busy = true;
     this.closeModal();
     try {
-      await this.game.resetToNewShop(shopName);
+      this.game.resetToNewShop(shopName);
       this.game.dayNight.applySnapshot(null, true);
       this.beginPlay({ fresh: true });
     } catch (error) {
       console.error('Failed to start a new shop', error);
       this.busy = false;
+      this.resetHolds();
     }
   }
 
@@ -547,10 +556,30 @@ export class MainMenu {
       this.release(this.squares[i]);
     }
     this.syncPresentation();
+    this.releaseEntrance();
     const day = this.game.dayNight;
-    const playingDay = day.phase === 'DAY' && !day.closedForNight && day.remaining > 0;
-    day.timerRunning = playingDay;
-    this.game.shoppers.setSpawningEnabled(playingDay);
+    const night = !options.fresh && (day.phase === 'NIGHT' || day.closedForNight);
+    if (night) {
+      if (day.phase !== 'NIGHT') {
+        day.applySnapshot({ number: day.dayNumber, remaining: 0, phase: 'NIGHT' }, false);
+      }
+      day.timerRunning = false;
+      this.game.shoppers.setSpawningEnabled(false);
+    } else {
+      if (day.phase !== 'DAY' || day.closedForNight || !(day.remaining > 0)) {
+        day.applySnapshot({
+          number: day.dayNumber > 0 ? day.dayNumber : 1,
+          remaining: day.dayDuration,
+          phase: 'DAY'
+        }, true);
+      }
+      day.closedForNight = false;
+      day.timerRunning = true;
+      this.game.shoppers.armShift();
+    }
+    if (this.game.input && !this.game.editor?.active) {
+      this.game.input.suspended = false;
+    }
     this.game.save.write({
       played: true,
       day: this.game.dayRecord()
