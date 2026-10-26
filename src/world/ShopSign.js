@@ -67,8 +67,8 @@ export class ShopSign {
       toneMapped: false
     });
     this.boardMaterial = new THREE.MeshStandardMaterial({
-      color: 0x16141c,
-      roughness: 0.92,
+      color: 0X71657D,
+      roughness: 0.88,
       metalness: 0.02
     });
     this.root = new THREE.Group();
