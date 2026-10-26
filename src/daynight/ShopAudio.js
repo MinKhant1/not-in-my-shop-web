@@ -20,7 +20,6 @@ function writeVolume(key, value) {
   }
 }
 
-const MUSIC_FADE_SECONDS = 2.4;
 const CLIP_NAMES = ['bell', 'hit', 'scream', 'coin', 'win'];
 // These files peak near full scale. These levels keep them clear under the effects slider.
 const BELL_GAIN = 0.45;
@@ -35,19 +34,18 @@ export class ShopAudio {
     this.lastTick = null;
     this.musicVolume = readVolume('not-in-my-shop-music', 0.5);
     this.sfxVolume = readVolume('not-in-my-shop-sfx', 0.5);
-    this.musicGain = null;
     this.sfxGain = null;
-    this.musicSource = null;
-    this.musicStarting = false;
-    this.musicArmed = false;
-    this.musicBytes = null;
+    this.musicEl = null;
     this.clipBytes = new Map();
     this.clipBuffers = new Map();
     this.clipLoading = new Map();
     for (let i = 0; i < CLIP_NAMES.length; i += 1) {
       this.clipBytes.set(CLIP_NAMES[i], this.readClip(CLIP_NAMES[i]));
     }
-    this.onUnlock = () => this.ensure();
+    this.onUnlock = () => {
+      this.ensure();
+      this.startMusic();
+    };
     window.addEventListener('pointerdown', this.onUnlock);
     window.addEventListener('keydown', this.onUnlock);
     window.addEventListener('touchend', this.onUnlock);
@@ -78,40 +76,28 @@ export class ShopAudio {
       this.sfxGain = this.context.createGain();
       this.sfxGain.gain.value = this.sfxVolume;
       this.sfxGain.connect(this.context.destination);
-      this.musicGain = this.context.createGain();
-      this.musicGain.gain.value = this.musicVolume;
-      this.musicGain.connect(this.context.destination);
     }
     if (this.context.state === 'suspended') {
-      this.context.resume().then(() => {
-        if (this.musicArmed) {
-          this.startMusic();
-        }
-      }).catch(() => {});
-      return this.context;
-    }
-    if (this.musicArmed) {
-      this.startMusic();
+      this.context.resume().catch(() => {});
     }
     return this.context;
   }
 
   arm() {
-    this.musicArmed = true;
-    if (this.musicVolume <= 0) {
-      return;
-    }
     this.ensure();
+    this.startMusic();
   }
 
   setMusicVolume(value) {
     this.musicVolume = Math.min(1, Math.max(0, value));
     writeVolume('not-in-my-shop-music', this.musicVolume);
-    if (this.musicGain) {
-      this.musicGain.gain.value = this.musicVolume;
+    if (this.musicEl) {
+      this.musicEl.volume = this.musicVolume;
     }
-    if (this.musicArmed && this.musicVolume > 0) {
-      this.ensure();
+    if (this.musicVolume > 0) {
+      this.startMusic();
+    } else {
+      this.musicEl?.pause();
     }
   }
 
@@ -124,68 +110,25 @@ export class ShopAudio {
   }
 
   startMusic() {
-    if (!this.musicArmed || this.musicVolume <= 0) {
+    if (this.musicVolume <= 0) {
+      this.musicEl?.pause();
       return;
     }
-    if (this.musicSource || this.musicStarting || !this.context || !this.musicGain) {
+    if (!this.musicEl) {
+      const music = new Audio('/assets/audio/background.mp3');
+      music.loop = true;
+      music.preload = 'none';
+      this.musicEl = music;
+    }
+    this.musicEl.volume = this.musicVolume;
+    if (!this.musicEl.paused) {
       return;
     }
-    if (this.context.state !== 'running') {
-      return;
-    }
-    this.musicStarting = true;
-    this.playMusic().finally(() => {
-      this.musicStarting = false;
+    this.musicEl.play().then(() => {
+      this.clearUnlock();
+    }).catch(() => {
+      // The next click retries. A blocked autoplay should not save the file.
     });
-  }
-
-  fetchMusic() {
-    return fetch(new URL('audio/background.mp3', document.baseURI)).then((response) => {
-      if (!response.ok) {
-        throw new Error(`Background music failed to load (${response.status})`);
-      }
-      return response.arrayBuffer();
-    });
-  }
-
-  async playMusic() {
-    if (!this.musicBytes) {
-      this.musicBytes = this.fetchMusic();
-    }
-    let bytes;
-    try {
-      bytes = await this.musicBytes;
-    } catch (error) {
-      console.warn('Background music could not be loaded', error);
-      this.musicBytes = null;
-      return;
-    }
-    const context = this.context;
-    if (!bytes || !context || !this.musicGain || this.musicSource || context.state !== 'running') {
-      return;
-    }
-    let buffer;
-    try {
-      buffer = await context.decodeAudioData(bytes.slice(0));
-    } catch (error) {
-      console.warn('Background music could not be decoded', error);
-      return;
-    }
-    if (this.musicSource || this.context !== context || context.state !== 'running') {
-      return;
-    }
-    const source = context.createBufferSource();
-    const fade = context.createGain();
-    const now = context.currentTime;
-    source.buffer = buffer;
-    source.loop = true;
-    fade.gain.setValueAtTime(0, now);
-    fade.gain.linearRampToValueAtTime(1, now + MUSIC_FADE_SECONDS);
-    source.connect(fade);
-    fade.connect(this.musicGain);
-    source.start(now);
-    this.musicSource = source;
-    this.clearUnlock();
   }
 
   tone(frequency, duration, type, gainValue) {
