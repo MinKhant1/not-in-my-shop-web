@@ -45,6 +45,7 @@ import { DroppedItemManager } from '../combat/DroppedItemManager.js';
 import { HitFeedback } from '../combat/HitFeedback.js';
 import { SceneOverrides } from '../editor/SceneOverrides.js';
 import { SecurityGuard } from '../security/SecurityGuard.js';
+import { SecurityUpgrade } from '../security/SecurityUpgrade.js';
 import { SecurityCameraSystem } from '../security/SecurityCameraSystem.js';
 import { IntercomSystem } from '../security/IntercomSystem.js';
 import { RollerSkates } from '../player/RollerSkates.js';
@@ -305,25 +306,22 @@ export class Game {
       weapons: this.config.weapons,
       config: guardConfig
     });
-    this.upgradeManager.add({
-      id: guardConfig.id,
-      name: 'HIRE SECURITY GUARD',
-      cost: guardConfig.cost,
+    this.securityUpgrade = new SecurityUpgrade({
+      scene: this.scene,
+      money: this.money,
+      save: this.save,
+      upgrades: this.upgrades,
+      guard: this.security,
+      hired: this.upgrades.owns(guardConfig.id),
+      level: this.save.securityBroomLevel(),
+      hireCost: guardConfig.cost,
       position: guardConfig.position,
       halfSize: guardConfig.halfSize,
-      circular: true,
-      retainWhenOwned: true,
-      showFloorTitle: true,
-      hiredLines: ['GUARD', 'HIRED'],
-      summary: 'Hires a guard who patrols the shop and stops thieves.',
-      onPurchase: () => {
-        this.security.hire();
-        this.save.write({
-          purchasedUpgrades: [...this.upgrades.purchased],
-          money: this.money.getMoney()
-        });
-      }
+      interval: upgradeConfig.coinInterval ?? 0.15,
+      audio: this.audio
     });
+    this.upgradeManager.pads.push(this.securityUpgrade.pad);
+    this.securityUpgrade.restore();
     const cameraConfig = upgradeConfig.securityCamera ?? {};
     this.cameras = new SecurityCameraSystem({
       scene: this.scene,
@@ -853,6 +851,7 @@ export class Game {
     for (let i = 0; i < pads.length; i += 1) {
       pads[i].reopen();
     }
+    this.securityUpgrade?.reset();
     this.save.write({
       money: this.money.getMoney(),
       broomLevel: 1,

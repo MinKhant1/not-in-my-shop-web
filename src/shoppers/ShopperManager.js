@@ -39,6 +39,7 @@ export class ShopperManager {
     this.trashRules = null;
     this.shelfRules = config.shelfThief ?? {};
     this.store = null;
+    this.shelfClaims = new Map();
     this.shelfPlanDay = null;
     this.shelfThiefMinute = null;
     this.shelfThiefDoneDay = 0;
@@ -94,7 +95,6 @@ export class ShopperManager {
           this.spawnTimer = 0.4;
         }
       }
-      this.tryShelfThief();
     }
 
     for (let i = 0; i < this.shoppers.length; i += 1) {
@@ -104,6 +104,7 @@ export class ShopperManager {
 
     for (let i = this.shoppers.length - 1; i >= 0; i -= 1) {
       if (this.shoppers[i].state === ShopperState.DESPAWNED) {
+        this.releaseShelf(this.shoppers[i].shelfFixtureId, this.shoppers[i].shelfClaim);
         this.shoppers[i].dispose();
         this.shoppers.splice(i, 1);
       }
@@ -163,6 +164,7 @@ export class ShopperManager {
   prepareNextDay() {
     this.spawnedToday = 0;
     this.pendingSpawns = 0;
+    this.shelfClaims.clear();
     this.spawnTimer = this.config.firstSpawnDelay;
     this.setSpawningEnabled(true);
   }
@@ -246,152 +248,75 @@ export class ShopperManager {
       this.shoppers[i].dispose();
     }
     this.shoppers = [];
+    this.shelfClaims.clear();
     this.prepareNextDay();
   }
 
-  tryShelfThief() {
-    if (!this.store || this.spawning) {
-      return;
+  rollCustomerRole() {
+    const honest = { thiefChance: 0, shelf: null };
+    if (this.theftAllowed() === false) {
+      return { thiefChance: this.config.thiefChance, shelf: null };
+    }
+    if (Math.random() >= (this.config.thiefChance ?? 0)) {
+      return honest;
     }
     const rules = this.shelfRules ?? {};
     const day = this.customerSources?.day?.() ?? 1;
     const startDay = rules.startDay ?? 2;
-    if (this.shelfPlanDay !== day) {
-      this.shelfPlanDay = day;
-      this.shelfThiefMinute = null;
-      if (day >= startDay && this.shelfThiefDoneDay !== day) {
-        const start = rules.fromMinute ?? 12 * 60;
-        const end = rules.toMinute ?? 16 * 60;
-        const now = this.customerSources?.gameMinutes?.() ?? start;
-        if (now < end) {
-          const earliest = Math.max(start, now);
-          if (earliest < end) {
-            this.shelfThiefMinute = earliest + Math.random() * (end - earliest);
-          }
-        }
-      }
+    const share = rules.share ?? 0.3;
+    if (day < startDay || Math.random() >= share) {
+      return { thiefChance: 1, shelf: null };
     }
-    if (day < startDay || this.shelfThiefDoneDay === day || this.shelfThiefMinute == null) {
-      return;
+    const shelf = this.claimShelf();
+    if (!shelf) {
+      return { thiefChance: 1, shelf: null };
     }
-    const now = this.customerSources?.gameMinutes?.() ?? 0;
-    const end = rules.toMinute ?? 16 * 60;
-    if (now < this.shelfThiefMinute || now >= end) {
-      return;
-    }
-    this.spawnShelfThief();
+    return { thiefChance: 0, shelf };
   }
 
-  spawnShelfThief() {
+  rollShelfForCustomer() {
+    const rules = this.shelfRules ?? {};
     const day = this.customerSources?.day?.() ?? 1;
-    if (!this.store || this.spawning || this.shoppers.length >= this.config.maxActive) {
-      return false;
+    if (day < (rules.startDay ?? 2) || Math.random() >= (rules.share ?? 0.3)) {
+      return null;
     }
-    const targets = this.store.availableShelfTargets();
+    const claimed = this.claimShelf();
+    if (!claimed) {
+      return null;
+    }
+    return {
+      id: claimed.target.id,
+      nodeId: claimed.node.id,
+      x: claimed.target.x,
+      z: claimed.target.z,
+      claim: claimed.claim,
+      health: rules.health ?? 180,
+      slow: rules.speedScale ?? 0.4
+    };
+  }
+
+  claimShelf() {
+    if (!this.store) {
+      return null;
+    }
+    const targets = this.store.availableShelfTargets().filter((entry) => !this.shelfClaims.has(entry.id));
     if (targets.length === 0) {
-      this.shelfThiefDoneDay = day;
-      return false;
-    }
-    const door = this.navigation.nodes.get('entranceOutside');
-    if (!door) {
-      return false;
-    }
-    for (let i = 0; i < this.shoppers.length; i += 1) {
-      const position = this.shoppers[i].group.position;
-      const dx = position.x - door.x;
-      const dz = position.z - door.z;
-      if (dx * dx + dz * dz < 0.64) {
-        return false;
-      }
+      return null;
     }
     const target = targets[Math.floor(Math.random() * targets.length)];
     const node = this.navigation.nearest(target.x, target.z, true);
     if (!node) {
-      return false;
+      return null;
     }
+    this.shelfClaims.set(target.id, this.spawnGeneration);
+    return { target, node, claim: this.spawnGeneration };
+  }
 
-    const models = this.config.models;
-    const inUse = new Set();
-    for (let i = 0; i < this.shoppers.length; i += 1) {
-      inUse.add(this.shoppers[i].modelUrl);
+  releaseShelf(id, claim) {
+    if (!id || this.shelfClaims.get(id) !== claim) {
+      return;
     }
-    const unused = models.filter((url) => !inUse.has(url));
-    const pool = unused.length ? unused : models;
-    const modelUrl = pool[Math.floor(Math.random() * pool.length)];
-    const generation = this.spawnGeneration;
-    const rules = this.shelfRules ?? {};
-    this.spawning = true;
-    this.loader.load(modelUrl).then((asset) => {
-      this.spawning = false;
-      if (!this.spawningEnabled || generation !== this.spawnGeneration || this.shoppers.length >= this.config.maxActive) {
-        return;
-      }
-      const stillThere = this.store.availableShelfTargets().some((entry) => entry.id === target.id);
-      if (!stillThere) {
-        return;
-      }
-      const shopper = new ShopperAI({
-        asset,
-        modelUrl,
-        config: this.config,
-        navigation: this.navigation,
-        collision: this.collision,
-        checkoutQueue: this.checkoutQueue,
-        checkoutLanes: this.lanes,
-        checkoutConfig: this.checkoutConfig,
-        weaponsConfig: this.weaponsConfig,
-        toonFactory: this.toonFactory,
-        theftAllowed: () => false,
-        dropsTrash: false,
-        isInsideShop: (x, z) => this.isInsideShop?.(x, z) === true,
-        onDropTrash: (x, z) => this.onDropTrash?.(x, z),
-        debug: this.debug || this.checkoutConfig?.debugCheckout === true || this.weaponsConfig?.debugWeapons === true,
-        shelfThief: true,
-        shelfFixtureId: target.id,
-        shelfNodeId: node.id,
-        shelfX: target.x,
-        shelfZ: target.z,
-        shelfHealth: rules.health ?? 150,
-        shelfSlow: rules.speedScale ?? 0.4,
-        onTakeShelf: (id) => this.store?.takeShelf(id) ?? null,
-        onReturnShelf: (id) => {
-          this.store?.returnShelf(id);
-          if (this.onShelfReturned) {
-            this.onShelfReturned(id);
-          } else {
-            this.store?.setShelfCollision(id, true);
-          }
-        },
-        onLoseShelf: (id) => this.store?.loseShelf(id)
-      });
-      const z = door.z + randomBetween(-0.22, 0.22);
-      shopper.spawn(door.x, z);
-      shopper.onCaught = () => {
-        if (shopper.outcomeCounted) {
-          return;
-        }
-        shopper.outcomeCounted = true;
-        this.dayStats?.recordCaught();
-      };
-      shopper.onDrops = (drops) => this.onThiefDrops?.(drops);
-      shopper.onScream = () => this.audio?.scream();
-      shopper.onEscaped = () => {
-        if (shopper.outcomeCounted || !shopper.isThief || shopper.isDefeated) {
-          return;
-        }
-        shopper.outcomeCounted = true;
-        this.dayStats?.recordEscape(shopper.inventory.count);
-      };
-      this.scene.add(shopper.group);
-      this.shoppers.push(shopper);
-      this.shelfThiefDoneDay = day;
-      this.onShelfThiefSpawned?.(day);
-      this.dayStats?.recordCustomer();
-    }).catch((error) => {
-      this.spawning = false;
-      console.error('Failed to spawn shelf thief', error);
-    });
-    return true;
+    this.shelfClaims.delete(id);
   }
 
   spawn() {
@@ -420,6 +345,7 @@ export class ShopperManager {
     const unused = models.filter((url) => !inUse.has(url));
     const pool = unused.length ? unused : models;
     const modelUrl = pool[Math.floor(Math.random() * pool.length)];
+    const role = this.rollCustomerRole();
     const generation = this.spawnGeneration;
     this.spawning = true;
     this.pendingSpawns += 1;
@@ -427,16 +353,23 @@ export class ShopperManager {
       this.spawning = false;
       this.pendingSpawns = Math.max(0, this.pendingSpawns - 1);
       if (!this.spawningEnabled || generation !== this.spawnGeneration || this.shoppers.length >= this.config.maxActive) {
+        this.releaseShelf(role.shelf?.target.id, role.shelf?.claim);
         return;
       }
       const day = this.customerSources?.day?.() ?? 1;
-      const rules = this.trashRules ?? {};
-      const startDay = rules.startDay ?? 3;
-      const chance = day >= startDay ? (rules.chance ?? 0.1) : 0;
+      const trashRules = this.trashRules ?? {};
+      const trashStart = trashRules.startDay ?? 3;
+      const chance = day >= trashStart ? (trashRules.chance ?? 0.1) : 0;
+      const shelf = role.shelf;
+      const shelfRules = this.shelfRules ?? {};
+      const config = role.thiefChance === this.config.thiefChance
+        ? this.config
+        : { ...this.config, thiefChance: role.thiefChance };
+      let shelfClaim = shelf?.claim ?? null;
       const shopper = new ShopperAI({
         asset,
         modelUrl,
-        config: this.config,
+        config,
         navigation: this.navigation,
         collision: this.collision,
         checkoutQueue: this.checkoutQueue,
@@ -444,12 +377,38 @@ export class ShopperManager {
         checkoutConfig: this.checkoutConfig,
         weaponsConfig: this.weaponsConfig,
         toonFactory: this.toonFactory,
-        theftAllowed: () => this.theftAllowed(),
-        dropsTrash: chance > 0 && Math.random() < chance,
+        theftAllowed: () => (shelf ? false : this.theftAllowed()),
+        dropsTrash: !shelf && chance > 0 && Math.random() < chance,
         isInsideShop: (x, z) => this.isInsideShop?.(x, z) === true,
         onDropTrash: (x, z) => this.onDropTrash?.(x, z),
-        debug: this.debug || this.checkoutConfig?.debugCheckout === true || this.weaponsConfig?.debugWeapons === true
+        debug: this.debug || this.checkoutConfig?.debugCheckout === true || this.weaponsConfig?.debugWeapons === true,
+        shelfThief: Boolean(shelf),
+        shelfFixtureId: shelf?.target.id,
+        shelfNodeId: shelf?.node.id,
+        shelfX: shelf?.target.x,
+        shelfZ: shelf?.target.z,
+        shelfHealth: shelfRules.health ?? 180,
+        shelfSlow: shelfRules.speedScale ?? 0.4,
+        onTakeShelf: (id) => {
+          this.releaseShelf(id, shelfClaim);
+          return this.store?.takeShelf(id) ?? null;
+        },
+        onReturnShelf: (id) => {
+          this.store?.returnShelf(id);
+          if (this.onShelfReturned) {
+            this.onShelfReturned(id);
+          } else {
+            this.store?.setShelfCollision(id, true);
+          }
+        },
+        onLoseShelf: (id) => this.store?.loseShelf(id)
       });
+      shopper.shelfClaim = shelfClaim;
+      shopper.assignShelfClaim = (claim) => {
+        shelfClaim = claim;
+        shopper.shelfClaim = claim;
+      };
+      shopper.rollShelfTheft = () => (shopper.thiefChance >= 1 ? null : this.rollShelfForCustomer());
       const z = door.z + randomBetween(-0.22, 0.22);
       shopper.spawn(door.x, z);
       shopper.onCaught = () => {
@@ -475,6 +434,7 @@ export class ShopperManager {
     }).catch((error) => {
       this.spawning = false;
       this.pendingSpawns = Math.max(0, this.pendingSpawns - 1);
+      this.releaseShelf(role.shelf?.target.id, role.shelf?.claim);
       console.error('Failed to spawn shopper', error);
     });
     return true;

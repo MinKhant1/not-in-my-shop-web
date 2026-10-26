@@ -78,6 +78,11 @@ export class SecurityGuard {
     this.attackDuration = 0.55;
     this.cooldown = 0;
     this.broom = null;
+    this.broomSocket = null;
+    this.broomDef = null;
+    this.broomToken = 0;
+    this.burnDps = 0;
+    this.burnDuration = 0;
   }
 
   hire() {
@@ -96,7 +101,7 @@ export class SecurityGuard {
     this.loading = true;
     this.loader.load(this.modelUrl).then((asset) => {
       this.loading = false;
-      if (this.group) {
+      if (!this.hired || this.group) {
         return;
       }
       this.spawn(asset);
@@ -137,6 +142,7 @@ export class SecurityGuard {
     }
     if (!this.shift) {
       this.play('idle');
+      this.broom?.updateFlames(dt);
       this.mixer.update(dt);
       return;
     }
@@ -154,7 +160,19 @@ export class SecurityGuard {
         this.patrolStep(dt);
       }
     }
+    this.broom?.updateFlames(dt);
     this.mixer.update(dt);
+  }
+
+  setBroom(def) {
+    if (!def) {
+      return;
+    }
+    this.broomDef = def;
+    this.damage = def.damage ?? this.damage;
+    this.burnDps = def.burnDps ?? 0;
+    this.burnDuration = def.burnDuration ?? 0;
+    this.applyBroomModel();
   }
 
   spawn(asset) {
@@ -193,11 +211,40 @@ export class SecurityGuard {
     const socket = new THREE.Group();
     socket.name = 'RightHandWeaponSocket';
     hand.add(socket);
+    this.broomSocket = socket;
     this.broom = new BroomWeapon(this.weaponsConfig);
+    this.broom.scene = this.scene;
+    if (this.broomDef) {
+      this.applyBroomModel();
+      return;
+    }
     this.broom.load(this.loader, this.toonFactory).then(() => {
       if (this.broom?.model) {
         this.broom.equip(socket);
       }
+    }).catch((error) => {
+      console.error('Failed to equip security broom', error);
+    });
+  }
+
+  applyBroomModel() {
+    const def = this.broomDef;
+    if (!def || !this.broom) {
+      return;
+    }
+    const token = this.broomToken + 1;
+    this.broomToken = token;
+    this.broom.loader = this.loader;
+    this.broom.toonFactory = this.toonFactory;
+    this.broom.scene = this.scene;
+    this.broom.useModel(def.model).then(() => {
+      if (this.broomToken !== token || !this.broom?.model) {
+        return;
+      }
+      if (this.broomSocket && !this.broom.equipped) {
+        this.broom.equip(this.broomSocket);
+      }
+      this.broom.setFlames(def.level >= 3, def);
     }).catch((error) => {
       console.error('Failed to equip security broom', error);
     });
@@ -564,8 +611,15 @@ export class SecurityGuard {
       return;
     }
     const position = target.group.position;
-    this.feedback?.spawn(position.x, 1.55, position.z);
+    this.feedback?.spawn(position.x, 1.55, position.z, this.damage);
     const defeated = target.takeDamage(this.damage);
+    if (this.burnDps > 0) {
+      this.broom?.burstFlames(position.x, position.y + 1.05, position.z);
+      if (!defeated && this.burnDuration > 0) {
+        target.applyBurn?.(this.burnDps, this.burnDuration);
+        target.burnFlames?.burst();
+      }
+    }
     if (!defeated) {
       return;
     }

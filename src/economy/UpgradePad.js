@@ -310,6 +310,45 @@ export class UpgradePad {
     this.root.visible = false;
   }
 
+  innerHalf(y) {
+    const width = this.canvas.width;
+    const height = this.canvas.height;
+    if (!this.circular) {
+      return width / 2 - 72;
+    }
+    const radius = width / 2 - 58;
+    const dy = y - height / 2;
+    const span = radius * radius - dy * dy;
+    return span > 0 ? Math.max(16, Math.sqrt(span) - 8) : 16;
+  }
+
+  drawFittedText(ctx, text, y, size, min, weight, fill, stroke) {
+    const label = String(text);
+    const maxWidth = this.innerHalf(y) * 2;
+    let next = size;
+    while (next > min) {
+      ctx.font = `${weight} ${next}px system-ui, sans-serif`;
+      if (ctx.measureText(label).width <= maxWidth) {
+        break;
+      }
+      next -= 2;
+    }
+    ctx.font = `${weight} ${next}px system-ui, sans-serif`;
+    const measured = ctx.measureText(label).width;
+    const scale = measured > maxWidth && maxWidth > 0 ? maxWidth / measured : 1;
+    ctx.save();
+    ctx.translate(this.canvas.width / 2, y);
+    ctx.scale(scale, 1);
+    if (stroke) {
+      ctx.lineWidth = Math.max(4, next * 0.14);
+      ctx.strokeStyle = stroke;
+      ctx.strokeText(label, 0, 0);
+    }
+    ctx.fillStyle = fill;
+    ctx.fillText(label, 0, 0);
+    ctx.restore();
+  }
+
   redraw() {
     const invested = this.investment.invested;
     const cost = this.investment.cost;
@@ -340,42 +379,34 @@ export class UpgradePad {
     if (!this.circular || this.showFloorTitle) {
       const lines = this.floorLines?.length ? this.floorLines : titleLines(this.name);
       const stacked = lines.length > 2;
-      const fontSize = this.circular ? (stacked ? 52 : 58) : 78;
-      ctx.font = `800 ${fontSize}px system-ui, sans-serif`;
-      const titleTop = stacked ? 0.22 : lines.length > 1 ? 0.28 : 0.34;
-      const step = stacked ? 0.12 : 0.14;
+      const fontSize = this.circular ? (stacked ? 44 : 50) : 72;
+      const titleTop = this.circular
+        ? (stacked ? 0.28 : lines.length > 1 ? 0.3 : 0.34)
+        : (stacked ? 0.22 : lines.length > 1 ? 0.28 : 0.34);
+      const step = this.circular ? 0.1 : (stacked ? 0.11 : 0.13);
       for (let i = 0; i < lines.length; i += 1) {
         const y = height * (titleTop + i * step);
-        if (this.filled) {
-          ctx.lineWidth = 8;
-          ctx.strokeStyle = '#1b2233';
-          ctx.strokeText(lines[i], width / 2, y);
-          ctx.fillStyle = '#ffffff';
-        }
-        ctx.fillText(lines[i], width / 2, y);
+        this.drawFittedText(ctx, lines[i], y, fontSize, 18, '800', this.filled ? '#ffffff' : paletteHex(StorePalette.uiText), this.filled ? '#1b2233' : '');
       }
     }
     if (this.detail) {
-      let size = 40;
-      ctx.font = `700 ${size}px system-ui, sans-serif`;
-      while (size > 22 && ctx.measureText(this.detail).width > width - 96) {
-        size -= 2;
-        ctx.font = `700 ${size}px system-ui, sans-serif`;
-      }
-      ctx.fillStyle = this.filled ? '#ffffff' : paletteHex(StorePalette.woodHighlight);
-      const detailY = height * (this.floorLines?.length ? 0.56 : 0.5);
-      if (this.filled) {
-        ctx.lineWidth = 8;
-        ctx.strokeStyle = '#1b2233';
-        ctx.strokeText(this.detail, width / 2, detailY);
-      }
-      ctx.fillText(this.detail, width / 2, detailY);
+      const detailY = height * (this.floorLines?.length ? 0.52 : 0.48);
+      this.drawFittedText(
+        ctx,
+        this.detail,
+        detailY,
+        36,
+        16,
+        '700',
+        this.filled ? '#ffffff' : paletteHex(StorePalette.woodHighlight),
+        this.filled ? '#1b2233' : ''
+      );
     }
 
-    const barX = 64;
-    const barY = height * 0.62;
-    const barW = width - 128;
-    const barH = 46;
+    const barH = this.circular ? 34 : 46;
+    const barY = height * (this.circular ? 0.56 : 0.62);
+    const barW = Math.min(width - 128, this.innerHalf(barY + barH / 2) * 2 - 16);
+    const barX = (width - barW) / 2;
     ctx.fillStyle = this.filled ? 'rgba(27, 34, 51, 0.35)' : paletteHex(StorePalette.uiBackgroundSecondary);
     ctx.fillRect(barX, barY, barW, barH);
     const progress = cost > 0 ? invested / cost : 1;
@@ -384,14 +415,17 @@ export class UpgradePad {
 
     if (this.showCostLabel) {
       const label = invested > 0 ? `${invested} / ${cost}` : `$${cost}`;
-      ctx.font = '800 84px system-ui, sans-serif';
-      ctx.fillStyle = this.filled ? '#ffffff' : paletteHex(this.markerColor);
-      if (this.filled) {
-        ctx.lineWidth = 10;
-        ctx.strokeStyle = '#1b2233';
-        ctx.strokeText(label, width / 2, height * 0.82);
-      }
-      ctx.fillText(label, width / 2, height * 0.82);
+      const priceY = height * (this.circular ? 0.74 : 0.82);
+      this.drawFittedText(
+        ctx,
+        label,
+        priceY,
+        this.circular ? 64 : 80,
+        20,
+        '800',
+        this.filled ? '#ffffff' : paletteHex(this.markerColor),
+        this.filled ? '#1b2233' : ''
+      );
     }
     this.texture.needsUpdate = true;
   }
@@ -431,22 +465,13 @@ export class UpgradePad {
     }
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillStyle = '#ffffff';
-    ctx.lineWidth = 8;
-    ctx.strokeStyle = '#1b2233';
     const nameLines = this.floorLines?.length ? this.floorLines : titleLines(this.name);
-    ctx.font = '800 58px system-ui, sans-serif';
     for (let i = 0; i < nameLines.length; i += 1) {
-      const y = height * (0.28 + i * 0.14);
-      ctx.strokeText(nameLines[i], width / 2, y);
-      ctx.fillText(nameLines[i], width / 2, y);
+      this.drawFittedText(ctx, nameLines[i], height * (0.28 + i * 0.12), 52, 16, '800', '#ffffff', '#1b2233');
     }
     const note = this.closedLines;
-    ctx.font = '800 46px system-ui, sans-serif';
     for (let i = 0; i < note.length; i += 1) {
-      const y = height * (0.62 + i * 0.14);
-      ctx.strokeText(note[i], width / 2, y);
-      ctx.fillText(note[i], width / 2, y);
+      this.drawFittedText(ctx, note[i], height * (0.62 + i * 0.12), 42, 16, '800', '#ffffff', '#1b2233');
     }
     this.texture.needsUpdate = true;
   }
@@ -476,15 +501,19 @@ export class UpgradePad {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     if (this.hiredLines?.length) {
-      ctx.fillStyle = paletteHex(StorePalette.uiText);
-      ctx.font = '800 64px system-ui, sans-serif';
       const top = this.hiredLines.length > 1 ? 0.4 : 0.5;
       for (let i = 0; i < this.hiredLines.length; i += 1) {
-        if (i === this.hiredLines.length - 1) {
-          ctx.fillStyle = paletteHex(StorePalette.success);
-          ctx.font = '800 72px system-ui, sans-serif';
-        }
-        ctx.fillText(this.hiredLines[i], width / 2, height * (top + i * 0.22));
+        const last = i === this.hiredLines.length - 1;
+        this.drawFittedText(
+          ctx,
+          this.hiredLines[i],
+          height * (top + i * 0.18),
+          last ? 64 : 56,
+          18,
+          '800',
+          paletteHex(last ? StorePalette.success : StorePalette.uiText),
+          ''
+        );
       }
     } else {
       ctx.font = '800 180px system-ui, sans-serif';

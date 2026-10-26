@@ -39,6 +39,7 @@ export class ShopAudio {
     this.sfxGain = null;
     this.musicSource = null;
     this.musicStarting = false;
+    this.musicArmed = false;
     this.musicBytes = null;
     this.clipBytes = new Map();
     this.clipBuffers = new Map();
@@ -82,11 +83,25 @@ export class ShopAudio {
       this.musicGain.connect(this.context.destination);
     }
     if (this.context.state === 'suspended') {
-      this.context.resume().then(() => this.startMusic()).catch(() => {});
+      this.context.resume().then(() => {
+        if (this.musicArmed) {
+          this.startMusic();
+        }
+      }).catch(() => {});
       return this.context;
     }
-    this.startMusic();
+    if (this.musicArmed) {
+      this.startMusic();
+    }
     return this.context;
+  }
+
+  arm() {
+    this.musicArmed = true;
+    if (this.musicVolume <= 0) {
+      return;
+    }
+    this.ensure();
   }
 
   setMusicVolume(value) {
@@ -95,7 +110,9 @@ export class ShopAudio {
     if (this.musicGain) {
       this.musicGain.gain.value = this.musicVolume;
     }
-    this.ensure();
+    if (this.musicArmed && this.musicVolume > 0) {
+      this.ensure();
+    }
   }
 
   setSfxVolume(value) {
@@ -107,6 +124,9 @@ export class ShopAudio {
   }
 
   startMusic() {
+    if (!this.musicArmed || this.musicVolume <= 0) {
+      return;
+    }
     if (this.musicSource || this.musicStarting || !this.context || !this.musicGain) {
       return;
     }

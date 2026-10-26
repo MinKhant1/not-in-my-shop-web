@@ -75,6 +75,7 @@ export class DayNightController {
     if (this.phase === DayPhase.CLOSING) {
       this.closingElapsed += dt;
       if (this.closingElapsed >= this.closingSeconds) {
+        this.results = this.hooks.snapshotStats?.(this.dayNumber) ?? this.results;
         this.phase = DayPhase.RESULTS;
       }
     }

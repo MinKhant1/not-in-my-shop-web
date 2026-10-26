@@ -447,19 +447,25 @@ export class DayNightHUD {
     if (this.shopLabel) {
       this.shopLabel.data = preview ? 'DEBUG: HIDE SHOP HUD' : 'DEBUG: SHOP HUD';
     }
+    document.body.classList.toggle('is-day-results', closing || results);
     this.announcement.hidden = !closing;
     this.scrim.hidden = !closing && !results;
     this.scrim.classList.toggle('is-results', results);
-    this.panel.hidden = !results;
     if (results && !this.resultsShown) {
       const snapshot = preview ? this.previewSnapshot() : this.controller.results;
       if (snapshot) {
+        this.panel.hidden = false;
         this.showResults(snapshot, preview);
+      } else {
+        this.panel.hidden = true;
       }
+    } else {
+      this.panel.hidden = !results;
     }
     if (!results && !closing) {
       this.resultsShown = false;
       this.countDone = false;
+      this.snapshot = null;
     }
   }
 }

@@ -77,7 +77,15 @@ export class StoreSave {
   }
 
   broomLevel() {
-    const level = Math.round(Number(this.data.broomLevel));
+    return this.readBroomLevel(this.data.broomLevel);
+  }
+
+  securityBroomLevel() {
+    return this.readBroomLevel(this.data.securityBroomLevel);
+  }
+
+  readBroomLevel(value) {
+    const level = Math.round(Number(value));
     if (level === 2 || level === 3) {
       return level;
     }

@@ -532,6 +532,7 @@ export class MainMenu {
 
   beginPlay(options = {}) {
     this.closeModal();
+    this.game.audio.arm();
     if (options.fresh) {
       this.game.audio.shopBell();
       this.game.entranceGuide?.show();

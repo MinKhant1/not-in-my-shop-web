@@ -121,49 +121,58 @@ export class PurchaseSquare {
     ctx.fillStyle = paletteHex(StorePalette.uiText);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
+    const drawLine = (text, y, size, min, fill) => {
+      const label = String(text);
+      const maxWidth = width - 96;
+      let next = size;
+      while (next > min) {
+        ctx.font = `800 ${next}px system-ui, sans-serif`;
+        if (ctx.measureText(label).width <= maxWidth) {
+          break;
+        }
+        next -= 2;
+      }
+      ctx.font = `800 ${next}px system-ui, sans-serif`;
+      const measured = ctx.measureText(label).width;
+      const scale = measured > maxWidth && maxWidth > 0 ? maxWidth / measured : 1;
+      ctx.save();
+      ctx.translate(width / 2, y);
+      ctx.scale(scale, 1);
+      ctx.fillStyle = fill;
+      ctx.fillText(label, 0, 0);
+      ctx.restore();
+    };
     if (this.meter === 'hold') {
-      ctx.font = '800 68px system-ui, sans-serif';
       const titleTop = this.lines.length > 1 ? 0.3 : 0.36;
       for (let i = 0; i < this.lines.length; i += 1) {
-        ctx.fillText(this.lines[i], width / 2, height * (titleTop + i * 0.14));
+        drawLine(this.lines[i], height * (titleTop + i * 0.14), 64, 18, paletteHex(StorePalette.uiText));
       }
       if (progress <= 0) {
-        ctx.font = '800 48px system-ui, sans-serif';
-        ctx.fillStyle = paletteHex(this.accent);
-        ctx.fillText('STAND', width / 2, height * 0.74);
+        drawLine('STAND', height * 0.74, 44, 16, paletteHex(this.accent));
       }
       this.texture.needsUpdate = true;
       return;
     }
     if (this.wide) {
-      ctx.font = '800 92px system-ui, sans-serif';
-      ctx.fillText(this.lines.join(' '), width / 2, height * 0.38);
-      ctx.font = '800 84px system-ui, sans-serif';
+      drawLine(this.lines.join(' '), height * 0.38, 84, 22, paletteHex(StorePalette.uiText));
       const detail = mode === 'paused' && paid > 0
         ? `${paid} / ${price}  NEED COINS`
         : paid > 0
           ? `${paid} / ${price}`
           : `$${price}`;
-      ctx.fillStyle = paletteHex(mode === 'paused' ? StorePalette.danger : StorePalette.uiText);
-      ctx.fillText(detail, width / 2, height * 0.72);
+      drawLine(detail, height * 0.72, 76, 20, paletteHex(mode === 'paused' ? StorePalette.danger : StorePalette.uiText));
     } else {
-      ctx.font = '800 68px system-ui, sans-serif';
       const titleTop = this.lines.length > 1 ? 0.28 : 0.34;
       for (let i = 0; i < this.lines.length; i += 1) {
-        ctx.fillText(this.lines[i], width / 2, height * (titleTop + i * 0.13));
+        drawLine(this.lines[i], height * (titleTop + i * 0.13), 60, 18, paletteHex(StorePalette.uiText));
       }
-      ctx.font = '800 78px system-ui, sans-serif';
       if (mode === 'paused' && paid > 0) {
-        ctx.fillStyle = paletteHex(StorePalette.uiText);
-        ctx.fillText(`${paid} / ${price}`, width / 2, height * 0.68);
-        ctx.font = '800 46px system-ui, sans-serif';
-        ctx.fillText('NEED COINS', width / 2, height * 0.82);
+        drawLine(`${paid} / ${price}`, height * 0.68, 64, 18, paletteHex(StorePalette.uiText));
+        drawLine('NEED COINS', height * 0.82, 40, 16, paletteHex(StorePalette.uiText));
       } else if (paid > 0) {
-        ctx.fillStyle = paletteHex(StorePalette.uiText);
-        ctx.fillText(`${paid} / ${price}`, width / 2, height * 0.72);
+        drawLine(`${paid} / ${price}`, height * 0.72, 64, 18, paletteHex(StorePalette.uiText));
       } else {
-        ctx.fillStyle = paletteHex(mode === 'paused' ? StorePalette.danger : this.accent);
-        ctx.fillText(`$${price}`, width / 2, height * 0.72);
+        drawLine(`$${price}`, height * 0.72, 68, 20, paletteHex(mode === 'paused' ? StorePalette.danger : this.accent));
       }
     }
     this.texture.needsUpdate = true;

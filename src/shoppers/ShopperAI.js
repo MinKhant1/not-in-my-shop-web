@@ -375,6 +375,11 @@ export class ShopperAI {
       return;
     }
     if (this.theftAllowed?.() !== false && Math.random() < this.thiefChance) {
+      const shelf = this.rollShelfTheft?.();
+      if (shelf) {
+        this.adoptShelf(shelf);
+        return;
+      }
       this.becomeThief();
       return;
     }
@@ -428,6 +433,21 @@ export class ShopperAI {
     this.route.config.moveSpeed *= 1.45;
     this.state = ShopperState.THIEF;
     this.goTo(this.thiefExitId(), true);
+  }
+
+  adoptShelf(shelf) {
+    this.shelfThief = true;
+    this.shelfFixtureId = shelf.id;
+    this.shelfNodeId = shelf.nodeId;
+    this.shelfX = shelf.x;
+    this.shelfZ = shelf.z;
+    this.shelfHealth = shelf.health;
+    this.shelfSlow = shelf.slow;
+    this.assignShelfClaim?.(shelf.claim);
+    this.inventory.dispose();
+    this.pending = 'shelf';
+    this.state = ShopperState.ROAMING;
+    this.goTo(this.shelfNodeId);
   }
 
   becomeThief() {
