@@ -472,6 +472,7 @@ export class Game {
     this.weaponStation.onZoneMove = (x, z) => this.broomUpgrade.pad.setPosition(x, z);
     this.weapons.getBroom = () => this.broomUpgrade.current;
     this.weapons.trash = this.trash;
+    this.weapons.money = this.money;
     await this.broomUpgrade.restore();
     const stationConfig = upgradeConfig.broomStation ?? {};
     this.broomStations = new BroomStationSet({

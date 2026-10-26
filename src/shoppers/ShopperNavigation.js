@@ -135,11 +135,17 @@ function appendQueue(nodes, links, leave, checkout) {
 
 export class ShopperNavigation {
   constructor(checkout) {
+    this.checkoutConfig = checkout;
+    this.installBase();
+  }
+
+  // Grocery floor only. Called again when a new shop locks the expansions,
+  // because those aisles, shelf spots, and register lines were spliced in permanently.
+  installBase() {
     const nodes = NODES.slice();
     const links = LINKS.map((pair) => pair.slice());
     const leave = [];
-    this.checkoutConfig = checkout;
-    this.queueSlotIds = appendQueue(nodes, links, leave, checkout);
+    this.queueSlotIds = appendQueue(nodes, links, leave, this.checkoutConfig);
     this.nodeList = nodes;
     this.nodes = new Map(nodes.map((entry) => [entry.id, entry]));
     this.links = new Map();
@@ -172,11 +178,20 @@ export class ShopperNavigation {
   }
 
   syncUnlocked(maxUnlocked) {
-    const count = Math.max(0, Math.floor(maxUnlocked));
+    const count = Math.max(0, Math.floor(Number(maxUnlocked) || 0));
     while (this.openSections < count) {
       this.openSections += 1;
       this.addShopSection(this.openSections);
     }
+  }
+
+  // New Shop locks every expansion. Shelf spots only ask to open a section, so they stay on syncUnlocked.
+  setUnlocked(maxUnlocked) {
+    const count = Math.max(0, Math.floor(Number(maxUnlocked) || 0));
+    if (count < this.openSections) {
+      this.installBase();
+    }
+    this.syncUnlocked(count);
   }
 
   addShopSection(index) {

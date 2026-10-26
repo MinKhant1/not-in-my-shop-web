@@ -24,13 +24,14 @@ function writeVolume(key, value) {
   }
 }
 
-const CLIP_NAMES = ['bell', 'hit', 'scream', 'coin', 'win'];
+const CLIP_NAMES = ['bell', 'hit', 'scream', 'coin', 'win', 'announce'];
 // These files peak near full scale. These levels keep them clear under the effects slider.
 const BELL_GAIN = 0.45;
 const HIT_GAIN = 0.6;
 const SCREAM_GAIN = 0.55;
 const COIN_GAIN = 0.48;
 const WIN_GAIN = 0.5;
+const ANNOUNCE_GAIN = 0.5;
 
 export class ShopAudio {
   constructor() {
@@ -235,16 +236,7 @@ export class ShopAudio {
     this.tone(1320, 0.4, 'sine', 0.03);
   }
 
-  // Short PA chime. Scheduled on the audio clock so it stays in time with the game.
   announce() {
-    const context = this.ensure();
-    if (!context) {
-      return;
-    }
-    const now = context.currentTime;
-    this.scheduleTone(context, now, 494, 0.16, 'square', 0.03);
-    this.scheduleTone(context, now + 0.14, 659, 0.16, 'square', 0.028);
-    this.scheduleTone(context, now + 0.3, 784, 0.34, 'triangle', 0.036);
-    this.scheduleTone(context, now + 0.46, 392, 0.42, 'sine', 0.02);
+    this.playClip('announce', ANNOUNCE_GAIN);
   }
 }

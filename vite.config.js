@@ -90,7 +90,8 @@ const AUDIO_SOURCE = {
   hit: 'hit1.wav',
   scream: 'scream.wav',
   coin: 'coin.wav',
-  win: 'win.wav'
+  win: 'win.wav',
+  announce: 'anouncement.wav'
 };
 const SHOP_AUDIO_ID = 'virtual:shop-audio';
 const RESOLVED_SHOP_AUDIO_ID = '\0virtual:shop-audio';

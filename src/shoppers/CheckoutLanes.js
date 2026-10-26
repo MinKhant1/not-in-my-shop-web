@@ -25,6 +25,13 @@ export class CheckoutLanes {
     this.lanes.push({ id, queue });
   }
 
+  remove(id) {
+    if (!id || id === 'cash-register') {
+      return;
+    }
+    this.lanes = this.lanes.filter((lane) => lane.id !== id);
+  }
+
   // Shortest line wins, so the open registers stay even.
   join(shopper) {
     let existing = null;

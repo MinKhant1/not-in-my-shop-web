@@ -12,6 +12,7 @@ export class PlayerWeaponController {
     this.activity = activity;
     this.config = config;
     this.audio = audio ?? null;
+    this.money = null;
     this.trash = null;
     this.getBroom = null;
     this.target = null;
@@ -79,8 +80,12 @@ export class PlayerWeaponController {
     if (swing === 'hit') {
       const struck = this.resolveHit();
       const cleaned = this.trash?.sweep(origin.x, origin.z, range) === true;
-      if (cleaned && !struck) {
-        this.audio?.hit();
+      if (cleaned) {
+        this.money?.addMoney(this.config.trashSweepValue ?? 10);
+        this.audio?.coin();
+        if (!struck) {
+          this.audio?.hit();
+        }
       }
     }
     if (swing === 'done') {

@@ -54,7 +54,25 @@ export class ShopperManager {
   }
 
   syncSections(maxUnlocked) {
-    this.navigation.syncUnlocked(maxUnlocked);
+    const before = this.navigation.openSections;
+    this.navigation.setUnlocked(maxUnlocked);
+    if (this.navigation.openSections < before) {
+      this.dropExpansionRegisters();
+    }
+  }
+
+  // Register lines in a locked expansion are rebuilt the next time that counter opens.
+  dropExpansionRegisters() {
+    const ids = [...this.openedRegisters];
+    for (let i = 0; i < ids.length; i += 1) {
+      const id = ids[i];
+      if (id === 'cash-register') {
+        continue;
+      }
+      this.openedRegisters.delete(id);
+      this.lanes.remove(id);
+      this.checkoutDesk?.removeLane(id);
+    }
   }
 
   syncShelfPicks(ids) {
@@ -191,6 +209,7 @@ export class ShopperManager {
     if (!checkout) {
       return;
     }
+    this.checkoutDesk = checkout;
     const live = new Set();
     for (let i = 0; i < stations.length; i += 1) {
       const station = stations[i];

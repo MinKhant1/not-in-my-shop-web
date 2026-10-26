@@ -21,13 +21,13 @@
       "nodes": {
         "Scene/CharacterArmature/Bone/Body_1": {
           "position": [
-            0.0026,
-            0.992,
-            0.0387
+            0.0024,
+            0.9924,
+            0.0355
           ],
           "rotation": [
-            -0.0003,
-            0.0017,
+            -0.0004,
+            0.002,
             0
           ]
         },
@@ -40,8 +40,8 @@
         },
         "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/Neck": {
           "rotation": [
-            -0.0612,
-            0,
+            -0.0883,
+            0.0001,
             0.0001
           ]
         },
@@ -54,9 +54,9 @@
         },
         "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/ShoulderL": {
           "position": [
-            0.1476,
-            0.1479,
-            0.0144
+            0.1431,
+            0.1401,
+            0.0136
           ]
         },
         "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/ShoulderL/UpperArmL": {
@@ -75,16 +75,16 @@
         },
         "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/ShoulderL/UpperArmL/LowerArmL/FistL": {
           "rotation": [
-            0.0335,
-            0.0262,
-            -0.035
+            0.0254,
+            0.0901,
+            -0.0154
           ]
         },
         "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/ShoulderR": {
           "position": [
-            -0.1487,
-            0.1477,
-            0.0143
+            -0.1447,
+            0.1399,
+            0.0134
           ]
         },
         "Scene/CharacterArmature/Bone/Body_1/Hips/Abdomen/Torso/ShoulderR/UpperArmR": {
@@ -110,14 +110,14 @@
         },
         "Scene/CharacterArmature/Bone/Body_1/UpperLegL": {
           "position": [
-            0.253,
-            -0.0373,
-            -0.0685
+            0.2529,
+            -0.0166,
+            -0.0559
           ],
           "rotation": [
-            2.8305,
-            0.0031,
-            -0.0193
+            2.903,
+            0.0021,
+            -0.0201
           ],
           "scale": [
             1,
@@ -127,20 +127,20 @@
         },
         "Scene/CharacterArmature/Bone/Body_1/UpperLegL/LowerLegL": {
           "rotation": [
-            0.5967,
-            0.0116,
-            0.0159
+            0.4808,
+            0.0096,
+            0.0171
           ]
         },
         "Scene/CharacterArmature/Bone/Body_1/UpperLegR": {
           "position": [
-            -0.2547,
-            -0.0266,
-            -0.056
+            -0.2546,
+            -0.0166,
+            -0.0559
           ],
           "rotation": [
-            2.8782,
-            0.0012,
+            2.9042,
+            0.002,
             0.0217
           ],
           "scale": [
@@ -151,14 +151,14 @@
         },
         "Scene/CharacterArmature/Bone/Body_1/UpperLegR/LowerLegR": {
           "rotation": [
-            0.5348,
-            -0.0105,
-            -0.0166
+            0.4806,
+            -0.0096,
+            -0.0171
           ]
         }
       },
       "position": [
-        -12.3424,
+        -12.0479,
         0.02,
         5.6723
       ]
@@ -287,19 +287,6 @@
         0,
         0.8864
       ]
-    },
-    "weapon-station": {
-      "nodes": {
-        "object/world/Sketchfab_model/f0d21e3ef769409da9e46e571e9b5fabfbx/RootNode/Broom/Broom_Brush_0": {
-          "visible": false
-        },
-        "object/world/Sketchfab_model/f0d21e3ef769409da9e46e571e9b5fabfbx/RootNode/Broom/Broom_Handle_0": {
-          "visible": false
-        },
-        "object/world/Sketchfab_model/f0d21e3ef769409da9e46e571e9b5fabfbx/RootNode/Broom/Broom_Ring_0": {
-          "visible": false
-        }
-      }
     }
   },
   "added": [

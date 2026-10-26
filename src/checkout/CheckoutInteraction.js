@@ -76,6 +76,28 @@ export class CheckoutInteraction {
     return group;
   }
 
+  removeLane(id) {
+    if (!id || id === 'cash-register') {
+      return;
+    }
+    const index = this.lanes.findIndex((lane) => lane.id === id);
+    if (index < 0) {
+      return;
+    }
+    const lane = this.lanes[index];
+    lane.progressUI?.dispose();
+    const zone = lane.zone;
+    zone?.removeFromParent();
+    zone?.traverse((child) => {
+      child.geometry?.dispose();
+      const materials = Array.isArray(child.material) ? child.material : [child.material];
+      for (let i = 0; i < materials.length; i += 1) {
+        materials[i]?.dispose();
+      }
+    });
+    this.lanes.splice(index, 1);
+  }
+
   addLane({ id, queue, x, z, register }) {
     if (this.lanes.some((lane) => lane.id === id)) {
       return;

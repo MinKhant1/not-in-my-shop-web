@@ -223,6 +223,7 @@ export const GameConfig = {
     flameQuality: 'auto',
     pickupRadius: 1,
     itemRecoveryValue: 5,
+    trashSweepValue: 10,
     // Seconds they stay on the ground after the fall, before standing back up.
     knockoutLieTime: 0.8,
     defeatedThiefRunSpeed: 3.6,
