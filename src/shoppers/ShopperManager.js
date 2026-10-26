@@ -438,6 +438,10 @@ export class ShopperManager {
         }
         shopper.outcomeCounted = true;
         this.dayStats?.recordCaught();
+        if (shopper.shelfThief) {
+          const reward = this.shelfRules?.reward ?? 30;
+          this.dayStats?.money.addMoney(reward);
+        }
       };
       shopper.onDrops = (drops) => this.onThiefDrops?.(drops);
       shopper.onScream = () => this.audio?.scream();

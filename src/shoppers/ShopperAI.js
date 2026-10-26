@@ -128,8 +128,7 @@ export class ShopperAI {
     this.combatMaxHP = 0;
     this.trashDropped = false;
     this.wasInside = false;
-    this.lastInsideX = 0;
-    this.lastInsideZ = 0;
+    this.trashVisits = [];
     this.isInsideShop = isInsideShop ?? null;
     this.onDropTrash = onDropTrash ?? null;
 
@@ -291,6 +290,7 @@ export class ShopperAI {
 
   onArrived() {
     const destination = this.navigation.nodes.get(this.destinationId);
+    this.noteTrashVisit(destination);
 
     if (this.state === ShopperState.ENTERING) {
       this.state = ShopperState.ROAMING;
@@ -875,6 +875,7 @@ export class ShopperAI {
     }
     this.hasReachedQueueSlot = true;
     this.moving = false;
+    this.noteTrashVisit(target);
     if (this.queueIndex === 0) {
       this.waitForPlayer();
       return;
@@ -1009,8 +1010,6 @@ export class ShopperAI {
     const z = this.group.position.z;
     if (this.isInsideShop?.(x, z) === true) {
       this.wasInside = true;
-      this.lastInsideX = x;
-      this.lastInsideZ = z;
       return;
     }
     if (this.wasInside) {
@@ -1018,12 +1017,64 @@ export class ShopperAI {
     }
   }
 
+  noteTrashVisit(node) {
+    if (!this.dropsTrash || this.trashDropped || !node) {
+      return;
+    }
+    const kind = node.kind;
+    if (kind !== 'pick' && kind !== 'lane' && kind !== 'approach' && kind !== 'queue') {
+      return;
+    }
+    if (this.isInsideShop?.(node.x, node.z) !== true) {
+      return;
+    }
+    // The west door lane is the entrance. Bags there piled up on the way out.
+    if (node.x < -2.2 && node.z < -2.2) {
+      return;
+    }
+    this.trashVisits.push({ x: node.x, z: node.z });
+  }
+
   releaseTrash() {
     if (!this.dropsTrash || this.trashDropped || !this.wasInside) {
       return;
     }
     this.trashDropped = true;
-    this.onDropTrash?.(this.lastInsideX, this.lastInsideZ);
+    const spot = this.trashDropSpot();
+    if (!spot) {
+      return;
+    }
+    this.onDropTrash?.(spot.x, spot.z);
+  }
+
+  trashDropSpot() {
+    const visits = this.trashVisits;
+    if (visits.length > 0) {
+      return visits[Math.floor(Math.random() * visits.length)];
+    }
+    const nodes = this.navigation?.nodeList;
+    if (!nodes) {
+      return null;
+    }
+    const inside = [];
+    for (let i = 0; i < nodes.length; i += 1) {
+      const node = nodes[i];
+      if (node.kind !== 'pick' && node.kind !== 'lane') {
+        continue;
+      }
+      if (node.x < -2.2 && node.z < -2.2) {
+        continue;
+      }
+      if (this.isInsideShop?.(node.x, node.z) !== true) {
+        continue;
+      }
+      inside.push(node);
+    }
+    if (inside.length === 0) {
+      return null;
+    }
+    const node = inside[Math.floor(Math.random() * inside.length)];
+    return { x: node.x, z: node.z };
   }
 
   grabShelf() {

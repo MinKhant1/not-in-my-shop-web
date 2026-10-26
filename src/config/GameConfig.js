@@ -270,7 +270,8 @@ export const GameConfig = {
     startDay: 2,
     share: 0.3,
     health: 180,
-    speedScale: 0.4
+    speedScale: 0.4,
+    reward: 30
   },
   trash: {
     model: '/models/objects/trash_bag.glb',
