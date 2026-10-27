@@ -294,7 +294,7 @@ export class SecurityGuard {
     let bestDistance = limit;
     for (let i = 0; i < list.length; i += 1) {
       const shopper = list[i];
-      if (!shopper.isAttackable?.()) {
+      if (!shopper.isAttackable?.() || shopper.problem) {
         continue;
       }
       const sx = shopper.group.position.x;

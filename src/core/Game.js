@@ -157,9 +157,11 @@ export class Game {
     this.shoppers.store = store;
     this.shoppers.shelfThiefDoneDay = Number(this.save.data.shelfThiefDay) || 0;
     this.shoppers.rackGuideDoneDay = Number(this.save.data.rackGuideDay) || 0;
+    this.shoppers.problemDoneDay = Number(this.save.data.problemCustomerDay) || 0;
     store.onShelvesChanged = () => this.persistStolenShelves();
     this.shoppers.onShelfThiefSpawned = (day) => this.save.write({ shelfThiefDay: day });
     this.shoppers.onRackGuideSpawned = (day) => this.save.write({ rackGuideDay: day });
+    this.shoppers.onProblemSpawned = (day) => this.save.write({ problemCustomerDay: day });
     this.shoppers.onShelfReturned = (id) => this.purchases?.holdReturnedShelf(id);
     this.shoppers.syncSections(store.maxUnlocked);
     this.shoppers.syncShelfPicks(ownedFixtures);
@@ -771,6 +773,7 @@ export class Game {
     this.intercom?.resetCooldown();
     this.replayShelfThief();
     this.replayRackGuide();
+    this.replayProblemCustomer();
     this.shoppers.clearLive();
     this.dayNight.applySnapshot({
       number: this.dayNight.dayNumber,
@@ -800,6 +803,16 @@ export class Game {
     this.shoppers.rackGuideDoneDay = 0;
     this.shoppers.rackGuidePlan = null;
     this.save.write({ rackGuideDay: 0 });
+  }
+
+  replayProblemCustomer() {
+    const day = this.dayNight.dayNumber;
+    if (!this.shoppers || this.shoppers.problemDoneDay !== day) {
+      return;
+    }
+    this.shoppers.problemDoneDay = 0;
+    this.shoppers.problemPlan = null;
+    this.save.write({ problemCustomerDay: 0 });
   }
 
   persistStolenShelves() {
@@ -837,6 +850,9 @@ export class Game {
       this.shoppers.rackGuideDoneDay = 0;
       this.shoppers.rackGuidePlan = null;
       this.shoppers.rackGuidePending = false;
+      this.shoppers.problemDoneDay = 0;
+      this.shoppers.problemPlan = null;
+      this.shoppers.problemPending = false;
     }
     const persist = this.money.persist;
     this.money.persist = null;
@@ -893,6 +909,7 @@ export class Game {
       stolenShelves: [],
       shelfThiefDay: 0,
       rackGuideDay: 0,
+      problemCustomerDay: 0,
       hotdogs: this.hotdogs?.snapshot() ?? { spicy: 0, cheese: 0, classic: 0, eatenNight: 0 },
       pendingPurchase: null,
       played: false,

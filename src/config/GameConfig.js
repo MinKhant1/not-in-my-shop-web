@@ -289,6 +289,14 @@ export const GameConfig = {
       { id: 'electronics_phone_rack', kind: 'phone', icon: '/assets/ui/hud/phone_alert.webp' }
     ]
   },
+  // From day 5, one customer jumps around the aisles until the player stops him.
+  problemCustomer: {
+    startDay: 5,
+    health: 80,
+    reward: 50,
+    speedScale: 2,
+    icon: '/assets/ui/hud/problem.webp'
+  },
   trash: {
     model: '/models/objects/trash_bag.glb',
     startDay: 3,

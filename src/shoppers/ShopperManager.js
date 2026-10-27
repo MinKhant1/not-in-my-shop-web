@@ -48,6 +48,11 @@ export class ShopperManager {
     this.rackGuideDoneDay = 0;
     this.rackGuidePlan = null;
     this.rackGuidePending = false;
+    this.problemRules = config.problemCustomer ?? {};
+    this.problemDoneDay = 0;
+    this.problemPlan = null;
+    this.problemPending = false;
+    this.onProblemSpawned = null;
     this.playerPosition = null;
     this.playerSpeed = null;
     this.ownsFixture = null;
@@ -279,6 +284,7 @@ export class ShopperManager {
     this.pendingSpawns = 0;
     this.shelfClaims.clear();
     this.rackGuidePending = false;
+    this.problemPending = false;
     this.spawnTimer = this.config.firstSpawnDelay;
     this.setSpawningEnabled(true);
   }
@@ -499,10 +505,15 @@ export class ShopperManager {
       : null;
     if (!this.rackGuidePlan || this.rackGuidePlan.day !== day || !Number.isInteger(this.rackGuidePlan.slot)) {
       rack = rack ?? open[Math.floor(Math.random() * open.length)];
+      let slot = Math.floor(Math.random() * quota);
+      const problemSlot = this.problemPlan?.day === day ? this.problemPlan.slot : null;
+      if (problemSlot === slot && quota > 1) {
+        slot = (slot + 1) % quota;
+      }
       this.rackGuidePlan = {
         day,
         fixtureId: rack.fixtureId,
-        slot: Math.floor(Math.random() * quota)
+        slot
       };
     }
     if (!rack) {
@@ -541,6 +552,42 @@ export class ShopperManager {
     this.rackGuidePending = false;
   }
 
+  claimProblem() {
+    if (this.problemPending) {
+      return false;
+    }
+    const day = this.customerSources?.day?.() ?? 1;
+    const rules = this.problemRules ?? {};
+    if (day < (rules.startDay ?? 5) || this.problemDoneDay === day) {
+      return false;
+    }
+    const quota = Math.max(1, this.customerQuota());
+    if (!this.problemPlan || this.problemPlan.day !== day || !Number.isInteger(this.problemPlan.slot)) {
+      let slot = Math.floor(Math.random() * quota);
+      const guideSlot = this.rackGuidePlan?.day === day ? this.rackGuidePlan.slot : null;
+      if (guideSlot === slot && quota > 1) {
+        slot = (slot + 1) % quota;
+      }
+      this.problemPlan = { day, slot };
+    }
+    const lastChance = this.spawnedToday + 1 >= quota;
+    if (this.spawnedToday < this.problemPlan.slot && !lastChance) {
+      return false;
+    }
+    this.problemPending = true;
+    return true;
+  }
+
+  finishProblemSpawn(day) {
+    this.problemPending = false;
+    this.problemDoneDay = day;
+    this.onProblemSpawned?.(day);
+  }
+
+  cancelProblemSpawn() {
+    this.problemPending = false;
+  }
+
   spawn() {
     if (!this.spawningEnabled || this.shoppers.length + this.pendingSpawns >= this.config.maxActive) {
       return false;
@@ -567,8 +614,9 @@ export class ShopperManager {
     const unused = models.filter((url) => !inUse.has(url));
     const pool = unused.length ? unused : models;
     const modelUrl = pool[Math.floor(Math.random() * pool.length)];
-    const guide = this.claimRackGuide();
-    const role = guide ? { thiefChance: 0, shelf: null } : this.rollCustomerRole();
+    const problem = this.claimProblem();
+    const guide = problem ? null : this.claimRackGuide();
+    const role = (guide || problem) ? { thiefChance: 0, shelf: null } : this.rollCustomerRole();
     const generation = this.spawnGeneration;
     this.spawning = true;
     this.pendingSpawns += 1;
@@ -582,6 +630,9 @@ export class ShopperManager {
       if (guide) {
         this.cancelRackGuideSpawn();
       }
+      if (problem) {
+        this.cancelProblemSpawn();
+      }
       console.error('Failed to spawn shopper', error);
       return false;
     }
@@ -594,6 +645,9 @@ export class ShopperManager {
         this.releaseShelf(role.shelf?.target.id, role.shelf?.claim);
         if (guide) {
           this.cancelRackGuideSpawn();
+        }
+        if (problem) {
+          this.cancelProblemSpawn();
         }
         return;
       }
@@ -618,8 +672,8 @@ export class ShopperManager {
         checkoutConfig: this.checkoutConfig,
         weaponsConfig: this.weaponsConfig,
         toonFactory: this.toonFactory,
-        theftAllowed: () => (shelf ? false : this.theftAllowed()),
-        dropsTrash: !shelf && chance > 0 && Math.random() < chance,
+        theftAllowed: () => (problem || shelf ? false : this.theftAllowed()),
+        dropsTrash: !problem && !shelf && chance > 0 && Math.random() < chance,
         isInsideShop: (x, z) => this.isInsideShop?.(x, z) === true,
         onDropTrash: (x, z) => this.onDropTrash?.(x, z),
         debug: this.debug || this.checkoutConfig?.debugCheckout === true || this.weaponsConfig?.debugWeapons === true,
@@ -651,7 +705,14 @@ export class ShopperManager {
           this.dayStats?.money.addMoney(tip);
           this.audio?.coin();
         },
-        restoreThiefChance: this.config.thiefChance
+        restoreThiefChance: this.config.thiefChance,
+        problem: problem
+          ? {
+            icon: this.problemRules?.icon || '/assets/ui/hud/problem.webp',
+            health: this.problemRules?.health ?? 80,
+            speedScale: this.problemRules?.speedScale ?? 2
+          }
+          : null
       });
       shopper.shelfClaim = shelfClaim;
       shopper.assignShelfClaim = (claim) => {
@@ -666,6 +727,12 @@ export class ShopperManager {
           return;
         }
         shopper.outcomeCounted = true;
+        if (shopper.problem) {
+          const reward = this.problemRules?.reward ?? 50;
+          this.dayStats?.money.addMoney(reward);
+          this.audio?.coin();
+          return;
+        }
         this.dayStats?.recordCaught();
         if (shopper.shelfThief) {
           const reward = this.shelfRules?.reward ?? 30;
@@ -686,6 +753,9 @@ export class ShopperManager {
       if (guide) {
         this.finishRackGuideSpawn(day);
       }
+      if (problem) {
+        this.finishProblemSpawn(day);
+      }
       this.spawnedToday += 1;
       this.dayStats?.recordCustomer();
     }).catch((error) => {
@@ -696,6 +766,9 @@ export class ShopperManager {
       this.releaseShelf(role.shelf?.target.id, role.shelf?.claim);
       if (guide) {
         this.cancelRackGuideSpawn();
+      }
+      if (problem) {
+        this.cancelProblemSpawn();
       }
       console.error('Failed to spawn shopper', error);
     });

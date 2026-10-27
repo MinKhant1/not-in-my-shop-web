@@ -804,6 +804,44 @@ export class ShopperNavigation {
     return lanes[Math.floor(Math.random() * lanes.length)];
   }
 
+  // A lane or stocked shelf that can actually be walked to from here.
+  interiorSpot(x, z, exceptId) {
+    const start = this.nearest(x, z, true);
+    const startId = start?.id ?? null;
+    const pool = [];
+    for (let i = 0; i < this.nodeList.length; i += 1) {
+      const entry = this.nodeList[i];
+      if (entry.id === exceptId) {
+        continue;
+      }
+      if (entry.kind !== 'lane' && entry.kind !== 'pick') {
+        continue;
+      }
+      if (entry.stocked === false) {
+        continue;
+      }
+      const dx = entry.x - x;
+      const dz = entry.z - z;
+      if (dx * dx + dz * dz < 1.1) {
+        continue;
+      }
+      if (startId) {
+        const path = this.findPath(startId, entry.id, true);
+        if (!path || path.length === 0) {
+          continue;
+        }
+      }
+      pool.push(entry.id);
+    }
+    if (pool.length > 0) {
+      return pool[Math.floor(Math.random() * pool.length)];
+    }
+    if (startId && startId !== exceptId) {
+      return startId;
+    }
+    return 'centerSouth';
+  }
+
   randomPick(exceptId) {
     const stocked = [];
     for (let i = 0; i < this.pickIds.length; i += 1) {
@@ -1004,14 +1042,30 @@ export class ShopperRoute {
       this.hasAnchor = true;
     }
 
-    const step = Math.min(this.config.moveSpeed * dt, distance);
-    const nx = dx / distance;
-    const nz = dz / distance;
-    const movedStep = this.stepAround(position, collision, radius, nx, nz, step, point.x, point.z, distance);
-    if (movedStep) {
-      position.x = movedStep.x;
-      position.z = movedStep.z;
+    let budget = Math.min(this.config.moveSpeed * dt, distance);
+    const cap = this.config.maxStep > 0 ? this.config.maxStep : budget;
+    let movedStep = null;
+    let guard = 0;
+    while (budget > 0.0001 && guard < 8) {
+      guard += 1;
+      const cx = point.x - position.x;
+      const cz = point.z - position.z;
+      const left = Math.hypot(cx, cz);
+      if (left <= reach) {
+        break;
+      }
+      const step = Math.min(cap, budget, left);
+      const piece = this.stepAround(position, collision, radius, cx / left, cz / left, step, point.x, point.z, left);
+      if (!piece) {
+        break;
+      }
+      position.x = piece.x;
+      position.z = piece.z;
       position.y = 0;
+      movedStep = piece;
+      budget -= step;
+    }
+    if (movedStep) {
       this.face(group, movedStep.nx, movedStep.nz, dt);
     }
 

@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 import { PlayerActivity } from '../player/PlayerActivity.js';
-import { ShopperState } from '../shoppers/ShopperState.js';
 
 export class PlayerWeaponController {
   constructor(player, shoppers, broom, drops, feedback, activity, config, audio) {
@@ -128,12 +127,7 @@ export class PlayerWeaponController {
   }
 
   isAttackable(shopper) {
-    return Boolean(shopper)
-      && shopper.isThief
-      && !shopper.isDefeated
-      && shopper.state !== ShopperState.DESPAWNED
-      && shopper.state !== ShopperState.KNOCKED_OUT
-      && shopper.state !== ShopperState.DEFEATED_FLEEING;
+    return shopper?.isAttackable?.() === true;
   }
 
   distanceSq(shopper) {

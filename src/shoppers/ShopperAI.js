@@ -19,7 +19,9 @@ const CLIP_ALIASES = {
   pickup: ['pickup', 'pick_up', 'pick'],
   run: ['run'],
   death: ['death', 'defeat'],
-  victory: ['victory']
+  victory: ['victory'],
+  jump: ['jump'],
+  roll: ['roll', 'dodge']
 };
 
 const KNOCKOUT_FALL_ANGLE = 1.4;
@@ -66,7 +68,7 @@ function randomInt(min, max) {
 let nextShopperId = 1;
 
 export class ShopperAI {
-  constructor({ asset, modelUrl, config, navigation, collision, checkoutQueue, checkoutLanes, checkoutConfig, weaponsConfig, toonFactory, debug, theftAllowed, dropsTrash, isInsideShop, onDropTrash, shelfThief, shelfFixtureId, shelfNodeId, shelfX, shelfZ, shelfHealth, shelfSlow, onTakeShelf, onReturnShelf, onLoseShelf, rackGuide, playerPosition, playerSpeed, onRackTip, restoreThiefChance }) {
+  constructor({ asset, modelUrl, config, navigation, collision, checkoutQueue, checkoutLanes, checkoutConfig, weaponsConfig, toonFactory, debug, theftAllowed, dropsTrash, isInsideShop, onDropTrash, shelfThief, shelfFixtureId, shelfNodeId, shelfX, shelfZ, shelfHealth, shelfSlow, onTakeShelf, onReturnShelf, onLoseShelf, rackGuide, playerPosition, playerSpeed, onRackTip, restoreThiefChance, problem }) {
     this.id = nextShopperId;
     nextShopperId += 1;
     this.modelUrl = modelUrl;
@@ -139,13 +141,37 @@ export class ShopperAI {
     this.onRackTip = onRackTip ?? null;
     this.restoreThiefChance = restoreThiefChance ?? config.thiefChance;
 
+    this.problem = problem
+      ? {
+        icon: problem.icon,
+        health: problem.health ?? 80,
+        speedScale: problem.speedScale ?? 2,
+        phase: 'enter',
+        rollLeft: 0,
+        unstick: 0,
+        still: 0,
+        hasAnchor: false,
+        anchorX: 0,
+        anchorZ: 0,
+        walkSpeed: 0
+      }
+      : null;
+    if (this.problem) {
+      this.combatMaxHP = this.problem.health;
+      this.thiefChance = 0;
+    }
+    const paced = config.moveSpeed + randomBetween(-config.speedJitter, config.speedJitter);
+    if (this.problem) {
+      this.problem.walkSpeed = paced;
+    }
     this.route = new ShopperRoute(navigation, {
-      moveSpeed: config.moveSpeed + randomBetween(-config.speedJitter, config.speedJitter),
+      moveSpeed: paced,
       rotationSpeed: config.rotationSpeed,
       waypointReachDistance: config.waypointReachDistance,
       stuckDistance: config.stuckDistance,
       stuckTimeout: config.stuckTimeout,
-      maxRecoveryAttempts: config.maxRecoveryAttempts
+      maxRecoveryAttempts: config.maxRecoveryAttempts,
+      maxStep: this.problem ? 0.18 : 0
     }, this.id);
 
     this.group = new THREE.Group();
@@ -173,7 +199,7 @@ export class ShopperAI {
     this.visuals = new ShopperVisuals(this.group, model, debug);
 
     this.mixer = null;
-    this.actions = { idle: null, walk: null, carry: null, pickup: null, run: null, death: null, victory: null };
+    this.actions = { idle: null, walk: null, carry: null, pickup: null, run: null, death: null, victory: null, jump: null, roll: null };
     this.currentAction = null;
     this.setupAnimations(model, asset.animations ?? []);
     this.refreshDebug();
@@ -190,6 +216,9 @@ export class ShopperAI {
     this.goTo('entranceInside');
     if (this.rackGuide?.icon) {
       this.visuals.showRackAlert(this.rackGuide.icon);
+    }
+    if (this.problem?.icon) {
+      this.visuals.showRackAlert(this.problem.icon);
     }
   }
 
@@ -215,6 +244,14 @@ export class ShopperAI {
       return;
     }
     this.visuals.tick(dt);
+
+    if (this.problem && this.state !== ShopperState.KNOCKED_OUT) {
+      this.applyProblemSpeed();
+    }
+    if (this.problem && this.updateProblem(dt)) {
+      this.refreshDebug();
+      return;
+    }
 
     if (this.rackGuide && !this.shopClosed && this.updateRackGuide(dt)) {
       this.refreshDebug();
@@ -257,6 +294,9 @@ export class ShopperAI {
     this.moving = result === 'moving';
     this.updateAnimation(this.moving, dt);
     this.trackTrash();
+    if (this.problem && result === 'moving') {
+      this.rescueProblemTravel(dt, false);
+    }
     if (result === 'arrived') {
       this.onArrived();
     }
@@ -576,6 +616,245 @@ export class ShopperAI {
     return Math.max(0.9, action.getClip()?.duration ?? 1.2);
   }
 
+  applyProblemSpeed() {
+    if (!this.problem) {
+      return;
+    }
+    const player = this.playerSpeed?.();
+    const scale = this.problem.speedScale > 0 ? this.problem.speedScale : 2;
+    const walk = this.problem.walkSpeed > 0 ? this.problem.walkSpeed : (this.config.moveSpeed || 1.35);
+    const speed = Number.isFinite(player) && player > 0 ? player * scale : walk * scale;
+    this.route.config.moveSpeed = speed;
+  }
+
+  updateProblem(dt) {
+    if (!this.problem || this.shopClosed || this.isDefeated || this.state === ShopperState.DESPAWNED) {
+      return false;
+    }
+    if (this.problem.phase === 'enter' || this.state === ShopperState.ENTERING) {
+      return false;
+    }
+    if (this.problem.phase === 'roll') {
+      this.moving = false;
+      this.problem.rollLeft -= dt;
+      this.updateAnimation(false, dt);
+      if (this.problem.rollLeft <= 0) {
+        this.relocateProblem();
+      }
+      return true;
+    }
+    if (this.problem.phase === 'jump') {
+      this.moving = false;
+      const freed = this.navigation.escapePoint(
+        this.group.position.x,
+        this.group.position.z,
+        this.collision,
+        null,
+        this.radius
+      );
+      if (freed) {
+        this.group.position.x = freed.x;
+        this.group.position.z = freed.z;
+        this.group.position.y = 0;
+      }
+      this.playProblemJump();
+      this.updateAnimation(false, dt);
+      return true;
+    }
+    if (this.problem.phase !== 'relocate') {
+      return false;
+    }
+    let result = this.route.update(dt, this.group, this.collision, this.radius);
+    if (result === 'idle' || !this.route.path?.length) {
+      this.unstickProblem(true);
+      result = 'moving';
+    }
+    this.moving = result === 'moving';
+    this.updateAnimation(this.moving, dt);
+    if (result === 'arrived') {
+      this.startProblemJump();
+      return true;
+    }
+    this.rescueProblemTravel(dt, true);
+    return true;
+  }
+
+  reactToProblemHit() {
+    if (!this.problem || this.shopClosed || this.isDefeated || this.problem.phase === 'roll') {
+      return;
+    }
+    this.playProblemRoll();
+  }
+
+  playProblemRoll() {
+    const action = this.actions.roll;
+    this.problem.phase = 'roll';
+    this.problem.still = 0;
+    this.problem.hasAnchor = false;
+    this.route.halt();
+    this.moving = false;
+    this.lookTarget = null;
+    if (!action) {
+      this.actionLock = 'roll';
+      this.problem.rollLeft = 0.45;
+      return;
+    }
+    this.actionLock = 'roll';
+    action.reset();
+    action.setLoop(THREE.LoopOnce, 1);
+    action.clampWhenFinished = false;
+    action.timeScale = 1;
+    action.fadeIn(0.08).play();
+    if (this.currentAction && this.currentAction !== 'roll' && this.actions[this.currentAction]) {
+      this.actions[this.currentAction].fadeOut(0.08);
+    }
+    this.currentAction = 'roll';
+    this.problem.rollLeft = Math.max(0.4, action.getClip().duration);
+  }
+
+  playProblemJump() {
+    const action = this.actions.jump;
+    this.actionLock = 'jump';
+    if (!action) {
+      this.route.halt();
+      return;
+    }
+    if (this.currentAction === 'jump' && action.isRunning()) {
+      return;
+    }
+    this.route.halt();
+    action.reset().setLoop(THREE.LoopRepeat, Infinity).fadeIn(0.12).play();
+    if (this.currentAction && this.currentAction !== 'jump' && this.actions[this.currentAction]) {
+      this.actions[this.currentAction].fadeOut(0.12);
+    }
+    this.currentAction = 'jump';
+  }
+
+  startProblemJump() {
+    if (!this.problem || this.shopClosed || this.isDefeated) {
+      return;
+    }
+    this.problem.phase = 'jump';
+    this.problem.unstick = 0;
+    this.problem.still = 0;
+    this.problem.hasAnchor = false;
+    this.pending = null;
+    this.state = ShopperState.ROAMING;
+    this.moving = false;
+    this.lookTarget = null;
+    this.ensureCombatant();
+    this.visuals.showHealth(this.health.ratio);
+    this.destinationId = null;
+    this.playProblemJump();
+  }
+
+  relocateProblem(keepUnstick = false) {
+    if (!this.problem || this.shopClosed || this.isDefeated) {
+      return;
+    }
+    const unstick = this.problem.unstick;
+    const pos = this.group.position;
+    const next = this.navigation.interiorSpot(pos.x, pos.z, this.lastProblemSpot);
+    this.lastProblemSpot = next;
+    this.problem.phase = 'relocate';
+    this.problem.unstick = keepUnstick ? unstick : 0;
+    this.problem.still = 0;
+    this.problem.hasAnchor = false;
+    this.actionLock = null;
+    this.state = ShopperState.ROAMING;
+    this.goTo(next, true);
+  }
+
+  rescueProblemTravel(dt, allowJump) {
+    if (!this.problem) {
+      return;
+    }
+    const pos = this.group.position;
+    if (!this.problem.hasAnchor) {
+      this.problem.anchorX = pos.x;
+      this.problem.anchorZ = pos.z;
+      this.problem.hasAnchor = true;
+      return;
+    }
+    const moved = Math.hypot(pos.x - this.problem.anchorX, pos.z - this.problem.anchorZ);
+    if (moved > 0.08) {
+      this.problem.anchorX = pos.x;
+      this.problem.anchorZ = pos.z;
+      this.problem.still = 0;
+      this.problem.unstick = 0;
+      return;
+    }
+    this.problem.still += dt;
+    if (this.problem.still < 0.55) {
+      return;
+    }
+    this.problem.still = 0;
+    this.problem.hasAnchor = false;
+    this.unstickProblem(allowJump);
+  }
+
+  unstickProblem(allowJump) {
+    if (!this.problem) {
+      return;
+    }
+    const pos = this.group.position;
+    const freed = this.navigation.escapePoint(pos.x, pos.z, this.collision, null, this.radius);
+    if (freed) {
+      this.group.position.x = freed.x;
+      this.group.position.z = freed.z;
+      this.group.position.y = 0;
+    }
+    this.problem.unstick += 1;
+    this.problem.still = 0;
+    this.problem.hasAnchor = false;
+    if (this.problem.unstick >= 3) {
+      this.snapProblemFree(allowJump && !this.shopClosed && !this.isDefeated);
+      return;
+    }
+    if (allowJump && !this.shopClosed && !this.isDefeated) {
+      this.relocateProblem(true);
+      return;
+    }
+    const target = this.destinationId || 'despawn';
+    this.goTo(target, true);
+  }
+
+  snapProblemFree(thenJump) {
+    const pos = this.group.position;
+    let best = null;
+    let bestDist = Infinity;
+    for (const entry of this.navigation.nodes.values()) {
+      if (entry.kind !== 'lane' && entry.kind !== 'pick') {
+        continue;
+      }
+      if (entry.stocked === false) {
+        continue;
+      }
+      if (this.collision.blocksMovement(entry.x, entry.z, Math.min(this.radius, 0.12))) {
+        continue;
+      }
+      const dist = Math.hypot(entry.x - pos.x, entry.z - pos.z);
+      if (dist < bestDist) {
+        best = entry;
+        bestDist = dist;
+      }
+    }
+    this.problem.unstick = 0;
+    this.problem.still = 0;
+    this.problem.hasAnchor = false;
+    if (best) {
+      this.group.position.x = best.x;
+      this.group.position.z = best.z;
+      this.group.position.y = 0;
+      this.lastProblemSpot = best.id;
+    }
+    if (thenJump) {
+      this.startProblemJump();
+      return;
+    }
+    this.goTo(this.destinationId || 'despawn', true);
+  }
+
   onArrived() {
     const destination = this.navigation.nodes.get(this.destinationId);
     this.noteTrashVisit(destination);
@@ -585,6 +864,10 @@ export class ShopperAI {
       if (this.rackGuide) {
         this.rackGuide.phase = 'approach';
         this.goTo(this.rackGuide.waitNode);
+        return;
+      }
+      if (this.problem) {
+        this.relocateProblem();
         return;
       }
       if (this.shelfThief && this.shelfNodeId) {
@@ -771,8 +1054,19 @@ export class ShopperAI {
     this.visuals.showHealth(1);
   }
 
+  isProblemTarget() {
+    return Boolean(this.problem)
+      && !this.shopClosed
+      && !this.isDefeated
+      && (
+        this.problem.phase === 'jump'
+        || this.problem.phase === 'roll'
+        || this.problem.phase === 'relocate'
+      );
+  }
+
   isAttackable() {
-    return this.isThief
+    return (this.isThief || this.isProblemTarget())
       && !this.isDefeated
       && this.state !== ShopperState.DESPAWNED
       && this.state !== ShopperState.KNOCKED_OUT
@@ -789,6 +1083,9 @@ export class ShopperAI {
       this.visuals.flashHit();
     }
     this.visuals.showHealth(this.health.ratio);
+    if (!defeated && flash && this.isProblemTarget()) {
+      this.reactToProblemHit();
+    }
     this.refreshDebug();
     return defeated;
   }
@@ -868,6 +1165,10 @@ export class ShopperAI {
       this.health.currentHP = 0;
     }
     this.visuals.hideThiefIcon();
+    this.visuals.hideRackAlert();
+    if (this.problem) {
+      this.problem.phase = 'leave';
+    }
     this.visuals.showHealth(0);
     this.visuals.hideCountdown();
     this.impatient = false;
@@ -1228,6 +1529,12 @@ export class ShopperAI {
     this.restoreFollowSpeed();
     this.rackGuide = null;
     this.visuals.hideRackAlert();
+    if (this.problem) {
+      this.problem.phase = 'leave';
+      this.problem.still = 0;
+      this.problem.hasAnchor = false;
+      this.visuals.hideHealth();
+    }
     this.wait = 0;
     this.afterWait = null;
     this.pending = null;
@@ -1553,6 +1860,19 @@ export class ShopperAI {
       action.clampWhenFinished = true;
       this.actions.victory = action;
     }
+    const jumpClip = findClip(clips, CLIP_ALIASES.jump);
+    const rollClip = findClip(clips, CLIP_ALIASES.roll);
+    if (jumpClip) {
+      const action = this.mixer.clipAction(withoutRootMotion(jumpClip));
+      action.setLoop(THREE.LoopRepeat, Infinity);
+      this.actions.jump = action;
+    }
+    if (rollClip) {
+      const action = this.mixer.clipAction(withoutDropping(rollClip));
+      action.setLoop(THREE.LoopOnce, 1);
+      action.clampWhenFinished = false;
+      this.actions.roll = action;
+    }
 
     const starting = this.actions.idle ?? this.actions.walk;
     if (starting) {
@@ -1579,10 +1899,12 @@ export class ShopperAI {
       return;
     }
 
-    if (this.actionLock !== 'pickup' && this.actionLock !== 'victory') {
+    if (this.actionLock !== 'pickup' && this.actionLock !== 'victory' && this.actionLock !== 'jump' && this.actionLock !== 'roll') {
       let next = 'idle';
       if (moving) {
-        if (this.closingRun && this.actions.run) {
+        if (this.problem && this.actions.run) {
+          next = 'run';
+        } else if (this.closingRun && this.actions.run) {
           next = 'run';
         } else if (this.carryingShelf && this.state === ShopperState.THIEF) {
           next = this.actions.carry ? 'carry' : 'walk';
@@ -1598,7 +1920,10 @@ export class ShopperAI {
       if (this.actions[next] && next !== this.currentAction) {
         const action = this.actions[next].reset().fadeIn(FADE_SECONDS);
         if (next === 'run') {
-          action.timeScale = 1.25;
+          const base = this.problem?.walkSpeed || this.config.moveSpeed || 1.35;
+          action.timeScale = this.problem
+            ? Math.min(2.1, Math.max(1, this.route.config.moveSpeed / Math.max(0.2, base * 1.85)))
+            : 1.25;
         }
         action.play();
         if (this.currentAction && this.actions[this.currentAction]) {
@@ -1644,6 +1969,9 @@ export class ShopperAI {
     }
     if (this.health) {
       lines.push(`HP: ${this.health.currentHP} / ${this.health.maxHP}`);
+    }
+    if (this.problem) {
+      lines.push(`Problem: ${this.problem.phase}`);
     }
     lines.push(`Items: ${this.inventory.count}`);
     const point = this.route.point;
