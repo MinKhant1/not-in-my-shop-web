@@ -2,6 +2,7 @@ import * as THREE from 'three';
 
 let thiefIconMaterial = null;
 let knockoutTexture = null;
+const rackAlertMaterials = new Map();
 
 function drawStar(context, x, y, outer, inner) {
   context.beginPath();
@@ -36,6 +37,22 @@ function getKnockoutTexture() {
   knockoutTexture = new THREE.CanvasTexture(canvas);
   knockoutTexture.colorSpace = THREE.SRGBColorSpace;
   return knockoutTexture;
+}
+
+function rackAlertMaterial(url) {
+  let material = rackAlertMaterials.get(url);
+  if (material) {
+    return material;
+  }
+  const texture = new THREE.TextureLoader().load(url);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  material = new THREE.SpriteMaterial({
+    map: texture,
+    transparent: true,
+    depthTest: false
+  });
+  rackAlertMaterials.set(url, material);
+  return material;
 }
 
 function getThiefIconMaterial() {
@@ -96,6 +113,8 @@ export class ShopperVisuals {
     this.group = group;
     this.model = model;
     this.icon = null;
+    this.rackIcon = null;
+    this.rackIconUrl = null;
     this.thiefMaterials = null;
     this.healthSprite = null;
     this.stars = null;
@@ -146,6 +165,33 @@ export class ShopperVisuals {
       context.fillText(lines[i], 128, start + i * lineHeight);
     }
     this.debugTexture.needsUpdate = true;
+  }
+
+  showRackAlert(url) {
+    if (!url) {
+      return;
+    }
+    if (this.rackIcon && this.rackIconUrl === url) {
+      this.rackIcon.visible = true;
+      return;
+    }
+    this.hideRackAlert();
+    const icon = new THREE.Sprite(rackAlertMaterial(url));
+    icon.name = 'rack-alert';
+    icon.position.y = 2.32;
+    icon.scale.set(0.86, 0.86, 1);
+    this.group.add(icon);
+    this.rackIcon = icon;
+    this.rackIconUrl = url;
+  }
+
+  hideRackAlert() {
+    if (!this.rackIcon) {
+      return;
+    }
+    this.rackIcon.removeFromParent();
+    this.rackIcon = null;
+    this.rackIconUrl = null;
   }
 
   hideThiefIcon() {
@@ -335,6 +381,7 @@ export class ShopperVisuals {
     if (this.icon) {
       this.icon.removeFromParent();
     }
+    this.hideRackAlert();
     if (this.thiefMaterials) {
       for (let i = 0; i < this.thiefMaterials.length; i += 1) {
         this.thiefMaterials[i].dispose();

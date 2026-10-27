@@ -18,7 +18,8 @@ const CLIP_ALIASES = {
   carry: ['walk_carry', 'walkcarry'],
   pickup: ['pickup', 'pick_up', 'pick'],
   run: ['run'],
-  death: ['death', 'defeat']
+  death: ['death', 'defeat'],
+  victory: ['victory']
 };
 
 const KNOCKOUT_FALL_ANGLE = 1.4;
@@ -65,7 +66,7 @@ function randomInt(min, max) {
 let nextShopperId = 1;
 
 export class ShopperAI {
-  constructor({ asset, modelUrl, config, navigation, collision, checkoutQueue, checkoutLanes, checkoutConfig, weaponsConfig, toonFactory, debug, theftAllowed, dropsTrash, isInsideShop, onDropTrash, shelfThief, shelfFixtureId, shelfNodeId, shelfX, shelfZ, shelfHealth, shelfSlow, onTakeShelf, onReturnShelf, onLoseShelf }) {
+  constructor({ asset, modelUrl, config, navigation, collision, checkoutQueue, checkoutLanes, checkoutConfig, weaponsConfig, toonFactory, debug, theftAllowed, dropsTrash, isInsideShop, onDropTrash, shelfThief, shelfFixtureId, shelfNodeId, shelfX, shelfZ, shelfHealth, shelfSlow, onTakeShelf, onReturnShelf, onLoseShelf, rackGuide, playerPosition, playerSpeed, onRackTip, restoreThiefChance }) {
     this.id = nextShopperId;
     nextShopperId += 1;
     this.modelUrl = modelUrl;
@@ -131,6 +132,12 @@ export class ShopperAI {
     this.trashVisits = [];
     this.isInsideShop = isInsideShop ?? null;
     this.onDropTrash = onDropTrash ?? null;
+    this.rackGuide = rackGuide ?? null;
+    this.playerPosition = playerPosition ?? null;
+    this.playerSpeed = playerSpeed ?? null;
+    this.savedMoveSpeed = null;
+    this.onRackTip = onRackTip ?? null;
+    this.restoreThiefChance = restoreThiefChance ?? config.thiefChance;
 
     this.route = new ShopperRoute(navigation, {
       moveSpeed: config.moveSpeed + randomBetween(-config.speedJitter, config.speedJitter),
@@ -166,7 +173,7 @@ export class ShopperAI {
     this.visuals = new ShopperVisuals(this.group, model, debug);
 
     this.mixer = null;
-    this.actions = { idle: null, walk: null, carry: null, pickup: null, run: null, death: null };
+    this.actions = { idle: null, walk: null, carry: null, pickup: null, run: null, death: null, victory: null };
     this.currentAction = null;
     this.setupAnimations(model, asset.animations ?? []);
     this.refreshDebug();
@@ -181,6 +188,9 @@ export class ShopperAI {
     this.group.rotation.y = Math.PI / 2;
     this.state = ShopperState.ENTERING;
     this.goTo('entranceInside');
+    if (this.rackGuide?.icon) {
+      this.visuals.showRackAlert(this.rackGuide.icon);
+    }
   }
 
   update(dt) {
@@ -205,6 +215,11 @@ export class ShopperAI {
       return;
     }
     this.visuals.tick(dt);
+
+    if (this.rackGuide && !this.shopClosed && this.updateRackGuide(dt)) {
+      this.refreshDebug();
+      return;
+    }
 
     if (this.wait > 0) {
       this.wait -= dt;
@@ -288,18 +303,301 @@ export class ShopperAI {
     }
   }
 
+  within(x, z, ox, oz, radius) {
+    const dx = x - ox;
+    const dz = z - oz;
+    return dx * dx + dz * dz <= radius * radius;
+  }
+
+  updateRackGuide(dt) {
+    const guide = this.rackGuide;
+    if (!guide || guide.phase === 'done') {
+      return false;
+    }
+    if (guide.phase === 'approach') {
+      const player = this.playerPosition?.();
+      if (player && this.within(player.x, player.z, this.group.position.x, this.group.position.z, guide.approach)) {
+        guide.phase = 'follow';
+        this.visuals.hideCountdown();
+        this.followRackGuide(dt);
+        return true;
+      }
+      return false;
+    }
+    if (guide.phase === 'wait') {
+      guide.timer -= dt;
+      this.moving = false;
+      this.faceLook(dt);
+      this.updateAnimation(false, dt);
+      if (guide.timer <= 0) {
+        this.abandonRackGuide();
+        return true;
+      }
+      this.visuals.showCountdown(guide.timer);
+      const player = this.playerPosition?.();
+      if (player && this.within(player.x, player.z, this.group.position.x, this.group.position.z, guide.approach)) {
+        guide.phase = 'follow';
+        this.visuals.hideCountdown();
+        this.followRackGuide(dt);
+      }
+      return true;
+    }
+    if (guide.phase === 'follow') {
+      this.followRackGuide(dt);
+      return true;
+    }
+    if (guide.phase === 'deliver') {
+      this.deliverRackGuide(dt);
+      return true;
+    }
+    return false;
+  }
+
+  beginRackWait() {
+    const guide = this.rackGuide;
+    if (!guide) {
+      return;
+    }
+    guide.phase = 'wait';
+    guide.timer = guide.waitTime;
+    this.lookTarget = { x: -4.4, z: -3 };
+    this.moving = false;
+    this.route.halt();
+  }
+
+  abandonRackGuide() {
+    this.restoreFollowSpeed();
+    this.rackGuide = null;
+    this.visuals.hideRackAlert();
+    this.visuals.hideCountdown();
+    this.pending = null;
+    this.lookTarget = null;
+    if (this.shopClosed || this.state === ShopperState.DESPAWNED) {
+      return;
+    }
+    this.state = ShopperState.EXITING;
+    this.goTo('despawn', true);
+  }
+
+  followRackGuide(dt) {
+    const guide = this.rackGuide;
+    const player = this.playerPosition?.();
+    this.applyFollowSpeed();
+    if (!guide || !player) {
+      this.moving = false;
+      this.updateAnimation(false, dt);
+      return;
+    }
+    if (this.within(player.x, player.z, guide.x, guide.z, guide.rackRadius)) {
+      guide.phase = 'deliver';
+      this.deliverRackGuide(dt);
+      return;
+    }
+    this.stepTowardPlayer(dt, player, guide.followDistance);
+    this.applyFollowSpeed();
+  }
+
+  applyFollowSpeed() {
+    if (this.savedMoveSpeed == null) {
+      this.savedMoveSpeed = this.route.config.moveSpeed;
+    }
+    const speed = this.playerSpeed?.();
+    const next = Number.isFinite(speed) && speed > 0 ? speed : this.savedMoveSpeed;
+    this.route.config.moveSpeed = next;
+    if (this.actions.walk && this.savedMoveSpeed > 0) {
+      this.actions.walk.timeScale = next / this.savedMoveSpeed;
+    }
+  }
+
+  restoreFollowSpeed() {
+    if (this.savedMoveSpeed == null) {
+      return;
+    }
+    this.route.config.moveSpeed = this.savedMoveSpeed;
+    if (this.actions.walk) {
+      this.actions.walk.timeScale = 1;
+    }
+    this.savedMoveSpeed = null;
+  }
+
+  deliverRackGuide(dt) {
+    const guide = this.rackGuide;
+    if (!guide) {
+      return;
+    }
+    this.applyFollowSpeed();
+    const player = this.playerPosition?.();
+    if (!player || !this.within(player.x, player.z, guide.x, guide.z, guide.rackRadius * 1.55)) {
+      guide.phase = 'follow';
+      if (player) {
+        this.stepTowardPlayer(dt, player, guide.followDistance);
+      }
+      return;
+    }
+    if (this.route.targetId !== guide.nodeId || this.route.path.length === 0) {
+      this.goTo(guide.nodeId);
+    }
+    const result = this.route.update(dt, this.group, this.collision, this.radius);
+    this.moving = result === 'moving';
+    this.updateAnimation(this.moving, dt);
+    this.trackTrash();
+    if (result === 'arrived') {
+      this.completeRackGuide();
+    }
+  }
+
+  stepTowardPlayer(dt, player, stopDistance) {
+    const pos = this.group.position;
+    const dx = player.x - pos.x;
+    const dz = player.z - pos.z;
+    const dist = Math.hypot(dx, dz);
+    if (dist <= stopDistance) {
+      this.route.halt();
+      this.moving = false;
+      this.lookTarget = { x: player.x, z: player.z };
+      this.faceLook(dt);
+      this.updateAnimation(false, dt);
+      return;
+    }
+    const nx = dx / dist;
+    const nz = dz / dist;
+    const step = Math.min(this.route.config.moveSpeed * dt, dist - stopDistance);
+    if (step > 0 && !this.collision.blocksMovement(pos.x + nx * step, pos.z + nz * step, this.radius)) {
+      this.route.halt();
+      pos.x += nx * step;
+      pos.z += nz * step;
+      pos.y = 0;
+      this.route.face(this.group, nx, nz, dt);
+      this.moving = true;
+      this.updateAnimation(true, dt);
+      this.trackTrash();
+      return;
+    }
+    const node = this.navigation.nearest(player.x, player.z, true);
+    const far = node && Math.hypot(node.x - pos.x, node.z - pos.z) > 0.5;
+    if (far && node.id !== this.route.targetId) {
+      this.goTo(node.id);
+    } else if (!far && (this.route.path.length === 0 || this.route.index >= this.route.path.length)) {
+      const slipped = this.route.stepAround(
+        pos,
+        this.collision,
+        this.radius,
+        nx,
+        nz,
+        Math.max(step, 0.02),
+        player.x,
+        player.z,
+        dist
+      );
+      if (slipped) {
+        pos.x = slipped.x;
+        pos.z = slipped.z;
+        pos.y = 0;
+        this.route.face(this.group, slipped.nx, slipped.nz, dt);
+        this.moving = true;
+        this.updateAnimation(true, dt);
+        this.trackTrash();
+        return;
+      }
+      const detour = this.detourNode(player.x, player.z);
+      if (detour && detour !== this.route.targetId) {
+        this.goTo(detour);
+      }
+    }
+    const result = this.route.update(dt, this.group, this.collision, this.radius);
+    this.moving = result === 'moving';
+    this.updateAnimation(this.moving, dt);
+    this.trackTrash();
+    if (result === 'arrived' && dist > stopDistance + 0.35) {
+      this.route.halt();
+      const detour = this.detourNode(player.x, player.z);
+      if (detour) {
+        this.goTo(detour);
+      }
+    }
+  }
+
+  detourNode(px, pz) {
+    let best = null;
+    let bestScore = Infinity;
+    const pos = this.group.position;
+    for (const entry of this.navigation.nodes.values()) {
+      if (entry.kind !== 'lane' && entry.kind !== 'pick' && entry.kind !== 'approach' && entry.kind !== 'door') {
+        continue;
+      }
+      const fromHere = Math.hypot(entry.x - pos.x, entry.z - pos.z);
+      if (fromHere < 0.6) {
+        continue;
+      }
+      const score = Math.hypot(entry.x - px, entry.z - pz) + fromHere * 0.15;
+      if (score < bestScore) {
+        best = entry.id;
+        bestScore = score;
+      }
+    }
+    return best;
+  }
+
+  completeRackGuide() {
+    const guide = this.rackGuide;
+    this.restoreFollowSpeed();
+    this.rackGuide = null;
+    this.visuals.hideRackAlert();
+    this.visuals.hideCountdown();
+    this.lookTarget = guide ? { x: guide.x, z: guide.z } : null;
+    this.onRackTip?.();
+    const duration = this.playVictory();
+    this.pause(duration, () => {
+      if (
+        this.shopClosed
+        || this.state === ShopperState.DESPAWNED
+        || this.state === ShopperState.EXITING
+      ) {
+        return;
+      }
+      this.thiefChance = this.restoreThiefChance ?? this.thiefChance;
+      this.state = ShopperState.PICKING_ITEM;
+      this.playPickup();
+      this.pause(this.config.pickupWait, () => this.collectAndContinue());
+    });
+  }
+
+  playVictory() {
+    const action = this.actions.victory;
+    if (!action) {
+      return 0.9;
+    }
+    this.actionLock = 'victory';
+    action.reset().fadeIn(0.1).play();
+    if (this.currentAction && this.actions[this.currentAction]) {
+      this.actions[this.currentAction].fadeOut(0.1);
+    }
+    this.currentAction = 'victory';
+    return Math.max(0.9, action.getClip()?.duration ?? 1.2);
+  }
+
   onArrived() {
     const destination = this.navigation.nodes.get(this.destinationId);
     this.noteTrashVisit(destination);
 
     if (this.state === ShopperState.ENTERING) {
       this.state = ShopperState.ROAMING;
+      if (this.rackGuide) {
+        this.rackGuide.phase = 'approach';
+        this.goTo(this.rackGuide.waitNode);
+        return;
+      }
       if (this.shelfThief && this.shelfNodeId) {
         this.pending = 'shelf';
         this.goTo(this.shelfNodeId);
         return;
       }
       this.goPick();
+      return;
+    }
+
+    if (this.rackGuide?.phase === 'approach') {
+      this.beginRackWait();
       return;
     }
 
@@ -927,6 +1225,9 @@ export class ShopperAI {
 
   leaveBecauseShopClosed() {
     this.shopClosed = true;
+    this.restoreFollowSpeed();
+    this.rackGuide = null;
+    this.visuals.hideRackAlert();
     this.wait = 0;
     this.afterWait = null;
     this.pending = null;
@@ -1214,6 +1515,7 @@ export class ShopperAI {
     const pickupClip = findClip(clips, CLIP_ALIASES.pickup);
     const runClip = findClip(clips, CLIP_ALIASES.run, (name) => name.includes('carry'));
     const deathClip = findClip(clips, CLIP_ALIASES.death);
+    const victoryClip = findClip(clips, CLIP_ALIASES.victory);
     if (!idleClip && !walkClip) {
       return;
     }
@@ -1245,6 +1547,12 @@ export class ShopperAI {
       action.clampWhenFinished = true;
       this.actions.death = action;
     }
+    if (victoryClip) {
+      const action = this.mixer.clipAction(withoutRootMotion(victoryClip));
+      action.setLoop(THREE.LoopOnce, 1);
+      action.clampWhenFinished = true;
+      this.actions.victory = action;
+    }
 
     const starting = this.actions.idle ?? this.actions.walk;
     if (starting) {
@@ -1271,7 +1579,7 @@ export class ShopperAI {
       return;
     }
 
-    if (this.actionLock !== 'pickup') {
+    if (this.actionLock !== 'pickup' && this.actionLock !== 'victory') {
       let next = 'idle';
       if (moving) {
         if (this.closingRun && this.actions.run) {
@@ -1300,6 +1608,9 @@ export class ShopperAI {
       }
     }
 
+    if (this.savedMoveSpeed > 0 && this.actions.walk) {
+      this.actions.walk.timeScale = this.route.config.moveSpeed / this.savedMoveSpeed;
+    }
     this.mixer.update(dt);
   }
 
@@ -1323,6 +1634,10 @@ export class ShopperAI {
     } else if (this.isThief || this.state === ShopperState.DEFEATED_FLEEING || this.isThiefExit(this.destinationId) || this.destinationId === 'despawn') {
       lines.push(`State: ${this.state}`);
       lines.push('Target: Exit');
+    } else if (this.rackGuide) {
+      lines.push(`Ask: ${this.rackGuide.kind}`);
+      lines.push(this.rackGuide.phase);
+      lines.push(`Timer: ${Math.max(0, this.rackGuide.timer).toFixed(1)}`);
     } else {
       lines.push(this.state);
       lines.push(`Target: ${this.destinationId ?? '-'}`);

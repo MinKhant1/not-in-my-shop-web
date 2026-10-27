@@ -274,6 +274,21 @@ export const GameConfig = {
     speedScale: 0.4,
     reward: 30
   },
+  // From day 3, one customer asks where an unlocked bike, camera, or phone rack is.
+  rackGuide: {
+    startDay: 3,
+    waitTime: 30,
+    tip: 50,
+    approachRadius: 1.55,
+    rackRadius: 1.85,
+    followDistance: 1.15,
+    waitNode: 'westLower',
+    racks: [
+      { id: 'sports_bike_wall_rack', kind: 'bicycle', icon: '/assets/ui/hud/bicycle_alert.webp' },
+      { id: 'electronics_camera_rack', kind: 'camera', icon: '/assets/ui/hud/camera_alert.webp' },
+      { id: 'electronics_phone_rack', kind: 'phone', icon: '/assets/ui/hud/phone_alert.webp' }
+    ]
+  },
   trash: {
     model: '/models/objects/trash_bag.glb',
     startDay: 3,

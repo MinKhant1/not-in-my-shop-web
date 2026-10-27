@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { isFixtureCollisionId } from '../world/Store.js';
 import { fixtureById, SECTION_WIDTH, sectionEast, sectionIndexAt } from '../world/StoreSections.js';
 
 function node(id, x, z, kind, look = null) {
@@ -526,6 +527,117 @@ export class ShopperNavigation {
     }
   }
 
+  // A replaced shelf turns its collision back on. Walk points that sit in that
+  // volume are slid out, and anyone already standing there is pushed out too.
+  releaseBlocked(collision, id, radius) {
+    const moved = new Set();
+    const boxes = this.fixtureBoxes(collision, id);
+    if (boxes.length === 0) {
+      return moved;
+    }
+    const clearance = radius > 0 ? radius : 0.26;
+    for (let n = 0; n < this.nodeList.length; n += 1) {
+      const entry = this.nodeList[n];
+      if (entry.kind !== 'lane' && entry.kind !== 'pick' && entry.kind !== 'approach') {
+        continue;
+      }
+      let shifted = false;
+      for (let pass = 0; pass < 3; pass += 1) {
+        let hit = false;
+        for (let b = 0; b < boxes.length; b += 1) {
+          if (!this.covered(entry.x, entry.z, boxes[b], clearance)) {
+            continue;
+          }
+          const next = this.exitBox(entry.x, entry.z, boxes[b], clearance);
+          entry.x = next.x;
+          entry.z = next.z;
+          hit = true;
+          shifted = true;
+        }
+        if (!hit) {
+          break;
+        }
+      }
+      if (shifted) {
+        moved.add(entry.id);
+      }
+    }
+    return moved;
+  }
+
+  escapePoint(x, z, collision, id, radius) {
+    const boxes = this.fixtureBoxes(collision, id);
+    const clearance = radius > 0 ? radius : 0.22;
+    let px = x;
+    let pz = z;
+    let freed = false;
+    for (let pass = 0; pass < 3; pass += 1) {
+      let hit = false;
+      for (let b = 0; b < boxes.length; b += 1) {
+        if (!this.covered(px, pz, boxes[b], 0.02)) {
+          continue;
+        }
+        const next = this.exitBox(px, pz, boxes[b], clearance);
+        px = next.x;
+        pz = next.z;
+        hit = true;
+        freed = true;
+      }
+      if (!hit) {
+        break;
+      }
+    }
+    return freed ? { x: px, z: pz } : null;
+  }
+
+  fixtureBoxes(collision, id) {
+    const boxes = [];
+    const all = collision?.boxes ?? [];
+    for (let i = 0; i < all.length; i += 1) {
+      const box = all[i];
+      if (box.enabled === false) {
+        continue;
+      }
+      if (id) {
+        if (box.id === id) {
+          boxes.push(box);
+        }
+        continue;
+      }
+      if (isFixtureCollisionId(box.id)) {
+        boxes.push(box);
+      }
+    }
+    return boxes;
+  }
+
+  covered(x, z, box, radius) {
+    return x > box.minX - radius
+      && x < box.maxX + radius
+      && z > box.minZ - radius
+      && z < box.maxZ + radius;
+  }
+
+  exitBox(x, z, box, radius) {
+    const minX = box.minX - radius;
+    const maxX = box.maxX + radius;
+    const minZ = box.minZ - radius;
+    const maxZ = box.maxZ + radius;
+    const options = [
+      { x: minX - 0.06, z, cost: Math.max(0, x - minX) },
+      { x: maxX + 0.06, z, cost: Math.max(0, maxX - x) },
+      { x, z: minZ - 0.06, cost: Math.max(0, z - minZ) + 0.45 },
+      { x, z: maxZ + 0.06, cost: Math.max(0, maxZ - z) }
+    ];
+    let best = options[0];
+    for (let i = 1; i < options.length; i += 1) {
+      if (options[i].cost < best.cost) {
+        best = options[i];
+      }
+    }
+    return best;
+  }
+
   nearest(x, z, avoidQueue) {
     let best = this.nodeList[0];
     let bestDistance = Infinity;
@@ -849,10 +961,31 @@ export class ShopperRoute {
       return 'idle';
     }
 
+    const buried = this.navigation.escapePoint(position.x, position.z, collision, null, radius);
+    if (buried && this.targetId) {
+      position.x = buried.x;
+      position.z = buried.z;
+      position.y = 0;
+      this.setTarget(position.x, position.z, this.targetId, this.avoidQueue);
+      return 'moving';
+    }
+
     const dx = point.x - position.x;
     const dz = point.z - position.z;
     const distance = Math.hypot(dx, dz);
     const reach = this.config.waypointReachDistance;
+    if (collision.blocksMovement(point.x, point.z, 0.05) && distance <= 2) {
+      this.stuckTime = 0;
+      this.hasAnchor = false;
+      if (this.index < this.path.length - 1) {
+        this.index += 1;
+        this.skipReached(position.x, position.z);
+        this.draw();
+        return 'moving';
+      }
+      this.index = this.path.length;
+      return 'arrived';
+    }
     if (distance <= reach) {
       this.index += 1;
       this.stuckTime = 0;
@@ -1024,6 +1157,16 @@ export class ShopperRoute {
 
   clear() {
     this.navigation.clearRoute(this.shopperId);
+  }
+
+  halt() {
+    this.path = [];
+    this.index = 0;
+    this.targetId = null;
+    this.stuckTime = 0;
+    this.recoveries = 0;
+    this.hasAnchor = false;
+    this.clear();
   }
 
   get point() {

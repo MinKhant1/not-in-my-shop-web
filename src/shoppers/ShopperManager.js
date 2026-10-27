@@ -4,6 +4,7 @@ import { CheckoutQueueManager } from './CheckoutQueueManager.js';
 import { customersPerDay } from './customerQuota.js';
 import { ShopperAI } from './ShopperAI.js';
 import { ShopperNavigation } from './ShopperNavigation.js';
+import { fixtureById } from '../world/StoreSections.js';
 import { ShopperState } from './ShopperState.js';
 
 function randomBetween(min, max) {
@@ -43,6 +44,14 @@ export class ShopperManager {
     this.shelfPlanDay = null;
     this.shelfThiefMinute = null;
     this.shelfThiefDoneDay = 0;
+    this.rackRules = config.rackGuide ?? {};
+    this.rackGuideDoneDay = 0;
+    this.rackGuidePlan = null;
+    this.rackGuidePending = false;
+    this.playerPosition = null;
+    this.playerSpeed = null;
+    this.ownsFixture = null;
+    this.onRackGuideSpawned = null;
     this.onShelfThiefSpawned = null;
     this.onShelfReturned = null;
     this.isInsideShop = null;
@@ -75,12 +84,96 @@ export class ShopperManager {
     }
   }
 
-  syncShelfPicks(ids) {
-    this.navigation.syncShelfPicks(ids);
-  }
-
   addShelf(id) {
     this.navigation.enableShelf(id);
+    this.dodgeFixtures([id]);
+  }
+
+  syncShelfPicks(ids) {
+    this.navigation.syncShelfPicks(ids);
+    this.dodgeFixtures(ids);
+  }
+
+  dodgeFixtures(ids) {
+    const list = Array.isArray(ids) ? ids : [];
+    for (let i = 0; i < list.length; i += 1) {
+      const parts = this.store?.shelfPartIds?.(list[i]) ?? [list[i]];
+      for (let p = 0; p < parts.length; p += 1) {
+        this.dodgeCollision(parts[p]);
+      }
+    }
+  }
+
+  dodgeCollision(id) {
+    if (!id || !this.collision) {
+      return;
+    }
+    const moved = this.navigation.releaseBlocked(this.collision, id, 0.26);
+    const pushed = new Set();
+    for (let i = 0; i < this.shoppers.length; i += 1) {
+      const shopper = this.shoppers[i];
+      if (shopper.state === ShopperState.DESPAWNED) {
+        continue;
+      }
+      const freed = this.navigation.escapePoint(
+        shopper.group.position.x,
+        shopper.group.position.z,
+        this.collision,
+        id,
+        shopper.radius
+      );
+      if (!freed) {
+        continue;
+      }
+      shopper.group.position.x = freed.x;
+      shopper.group.position.z = freed.z;
+      pushed.add(shopper);
+    }
+    this.repathAround(moved, pushed);
+  }
+
+  repathAround(moved, pushed) {
+    if ((!moved || moved.size === 0) && (!pushed || pushed.size === 0)) {
+      return;
+    }
+    for (let i = 0; i < this.shoppers.length; i += 1) {
+      const shopper = this.shoppers[i];
+      if (!this.shouldRepath(shopper, moved, pushed)) {
+        continue;
+      }
+      shopper.goTo(shopper.destinationId, shopper.route.avoidQueue === true);
+    }
+  }
+
+  shouldRepath(shopper, moved, pushed) {
+    if (!shopper.destinationId || shopper.wait > 0) {
+      return false;
+    }
+    const state = shopper.state;
+    if (
+      state === ShopperState.KNOCKED_OUT
+      || state === ShopperState.DESPAWNED
+      || state === ShopperState.WAITING_IN_QUEUE
+      || state === ShopperState.WAITING_FOR_CHECKOUT
+      || state === ShopperState.CHECKING_OUT
+      || state === ShopperState.ANGRY
+    ) {
+      return false;
+    }
+    if (pushed?.has(shopper)) {
+      return true;
+    }
+    if (moved?.has(shopper.destinationId)) {
+      return true;
+    }
+    const path = shopper.route?.path ?? [];
+    const start = shopper.route?.index ?? 0;
+    for (let i = start; i < path.length; i += 1) {
+      if (moved?.has(path[i].id)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   async load() {
@@ -185,6 +278,7 @@ export class ShopperManager {
     this.spawnedToday = 0;
     this.pendingSpawns = 0;
     this.shelfClaims.clear();
+    this.rackGuidePending = false;
     this.spawnTimer = this.config.firstSpawnDelay;
     this.setSpawningEnabled(true);
   }
@@ -347,6 +441,106 @@ export class ShopperManager {
     this.shelfClaims.delete(id);
   }
 
+  rackIsOpen(fixture) {
+    if (!fixture || !this.store?.isUnlocked?.(fixture.sectionId)) {
+      return false;
+    }
+    if (this.store.isShelfStolen?.(fixture.id)) {
+      return false;
+    }
+    if (this.ownsFixture?.(fixture.id) === true) {
+      return true;
+    }
+    return this.store.spawnedFixtures?.has(fixture.id) === true;
+  }
+
+  openRackGuides() {
+    const specs = this.rackRules?.racks ?? [];
+    const open = [];
+    for (let i = 0; i < specs.length; i += 1) {
+      const spec = specs[i];
+      const fixture = fixtureById.get(spec.id);
+      if (!this.rackIsOpen(fixture)) {
+        continue;
+      }
+      this.navigation.enableShelf(fixture);
+      const spot = this.navigation.shelfNode(fixture.id);
+      if (!spot) {
+        continue;
+      }
+      open.push({
+        kind: spec.kind,
+        icon: spec.icon,
+        fixtureId: fixture.id,
+        x: fixture.position[0],
+        z: fixture.position[2],
+        nodeId: spot.id
+      });
+    }
+    return open;
+  }
+
+  claimRackGuide() {
+    if (this.rackGuidePending) {
+      return null;
+    }
+    const day = this.customerSources?.day?.() ?? 1;
+    const rules = this.rackRules ?? {};
+    if (day < (rules.startDay ?? 3) || this.rackGuideDoneDay === day) {
+      return null;
+    }
+    const open = this.openRackGuides();
+    if (open.length === 0) {
+      return null;
+    }
+    const quota = Math.max(1, this.customerQuota());
+    let rack = this.rackGuidePlan?.day === day
+      ? open.find((entry) => entry.fixtureId === this.rackGuidePlan.fixtureId)
+      : null;
+    if (!this.rackGuidePlan || this.rackGuidePlan.day !== day || !Number.isInteger(this.rackGuidePlan.slot)) {
+      rack = rack ?? open[Math.floor(Math.random() * open.length)];
+      this.rackGuidePlan = {
+        day,
+        fixtureId: rack.fixtureId,
+        slot: Math.floor(Math.random() * quota)
+      };
+    }
+    if (!rack) {
+      rack = open[Math.floor(Math.random() * open.length)];
+      this.rackGuidePlan.fixtureId = rack.fixtureId;
+    }
+    const lastChance = this.spawnedToday + 1 >= quota;
+    if (this.spawnedToday < this.rackGuidePlan.slot && !lastChance) {
+      return null;
+    }
+    this.rackGuidePending = true;
+    return {
+      kind: rack.kind,
+      icon: rack.icon,
+      fixtureId: rack.fixtureId,
+      x: rack.x,
+      z: rack.z,
+      nodeId: rack.nodeId,
+      phase: 'approach',
+      timer: rules.waitTime ?? 30,
+      waitTime: rules.waitTime ?? 30,
+      approach: rules.approachRadius ?? 1.55,
+      rackRadius: rules.rackRadius ?? 1.85,
+      followDistance: rules.followDistance ?? 1.15,
+      waitNode: rules.waitNode ?? 'westLower'
+    };
+  }
+
+  finishRackGuideSpawn(day) {
+    this.rackGuidePending = false;
+    this.rackGuideDoneDay = day;
+    this.onRackGuideSpawned?.(day);
+  }
+
+  cancelRackGuideSpawn() {
+    this.rackGuidePending = false;
+  }
+
   spawn() {
     if (!this.spawningEnabled || this.shoppers.length + this.pendingSpawns >= this.config.maxActive) {
       return false;
@@ -373,7 +567,8 @@ export class ShopperManager {
     const unused = models.filter((url) => !inUse.has(url));
     const pool = unused.length ? unused : models;
     const modelUrl = pool[Math.floor(Math.random() * pool.length)];
-    const role = this.rollCustomerRole();
+    const guide = this.claimRackGuide();
+    const role = guide ? { thiefChance: 0, shelf: null } : this.rollCustomerRole();
     const generation = this.spawnGeneration;
     this.spawning = true;
     this.pendingSpawns += 1;
@@ -384,6 +579,9 @@ export class ShopperManager {
       this.spawning = false;
       this.pendingSpawns = Math.max(0, this.pendingSpawns - 1);
       this.releaseShelf(role.shelf?.target.id, role.shelf?.claim);
+      if (guide) {
+        this.cancelRackGuideSpawn();
+      }
       console.error('Failed to spawn shopper', error);
       return false;
     }
@@ -394,6 +592,9 @@ export class ShopperManager {
       this.pendingSpawns = Math.max(0, this.pendingSpawns - 1);
       if (!this.spawningEnabled || generation !== this.spawnGeneration || this.shoppers.length >= this.config.maxActive) {
         this.releaseShelf(role.shelf?.target.id, role.shelf?.claim);
+        if (guide) {
+          this.cancelRackGuideSpawn();
+        }
         return;
       }
       const day = this.customerSources?.day?.() ?? 1;
@@ -441,7 +642,16 @@ export class ShopperManager {
             this.store?.setShelfCollision(id, true);
           }
         },
-        onLoseShelf: (id) => this.store?.loseShelf(id)
+        onLoseShelf: (id) => this.store?.loseShelf(id),
+        rackGuide: guide,
+        playerPosition: () => this.playerPosition?.() ?? null,
+        playerSpeed: () => this.playerSpeed?.() ?? null,
+        onRackTip: () => {
+          const tip = this.rackRules?.tip ?? 50;
+          this.dayStats?.money.addMoney(tip);
+          this.audio?.coin();
+        },
+        restoreThiefChance: this.config.thiefChance
       });
       shopper.shelfClaim = shelfClaim;
       shopper.assignShelfClaim = (claim) => {
@@ -473,6 +683,9 @@ export class ShopperManager {
       };
       this.scene.add(shopper.group);
       this.shoppers.push(shopper);
+      if (guide) {
+        this.finishRackGuideSpawn(day);
+      }
       this.spawnedToday += 1;
       this.dayStats?.recordCustomer();
     }).catch((error) => {
@@ -481,6 +694,9 @@ export class ShopperManager {
       }
       this.pendingSpawns = Math.max(0, this.pendingSpawns - 1);
       this.releaseShelf(role.shelf?.target.id, role.shelf?.claim);
+      if (guide) {
+        this.cancelRackGuideSpawn();
+      }
       console.error('Failed to spawn shopper', error);
     });
     return true;

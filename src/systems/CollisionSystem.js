@@ -27,6 +27,9 @@ export class CollisionSystem {
       minZ: this._box.min.z - pad,
       maxZ: this._box.max.z + pad
     });
+    if (meta?.enabled !== false) {
+      this.onEnabled?.(meta?.id ?? null);
+    }
   }
 
   setIdEnabled(id, enabled) {
@@ -37,6 +40,9 @@ export class CollisionSystem {
         boxes[i].enabled = enabled === true;
         changed = true;
       }
+    }
+    if (changed && enabled === true) {
+      this.onEnabled?.(id);
     }
     return changed;
   }

@@ -30,6 +30,21 @@ const SHELF_PARTS = {
   grocery_fruit_bread: ['display-fruit', 'display-bread']
 };
 
+export function isFixtureCollisionId(id) {
+  if (!id || typeof id !== 'string') {
+    return false;
+  }
+  if (fixtureById.has(id)) {
+    return true;
+  }
+  for (const parts of Object.values(SHELF_PARTS)) {
+    if (parts.includes(id)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 function isArchitectureModel(url) {
   return typeof url === 'string' && url.startsWith('/models/environment/') && !isFloorModel(url);
 }

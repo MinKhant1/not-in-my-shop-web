@@ -6,7 +6,7 @@ import { CollisionSystem } from '../systems/CollisionSystem.js';
 import { InputSystem } from '../systems/InputSystem.js';
 import { VirtualJoystick } from '../ui/VirtualJoystick.js';
 import { FollowCamera } from '../camera/FollowCamera.js';
-import { Store } from '../world/Store.js';
+import { isFixtureCollisionId, Store } from '../world/Store.js';
 import { reservedSpot, sectionIndexAt } from '../world/StoreSections.js';
 import { cleanShopName, ShopSign } from '../world/ShopSign.js';
 import { OutsideEnvironment } from '../world/OutsideEnvironment.js';
@@ -73,6 +73,12 @@ export class Game {
     this.followCamera = new FollowCamera(this.config);
     this.player = null;
     this.shoppers = new ShopperManager(this.scene, this.loader, this.collision, this.config);
+    this.collision.onEnabled = (id) => {
+      if (!isFixtureCollisionId(id)) {
+        return;
+      }
+      this.shoppers.dodgeCollision(id);
+    };
     this.occlusion = new PlayerOcclusionManager(this.scene, this.config);
     this.money = new MoneyManager(this.config.economy?.startingMoney ?? 0);
     this.upgrades = new ShopUpgrades();
@@ -150,8 +156,10 @@ export class Game {
     store.applyStolen(this.save.data.stolenShelves);
     this.shoppers.store = store;
     this.shoppers.shelfThiefDoneDay = Number(this.save.data.shelfThiefDay) || 0;
+    this.shoppers.rackGuideDoneDay = Number(this.save.data.rackGuideDay) || 0;
     store.onShelvesChanged = () => this.persistStolenShelves();
     this.shoppers.onShelfThiefSpawned = (day) => this.save.write({ shelfThiefDay: day });
+    this.shoppers.onRackGuideSpawned = (day) => this.save.write({ rackGuideDay: day });
     this.shoppers.onShelfReturned = (id) => this.purchases?.holdReturnedShelf(id);
     this.shoppers.syncSections(store.maxUnlocked);
     this.shoppers.syncShelfPicks(ownedFixtures);
@@ -277,6 +285,11 @@ export class Game {
       this.purchases.owned.delete(id);
     }
     this.purchases.syncOffers();
+    this.shoppers.playerPosition = () => this.player.group.position;
+    this.shoppers.playerSpeed = () => this.player.speed;
+    this.shoppers.ownsFixture = (id) => (
+      this.purchases.owned.has(id) || this.store.spawnedFixtures.has(id)
+    ) && !this.store.isShelfStolen(id);
     this.shoppers.setCustomerSources({
       day: () => this.dayNight.dayNumber,
       gameMinutes: () => this.dayNight.gameMinutes(),
@@ -757,6 +770,7 @@ export class Game {
     this.checkout?.cancel();
     this.intercom?.resetCooldown();
     this.replayShelfThief();
+    this.replayRackGuide();
     this.shoppers.clearLive();
     this.dayNight.applySnapshot({
       number: this.dayNight.dayNumber,
@@ -776,6 +790,16 @@ export class Game {
     this.shoppers.shelfPlanDay = null;
     this.shoppers.shelfThiefMinute = null;
     this.save.write({ shelfThiefDay: 0 });
+  }
+
+  replayRackGuide() {
+    const day = this.dayNight.dayNumber;
+    if (!this.shoppers || this.shoppers.rackGuideDoneDay !== day) {
+      return;
+    }
+    this.shoppers.rackGuideDoneDay = 0;
+    this.shoppers.rackGuidePlan = null;
+    this.save.write({ rackGuideDay: 0 });
   }
 
   persistStolenShelves() {
@@ -810,6 +834,9 @@ export class Game {
       this.shoppers.shelfThiefDoneDay = 0;
       this.shoppers.shelfPlanDay = null;
       this.shoppers.shelfThiefMinute = null;
+      this.shoppers.rackGuideDoneDay = 0;
+      this.shoppers.rackGuidePlan = null;
+      this.shoppers.rackGuidePending = false;
     }
     const persist = this.money.persist;
     this.money.persist = null;
@@ -865,6 +892,7 @@ export class Game {
       purchasedFixtures: [],
       stolenShelves: [],
       shelfThiefDay: 0,
+      rackGuideDay: 0,
       hotdogs: this.hotdogs?.snapshot() ?? { spicy: 0, cheese: 0, classic: 0, eatenNight: 0 },
       pendingPurchase: null,
       played: false,
