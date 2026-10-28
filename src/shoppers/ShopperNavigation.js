@@ -805,10 +805,16 @@ export class ShopperNavigation {
   }
 
   // A lane or stocked shelf that can actually be walked to from here.
-  interiorSpot(x, z, exceptId) {
+  // range.min / range.max keep a retreat a little farther inside, not the next node.
+  interiorSpot(x, z, exceptId, range) {
     const start = this.nearest(x, z, true);
     const startId = start?.id ?? null;
-    const pool = [];
+    const minDist = range?.min ?? 1.05;
+    const maxDist = range?.max ?? Infinity;
+    const preferred = [];
+    const aim = Number.isFinite(maxDist) ? (minDist + maxDist) * 0.5 : minDist + 1.5;
+    let closestAim = null;
+    let closestAimGap = Infinity;
     for (let i = 0; i < this.nodeList.length; i += 1) {
       const entry = this.nodeList[i];
       if (entry.id === exceptId) {
@@ -820,9 +826,8 @@ export class ShopperNavigation {
       if (entry.stocked === false) {
         continue;
       }
-      const dx = entry.x - x;
-      const dz = entry.z - z;
-      if (dx * dx + dz * dz < 1.1) {
+      const dist = Math.hypot(entry.x - x, entry.z - z);
+      if (dist < 0.9) {
         continue;
       }
       if (startId) {
@@ -831,10 +836,21 @@ export class ShopperNavigation {
           continue;
         }
       }
-      pool.push(entry.id);
+      if (dist >= minDist && dist <= maxDist) {
+        preferred.push(entry.id);
+        continue;
+      }
+      const gap = Math.abs(dist - aim);
+      if (dist >= 1.8 && gap < closestAimGap) {
+        closestAim = entry.id;
+        closestAimGap = gap;
+      }
     }
-    if (pool.length > 0) {
-      return pool[Math.floor(Math.random() * pool.length)];
+    if (preferred.length > 0) {
+      return preferred[Math.floor(Math.random() * preferred.length)];
+    }
+    if (closestAim) {
+      return closestAim;
     }
     if (startId && startId !== exceptId) {
       return startId;

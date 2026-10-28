@@ -563,12 +563,21 @@ export class ShopperManager {
     }
     const quota = Math.max(1, this.customerQuota());
     if (!this.problemPlan || this.problemPlan.day !== day || !Number.isInteger(this.problemPlan.slot)) {
+      const chance = rules.chance ?? 0.5;
+      if (Math.random() >= chance) {
+        this.problemPlan = { day, slot: 0, skip: true };
+        this.finishProblemSpawn(day);
+        return false;
+      }
       let slot = Math.floor(Math.random() * quota);
       const guideSlot = this.rackGuidePlan?.day === day ? this.rackGuidePlan.slot : null;
       if (guideSlot === slot && quota > 1) {
         slot = (slot + 1) % quota;
       }
-      this.problemPlan = { day, slot };
+      this.problemPlan = { day, slot, skip: false };
+    }
+    if (this.problemPlan.skip) {
+      return false;
     }
     const lastChance = this.spawnedToday + 1 >= quota;
     if (this.spawnedToday < this.problemPlan.slot && !lastChance) {

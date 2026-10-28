@@ -639,7 +639,7 @@ export class ShopperAI {
       this.problem.rollLeft -= dt;
       this.updateAnimation(false, dt);
       if (this.problem.rollLeft <= 0) {
-        this.relocateProblem();
+        this.relocateProblem(false, true);
       }
       return true;
     }
@@ -748,13 +748,18 @@ export class ShopperAI {
     this.playProblemJump();
   }
 
-  relocateProblem(keepUnstick = false) {
+  relocateProblem(keepUnstick = false, far = false) {
     if (!this.problem || this.shopClosed || this.isDefeated) {
       return;
     }
     const unstick = this.problem.unstick;
     const pos = this.group.position;
-    const next = this.navigation.interiorSpot(pos.x, pos.z, this.lastProblemSpot);
+    const next = this.navigation.interiorSpot(
+      pos.x,
+      pos.z,
+      this.lastProblemSpot,
+      far ? { min: 2.4, max: 4.2 } : null
+    );
     this.lastProblemSpot = next;
     this.problem.phase = 'relocate';
     this.problem.unstick = keepUnstick ? unstick : 0;
@@ -812,7 +817,12 @@ export class ShopperAI {
       return;
     }
     if (allowJump && !this.shopClosed && !this.isDefeated) {
-      this.relocateProblem(true);
+      if (this.destinationId && this.problem.unstick < 3) {
+        this.problem.phase = 'relocate';
+        this.goTo(this.destinationId, true);
+        return;
+      }
+      this.snapProblemFree(true);
       return;
     }
     const target = this.destinationId || 'despawn';
@@ -821,22 +831,28 @@ export class ShopperAI {
 
   snapProblemFree(thenJump) {
     const pos = this.group.position;
-    let best = null;
-    let bestDist = Infinity;
-    for (const entry of this.navigation.nodes.values()) {
-      if (entry.kind !== 'lane' && entry.kind !== 'pick') {
-        continue;
-      }
-      if (entry.stocked === false) {
-        continue;
-      }
-      if (this.collision.blocksMovement(entry.x, entry.z, Math.min(this.radius, 0.12))) {
-        continue;
-      }
-      const dist = Math.hypot(entry.x - pos.x, entry.z - pos.z);
-      if (dist < bestDist) {
-        best = entry;
-        bestDist = dist;
+    const goal = thenJump ? this.navigation.nodes.get(this.destinationId) : null;
+    const goalClear = goal
+      && (goal.kind === 'lane' || goal.kind === 'pick')
+      && !this.collision.blocksMovement(goal.x, goal.z, Math.min(this.radius, 0.12));
+    let best = goalClear ? goal : null;
+    let bestDist = goalClear ? 0 : Infinity;
+    if (!best) {
+      for (const entry of this.navigation.nodes.values()) {
+        if (entry.kind !== 'lane' && entry.kind !== 'pick') {
+          continue;
+        }
+        if (entry.stocked === false) {
+          continue;
+        }
+        if (this.collision.blocksMovement(entry.x, entry.z, Math.min(this.radius, 0.12))) {
+          continue;
+        }
+        const dist = Math.hypot(entry.x - pos.x, entry.z - pos.z);
+        if (dist < bestDist) {
+          best = entry;
+          bestDist = dist;
+        }
       }
     }
     this.problem.unstick = 0;
@@ -1058,11 +1074,7 @@ export class ShopperAI {
     return Boolean(this.problem)
       && !this.shopClosed
       && !this.isDefeated
-      && (
-        this.problem.phase === 'jump'
-        || this.problem.phase === 'roll'
-        || this.problem.phase === 'relocate'
-      );
+      && this.problem.phase === 'jump';
   }
 
   isAttackable() {

@@ -289,9 +289,10 @@ export const GameConfig = {
       { id: 'electronics_phone_rack', kind: 'phone', icon: '/assets/ui/hud/phone_alert.webp' }
     ]
   },
-  // From day 5, one customer jumps around the aisles until the player stops him.
+  // From day 5, a 50% roll decides whether one jumper shows up that day.
   problemCustomer: {
     startDay: 5,
+    chance: 0.5,
     health: 80,
     reward: 50,
     speedScale: 2,
